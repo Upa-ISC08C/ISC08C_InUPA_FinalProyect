@@ -1,0 +1,107 @@
+@startuml
+hide circle
+skinparam linetype ortho
+skinparam Nodesep 60
+skinparam Ranksep 60
+
+entity "USUARIOS" as usuarios {
+  *id : uuid <<PK>>
+  --
+  matricula_o_rfc : varchar <<UK>>
+  nombre_completo : varchar
+  correo_institucional : varchar <<UK>>
+  password_hash : varchar
+  activo : boolean
+  fecha_registro : timestamp
+}
+
+entity "PERFILES" as perfiles {
+  *id : uuid <<PK>>
+  --
+  *usuario_id : uuid <<FK>>
+  titular_profesional : varchar
+  biografia : text
+  url_cv_base : varchar 
+  url_foto : varchar
+  github_url : varchar
+  linkedin_url : varchar
+}
+
+entity "EXPERIENCIA_LABORAL" as experiencia {
+  *id : uuid <<PK>>
+  --
+  *perfil_id : uuid <<FK>>
+  empresa : varchar
+  puesto : varchar
+  fecha_inicio : date
+  fecha_fin : date
+  actual : boolean
+  descripcion : text
+}
+
+entity "EDUCACION" as educacion {
+  *id : uuid <<PK>>
+  --
+  *perfil_id : uuid <<FK>>
+  institucion : varchar
+  carrera_o_grado : varchar
+  cohorte_o_grupo : varchar
+  fecha_inicio : date
+  fecha_fin : date
+  graduado : boolean
+}
+
+entity "HABILIDADES" as habilidades {
+  *id : uuid <<PK>>
+  --
+  nombre : varchar <<UK>>
+  categoria : varchar
+}
+
+entity "PERFIL_HABILIDADES" as perfil_habilidades {
+  *perfil_id : uuid <<FK>>
+  *habilidad_id : uuid <<FK>>
+  --
+}
+
+entity "PROYECTOS_PORTAFOLIO" as proyectos {
+  *id : uuid <<PK>>
+  --
+  *perfil_id : uuid <<FK>>
+  nombre_proyecto : varchar
+  descripcion : text
+  url_repositorio : varchar
+  url_despliegue : varchar
+  fecha_realizacion : date
+}
+
+entity "VACANTES" as vacantes {
+  *id : uuid <<PK>>
+  --
+  titulo : varchar
+  empresa : varchar
+  descripcion : text
+  requisitos : text
+  url_origen : varchar 
+  activa : boolean
+  fecha_publicacion : timestamp
+}
+
+entity "ADAPTACIONES_CV" as adaptaciones {
+  *id : uuid <<PK>>
+  --
+  *perfil_id : uuid <<FK>>
+  *vacante_id : uuid <<FK>>
+  contenido_adaptado : jsonb 
+  fecha_generacion : timestamp
+}
+
+usuarios ||--|| perfiles : "tiene"
+perfiles ||--o{ experiencia : "registra"
+perfiles ||--o{ educacion : "registra"
+perfiles ||--o{ perfil_habilidades : "posee"
+habilidades ||--o{ perfil_habilidades : "asociada a"
+perfiles ||--o{ proyectos : "muestra"
+perfiles ||--o{ adaptaciones : "genera"
+vacantes ||--o{ adaptaciones : "es objetivo de"
+@enduml
