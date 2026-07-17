@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: inupa_db
+    restart: always
+    environment:
+      POSTGRES_USER: inupa_admin
+      POSTGRES_PASSWORD: REDACTED_PASSWORD
+      POSTGRES_DB: inupadb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: docker/Dockerfile.dev
+    container_name: inupa_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_USER=inupa_admin
+      - DB_PASSWORD=REDACTED_PASSWORD
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=inupadb
+      - JWT_SECRET=REDACTED_JWT_SECRET
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USER=tu_correo@gmail.com
+      - MAIL_PASS=tu_app_password
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: docker/Dockerfile.dev
+    container_name: inupa_frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
