@@ -1,0 +1,61 @@
+name: QA Preview (Runner Windows)
+
+# Levanta el entorno del PR en TU maquina Windows (self-hosted runner) con Docker,
+# para la revision visual (QA). Se activa cuando el PR recibe la etiqueta "qa".
+#
+# REQUISITO: tener un self-hosted runner registrado con las labels [self-hosted, windows]
+# y Docker Desktop corriendo. Ver CONTRIBUTING.md > "Registrar el Runner de Windows".
+#
+# ADVERTENCIA DE SEGURIDAD: un self-hosted runner ejecuta el codigo del PR en tu
+# maquina. Usa esto solo con PRs de tu propio equipo/repositorio, nunca con forks
+# externos no confiables.
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, synchronize, closed]
+    branches: [develop, qa]
+
+concurrency:
+  group: qa-preview
+  cancel-in-progress: false
+
+jobs:
+  levantar:
+    name: Levantar entorno de QA
+    # Corre solo si el PR esta abierto y tiene la etiqueta "qa".
+    if: >-
+      github.event.pull_request.state == 'open' &&
+      github.event.action != 'unlabeled' &&
+      contains(github.event.pull_request.labels.*.name, 'qa')
+    runs-on: [self-hosted, windows]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bajar entorno previo (si existe)
+        run: docker compose -f docker/docker-compose.yml down -v
+        continue-on-error: true
+      - name: Construir y levantar
+        run: docker compose -f docker/docker-compose.yml up -d --build
+      - name: Publicar URLs de QA
+        shell: bash
+        run: |
+          {
+            echo "### Entorno de QA levantado en el Runner de Windows"
+            echo ""
+            echo "- Frontend: http://localhost:5173"
+            echo "- Backend (health): http://localhost:3000/health"
+            echo ""
+            echo "Cuando termines la revision, quita la etiqueta 'qa' o cierra el PR para bajar el entorno."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  bajar:
+    name: Bajar entorno de QA
+    # Corre al quitar la etiqueta o al cerrar el PR.
+    if: >-
+      github.event.action == 'closed' ||
+      github.event.action == 'unlabeled'
+    runs-on: [self-hosted, windows]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bajar entorno
+        run: docker compose -f docker/docker-compose.yml down -v
+        continue-on-error: true

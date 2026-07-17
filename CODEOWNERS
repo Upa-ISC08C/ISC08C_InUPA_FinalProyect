@@ -1,4 +1,7 @@
-# Infraestructura blindada
+# Todo PR requiere revision del lider tecnico (QA + aprobacion).
+*   @JuanJesusRodriguezArellano
+
+# Infraestructura blindada (regla mas especifica, refuerza al mismo owner)
 /.github/workflows/  @JuanJesusRodriguezArellano
 /docker-compose.yml   @JuanJesusRodriguezArellano
 /backend/docker/      @JuanJesusRodriguezArellano
