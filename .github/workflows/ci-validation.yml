@@ -1,22 +1,65 @@
 name: CI Validation
+
+# El "Robot Inspector": valida cada Pull Request antes de la revision humana.
+# Compila (typecheck) backend y frontend. Lint/tests corren solo si existe config,
+# para no bloquear el flujo mientras el proyecto esta en andamiaje.
+
 on:
   pull_request:
     branches: [main, qa, develop]
 
+# Si se sube un commit nuevo al PR, cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  validate:
-    runs-on: windows-latest
+  backend:
+    name: Backend - typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # cache: 'npm'
-          # cache-dependency-path: |
-          #   backend/package-lock.json
-          #   frontend/package-lock.json
-      - run: echo "Running lint and tests (placeholder)"
-      # Descomentar cuando existan scripts y dependencias instaladas:
-      # - run: cd backend && npm ci && npm run lint && npm test
-      # - run: cd frontend && npm ci && npm run lint && npm test
+      - name: Instalar dependencias
+        run: npm install
+      - name: Compilar / typecheck (tsc)
+        run: npm run build
+      - name: Lint (solo si hay config de ESLint)
+        shell: bash
+        run: |
+          if ls .eslintrc* eslint.config.* >/dev/null 2>&1; then
+            npm run lint
+          else
+            echo "Sin config de ESLint en backend: se omite lint."
+          fi
+
+  frontend:
+    name: Frontend - typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar dependencias
+        run: npm install
+      - name: Compilar (tsc + vite build)
+        run: npm run build
+      - name: Lint (solo si hay config de ESLint)
+        shell: bash
+        run: |
+          if ls .eslintrc* eslint.config.* >/dev/null 2>&1; then
+            npm run lint
+          else
+            echo "Sin config de ESLint en frontend: se omite lint."
+          fi
