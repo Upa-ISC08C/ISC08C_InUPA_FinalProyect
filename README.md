@@ -161,31 +161,23 @@ npm run dev        # arranca en http://localhost:5173
 
 ## 🔐 Variables de entorno
 
-> ⚠️ **Nunca subas archivos `.env` al repo** (ya están en `.gitignore`).
+> ⚠️ **Nunca subas archivos `.env`, contraseñas, secretos ni tokens al repositorio.**
+> Los `.env` ya están en `.gitignore`. Guarda los valores reales **solo en tu `.env` local**.
 
-### Backend — `backend/.env`
+Cada quien crea sus propios archivos de entorno en local. Pide al **líder del proyecto** los
+valores reales (o usa una plantilla `.env.example` **sin secretos**). Estas son las variables
+que se usan (solo los nombres, sin valores):
 
-```env
-PORT=3000
-DB_USER=inupa_admin
-DB_PASSWORD=secretpassword
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=inupadb
-JWT_SECRET=cambia_esto_por_un_secreto_largo
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USER=tu_correo@gmail.com
-MAIL_PASS=tu_app_password
-```
+- **Backend** (`backend/.env`):
+  - Conexión a PostgreSQL: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+  - API: `PORT`
+  - Seguridad: `JWT_SECRET`
+  - Correo (envío de OTP): `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`
+- **Frontend** (`frontend/.env`):
+  - URL del backend: `VITE_API_URL`
 
-### Frontend — `frontend/.env`
-
-```env
-VITE_API_URL=http://localhost:3000/api
-```
-
-> Con Docker, estas variables ya vienen configuradas en `docker/docker-compose.yml`.
+> Si corres con **Docker** (Opción A), el entorno de desarrollo local ya queda configurado y
+> no necesitas crear estos archivos a mano.
 
 ---
 
