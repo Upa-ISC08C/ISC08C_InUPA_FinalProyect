@@ -1,0 +1,15 @@
+# No copiar al contexto de build de la imagen (incluye info sensible).
+node_modules
+dist
+build
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+*.log
+logs
+.vscode
+.idea
+Dockerfile*
+.dockerignore
