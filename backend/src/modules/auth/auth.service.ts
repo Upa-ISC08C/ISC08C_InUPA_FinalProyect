@@ -62,7 +62,10 @@ export class AuthService {
     }
 
     // Generar JWT
-    const jwtSecret = process.env.JWT_SECRET || 'secret';
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET no está configurado en las variables de entorno');
+    }
     const accessToken = jwt.sign(
       { 
         id: user.id, 
