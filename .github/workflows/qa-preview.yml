@@ -1,14 +1,14 @@
 name: QA Preview (Runner Windows)
 
-# Levanta el entorno del PR en TU maquina Windows (self-hosted runner) con Docker,
+# Levanta el entorno del PR en la maquina Windows (self-hosted runner) con Docker,
 # para la revision visual (QA). Se activa cuando el PR recibe la etiqueta "qa".
 #
-# REQUISITO: tener un self-hosted runner registrado con las labels [self-hosted, windows]
-# y Docker Desktop corriendo. Ver CONTRIBUTING.md > "Registrar el Runner de Windows".
+# REQUISITO: self-hosted runner con labels [self-hosted, windows] y Docker Desktop corriendo.
+# Los valores sensibles se inyectan desde el secret QA_ENV_FILE (contenido de docker/.env),
+# porque docker/.env NO esta versionado.
 #
-# ADVERTENCIA DE SEGURIDAD: un self-hosted runner ejecuta el codigo del PR en tu
-# maquina. Usa esto solo con PRs de tu propio equipo/repositorio, nunca con forks
-# externos no confiables.
+# SEGURIDAD: un self-hosted runner ejecuta el codigo del PR en tu maquina. Usa esto solo
+# con PRs del propio equipo, nunca con forks externos no confiables.
 
 on:
   pull_request:
@@ -22,40 +22,51 @@ concurrency:
 jobs:
   levantar:
     name: Levantar entorno de QA
-    # Corre solo si el PR esta abierto y tiene la etiqueta "qa".
     if: >-
       github.event.pull_request.state == 'open' &&
       github.event.action != 'unlabeled' &&
       contains(github.event.pull_request.labels.*.name, 'qa')
     runs-on: [self-hosted, windows]
+    defaults:
+      run:
+        shell: powershell
     steps:
       - uses: actions/checkout@v4
+      - name: Generar docker/.env desde el secret
+        env:
+          QA_ENV_FILE: ${{ secrets.QA_ENV_FILE }}
+        run: |
+          [System.IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\docker\.env", $env:QA_ENV_FILE, (New-Object System.Text.UTF8Encoding($false)))
       - name: Bajar entorno previo (si existe)
         run: docker compose -f docker/docker-compose.yml down -v
         continue-on-error: true
       - name: Construir y levantar
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Publicar URLs de QA
-        shell: bash
         run: |
-          {
-            echo "### Entorno de QA levantado en el Runner de Windows"
-            echo ""
-            echo "- Frontend: http://localhost:5173"
-            echo "- Backend (health): http://localhost:3000/health"
-            echo ""
-            echo "Cuando termines la revision, quita la etiqueta 'qa' o cierra el PR para bajar el entorno."
-          } >> "$GITHUB_STEP_SUMMARY"
+          "### Entorno de QA levantado en el Runner de Windows" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Frontend: http://localhost:5173" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Backend (health): http://localhost:3000/health" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "Quita la etiqueta 'qa' o cierra el PR para bajar el entorno." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
   bajar:
     name: Bajar entorno de QA
-    # Corre al quitar la etiqueta o al cerrar el PR.
     if: >-
       github.event.action == 'closed' ||
       github.event.action == 'unlabeled'
     runs-on: [self-hosted, windows]
+    defaults:
+      run:
+        shell: powershell
     steps:
       - uses: actions/checkout@v4
+      - name: Generar docker/.env desde el secret
+        env:
+          QA_ENV_FILE: ${{ secrets.QA_ENV_FILE }}
+        run: |
+          [System.IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\docker\.env", $env:QA_ENV_FILE, (New-Object System.Text.UTF8Encoding($false)))
       - name: Bajar entorno
         run: docker compose -f docker/docker-compose.yml down -v
         continue-on-error: true
