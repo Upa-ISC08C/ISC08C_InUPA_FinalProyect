@@ -276,12 +276,15 @@ git push -u origin feature/backend-users
 | 15 | Front · Notifications | **@UP230254** | `feature/front-notifications` |
 | 16 | Front · CV (editor) | **@UP230254** | `feature/front-cv` |
 | 17 | Front · Jobs (vacantes) | **@isaivlogs** | `feature/front-jobs` |
-| 18 | Front · Applications | **@isaivlogs** | `feature/front-applications` |
-| 19 | Front · Connections | **@isaivlogs** | `feature/front-connections` |
-| 20 | Front · Dashboard | **@isaivlogs** | `feature/front-dashboard` |
-| 21 | Front · Layout + routing | **@UP230254 + @isaivlogs** | `feature/front-layout` |
-| 22 | Front · Store (estado global) | **@UP230254 + @isaivlogs** | `feature/front-store` |
-| 23 | Front · Componentes comunes | **@UP230254 + @isaivlogs** | `feature/front-components` |
+| 18 | Front · Aplicaciones (mis postulaciones) | **@isaivlogs** | `feature/front-aplicaciones` |
+| 19 | Front · Dashboard | **@isaivlogs** | `feature/front-dashboard` |
+| 20 | Front · Admin — Panel | **@isaivlogs** | `feature/front-admin-panel` |
+| 21 | Front · Admin — Empresas (registro) | **@isaivlogs** | `feature/front-admin-empresas` |
+| 22 | Front · Admin — Vacantes (registro y edición) | **@isaivlogs** | `feature/front-admin-vacantes` |
+| 23 | Front · Admin — Usuarios (altas y bajas) | **@isaivlogs** | `feature/front-admin-usuarios` |
+| 24 | Front · Layout + routing | **@UP230254 + @isaivlogs** | `feature/front-layout` |
+| 25 | Front · Store (estado global) | **@UP230254 + @isaivlogs** | `feature/front-store` |
+| 26 | Front · Componentes comunes | **@UP230254 + @isaivlogs** | `feature/front-components` |
 
 > **@isaivlogs** es el usuario de GitHub cuyo nombre visible es *up230533* (la misma persona).
 
@@ -522,9 +525,9 @@ git push -u origin feature/front-cv
 
 ---
 
-### 👤 @isaivlogs (up230533) — Frontend (espejo de Andrea)
+### 👤 @isaivlogs (up230533) — Frontend (Vacantes, Dashboard y Administración)
 
-**Qué te toca:** las pantallas de **Jobs, Applications, Connections y Dashboard**.
+**Qué te toca:** las pantallas de **Vacantes** y **Dashboard**, y todo el **panel de Administración** (Panel, Empresas, Vacantes, Usuarios).
 
 <details><summary><b>17. Front · Jobs (vacantes)</b> — dónde: <code>frontend/src/pages/</code> (jobs)</summary>
 
@@ -539,33 +542,20 @@ git push -u origin feature/front-jobs
 ```
 </details>
 
-<details><summary><b>18. Front · Applications (postulaciones)</b> — dónde: <code>frontend/src/pages/</code> (applications)</summary>
+<details><summary><b>18. Front · Aplicaciones (mis postulaciones)</b> — dónde: <code>frontend/src/pages/</code> (dashboard)</summary>
 
-Vista "Mis postulaciones": botón de aplicar y estados de la postulación.
-
-```bash
-git checkout develop && git pull
-git checkout -b feature/front-applications
-git add .
-git commit -m "feat(front-applications): mis postulaciones y aplicar"
-git push -u origin feature/front-applications
-```
-</details>
-
-<details><summary><b>19. Front · Connections (red)</b> — dónde: <code>frontend/src/pages/</code> (connections)</summary>
-
-Red de contactos: enviar/aceptar solicitudes y listar conexiones.
+En la tarjeta **Aplicaciones** (el maletín) del dashboard, un **botón** que despliega las vacantes a las que el usuario se ha postulado, con su estado. **No** es una página aparte: postularse se hace desde la vista de Vacantes.
 
 ```bash
 git checkout develop && git pull
-git checkout -b feature/front-connections
+git checkout -b feature/front-aplicaciones
 git add .
-git commit -m "feat(front-connections): red de contactos"
-git push -u origin feature/front-connections
+git commit -m "feat(front-aplicaciones): boton de mis postulaciones en el dashboard"
+git push -u origin feature/front-aplicaciones
 ```
 </details>
 
-<details><summary><b>20. Front · Dashboard</b> — dónde: <code>frontend/src/pages/</code> (dashboard)</summary>
+<details><summary><b>19. Front · Dashboard</b> — dónde: <code>frontend/src/pages/</code> (dashboard)</summary>
 
 Panel principal tras el login: recomendaciones, notificaciones y accesos rápidos.
 
@@ -578,13 +568,65 @@ git push -u origin feature/front-dashboard
 ```
 </details>
 
+<details><summary><b>20. Front · Admin — Panel</b> — dónde: <code>frontend/src/pages/admin/</code></summary>
+
+Apartado visual de administración: layout con sidebar (Panel, Empresas, Vacantes, Usuarios), KPIs (empresas, usuarios activos, vacantes activas, postulaciones), gráfica de postulaciones mensuales y dona de usuarios por carrera.
+
+```bash
+git checkout develop && git pull
+git checkout -b feature/front-admin-panel
+git add .
+git commit -m "feat(front-admin-panel): panel visual de administracion"
+git push -u origin feature/front-admin-panel
+```
+</details>
+
+<details><summary><b>21. Front · Admin — Empresas (registro)</b> — dónde: <code>frontend/src/pages/admin/empresas</code></summary>
+
+Registro y gestión de empresas: listado, formulario de nueva empresa, editar y eliminar.
+
+```bash
+git checkout develop && git pull
+git checkout -b feature/front-admin-empresas
+git add .
+git commit -m "feat(front-admin-empresas): registro y gestion de empresas"
+git push -u origin feature/front-admin-empresas
+```
+</details>
+
+<details><summary><b>22. Front · Admin — Vacantes (registro y edición)</b> — dónde: <code>frontend/src/pages/admin/vacantes</code></summary>
+
+Registro y modificación de vacantes: listado con búsqueda/filtros, formulario de nueva vacante, editar/eliminar y estado activa/inactiva.
+
+```bash
+git checkout develop && git pull
+git checkout -b feature/front-admin-vacantes
+git add .
+git commit -m "feat(front-admin-vacantes): registro y edicion de vacantes"
+git push -u origin feature/front-admin-vacantes
+```
+</details>
+
+<details><summary><b>23. Front · Admin — Usuarios (altas y bajas)</b> — dónde: <code>frontend/src/pages/admin/usuarios</code></summary>
+
+Altas y bajas / gestión de usuarios: listado (nombre, carrera, semestre, CV score, estado), buscador y filtros, ver detalle y activar/suspender.
+
+```bash
+git checkout develop && git pull
+git checkout -b feature/front-admin-usuarios
+git add .
+git commit -m "feat(front-admin-usuarios): altas y bajas de usuarios"
+git push -u origin feature/front-admin-usuarios
+```
+</details>
+
 ---
 
 ### 👥 Compartido (@UP230254 + @isaivlogs) — Frontend base
 
 **Qué toca:** la base sobre la que se montan todas las pantallas. **Pónganse de acuerdo** para no chocar.
 
-<details><summary><b>21. Front · Layout + routing</b> — dónde: <code>frontend/src/components/layout/</code> + <code>App.tsx</code></summary>
+<details><summary><b>24. Front · Layout + routing</b> — dónde: <code>frontend/src/components/layout/</code> + <code>App.tsx</code></summary>
 
 Navbar/sidebar, layout general, React Router (rutas públicas/privadas) y protección de rutas por sesión.
 
@@ -597,7 +639,7 @@ git push -u origin feature/front-layout
 ```
 </details>
 
-<details><summary><b>22. Front · Store (estado global)</b> — dónde: <code>frontend/src/store/</code></summary>
+<details><summary><b>25. Front · Store (estado global)</b> — dónde: <code>frontend/src/store/</code></summary>
 
 Zustand: `authStore` y demás stores, con persistencia de sesión.
 
@@ -610,7 +652,7 @@ git push -u origin feature/front-store
 ```
 </details>
 
-<details><summary><b>23. Front · Componentes comunes</b> — dónde: <code>frontend/src/components/common/</code></summary>
+<details><summary><b>26. Front · Componentes comunes</b> — dónde: <code>frontend/src/components/common/</code></summary>
 
 Botones, inputs, modales y loaders reutilizables.
 
@@ -667,7 +709,7 @@ Ejemplos: `feat(jobs): filtro por carrera` · `fix(auth): validacion de correo i
 | Andrea (@AndreaSurdez) | Backend (Jobs/Applications/Connections + Config/Utils) |
 | @UP230823 | IA (Matching + CV) |
 | @UP230254 | Frontend (Auth/Users/Notifications/CV) |
-| @isaivlogs (up230533) | Frontend (Jobs/Applications/Connections/Dashboard) |
+| @isaivlogs (up230533) | Frontend: Vacantes, Dashboard (con Aplicaciones) y panel de Admin (Panel/Empresas/Vacantes/Usuarios) |
 
 ---
 
