@@ -40,6 +40,9 @@ services:
     restart: always
     environment:
       - NODE_ENV=development
+      # Client ID de Google: es PUBLICO (viaja al navegador), por eso puede ir aqui.
+      # No se usa ${VAR} porque Compose busca el .env en el directorio de trabajo, no junto al compose.
+      - VITE_GOOGLE_CLIENT_ID=72476361188-5q85ahrv0i6j8bagr44p6n8m42dfaqgb.apps.googleusercontent.com
     ports:
       - "5173:5173"
     volumes:

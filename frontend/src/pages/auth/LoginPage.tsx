@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, KeyRound, ArrowRight, Loader2 } from 'lucide-react';
 import { authService } from '../../services/auth.service';
@@ -16,6 +16,64 @@ export const LoginPage = () => {
   const [successMsg, setSuccessMsg] = useState('');
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const googleBtnRef = useRef<HTMLDivElement | null>(null);
+
+  // Recibe el ID token de Google y lo canjea por el JWT de InUPA
+  const handleGoogleCredential = async (idToken: string) => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const data = await authService.googleLogin(idToken);
+      setToken(data.accessToken);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'No se pudo iniciar sesión con Google.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Carga Google Identity Services y renderiza el botón oficial de Google
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId || step !== 1) return;
+
+    const renderGoogleButton = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.id || !googleBtnRef.current) return;
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response: any) => handleGoogleCredential(response.credential),
+      });
+      googleBtnRef.current.innerHTML = '';
+      google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        width: 320,
+        locale: 'es',
+      });
+    };
+
+    if ((window as any).google?.accounts?.id) {
+      renderGoogleButton();
+      return;
+    }
+
+    const existing = document.getElementById('google-gsi-script');
+    if (existing) {
+      existing.addEventListener('load', renderGoogleButton);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.id = 'google-gsi-script';
+    script.onload = renderGoogleButton;
+    document.body.appendChild(script);
+  }, [step]);
 
   const handleRequestToken = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,10 +214,7 @@ export const LoginPage = () => {
         {step === 1 && (
           <>
             <div className="divider">O inicia sesión con</div>
-            <button type="button" className="btn-google" onClick={() => alert('¡Guía de Google OAuth pendiente!')}>
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" width="20" />
-              Continuar con Google
-            </button>
+            <div ref={googleBtnRef} style={{ display: 'flex', justifyContent: 'center' }} />
           </>
         )}
       </div>

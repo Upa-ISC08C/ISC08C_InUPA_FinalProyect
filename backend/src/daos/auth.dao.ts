@@ -22,7 +22,7 @@ export class AuthDAO {
   /**
    * Crea un nuevo usuario en la base de datos a partir de su correo (primer login)
    */
-  async createUserFromEmail(email: string): Promise<User> {
+  async createUserFromEmail(email: string, nombreCompleto?: string): Promise<User> {
     // Extraer matrícula del correo (ej. up200000@alumnos.upa.edu.mx -> up200000)
     const matricula = email.split('@')[0].toUpperCase();
     
@@ -38,7 +38,7 @@ export class AuthDAO {
     
     const values = [
       matricula,
-      `Usuario ${matricula}`, // Nombre por defecto temporal
+      nombreCompleto?.trim() || `Usuario ${matricula}`, // Nombre real (Google) o temporal
       email,
       dummyHash
     ];
