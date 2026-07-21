@@ -49,6 +49,29 @@ export class AuthController {
       return res.status(401).json({ error: error.message || 'Credenciales inválidas' });
     }
   }
+
+  /**
+   * Endpoint: POST /api/auth/google
+   * Body: { "idToken": "<ID token que devuelve Google Identity Services>" }
+   */
+  async googleLogin(req: Request, res: Response) {
+    try {
+      const { idToken } = req.body;
+
+      if (!idToken) {
+        return res.status(400).json({ error: 'El idToken de Google es requerido' });
+      }
+
+      const accessToken = await authService.loginWithGoogle(idToken);
+
+      return res.status(200).json({
+        message: 'Autenticación con Google exitosa',
+        accessToken
+      });
+    } catch (error: any) {
+      return res.status(401).json({ error: error.message || 'No se pudo iniciar sesión con Google' });
+    }
+  }
 }
 
 export const authController = new AuthController();

@@ -16,4 +16,12 @@ export const authService = {
     const response = await api.post('/auth/verify-token', { email, token });
     return response.data;
   },
+
+  /**
+   * Inicia sesión con el ID token que devuelve Google Identity Services
+   */
+  googleLogin: async (idToken: string): Promise<{ message: string; accessToken: string }> => {
+    const response = await api.post('/auth/google', { idToken });
+    return response.data;
+  },
 };
