@@ -4,8 +4,8 @@ name: QA Preview (Runner Windows)
 # para la revision visual (QA). Se activa cuando el PR recibe la etiqueta "qa".
 #
 # REQUISITO: self-hosted runner con labels [self-hosted, windows] y Docker Desktop corriendo.
-# Los valores sensibles se inyectan desde el secret QA_ENV_FILE (contenido de docker/.env),
-# porque docker/.env NO esta versionado.
+# Los valores sensibles se toman de un archivo LOCAL del runner (C:\actions-runner\inupa.env),
+# porque docker/.env NO esta versionado ni se guarda como secret en GitHub.
 #
 # SEGURIDAD: un self-hosted runner ejecuta el codigo del PR en tu maquina. Usa esto solo
 # con PRs del propio equipo, nunca con forks externos no confiables.
@@ -32,11 +32,9 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v4
-      - name: Generar docker/.env desde el secret
-        env:
-          QA_ENV_FILE: ${{ secrets.QA_ENV_FILE }}
+      - name: Generar docker/.env (desde el archivo local del runner)
         run: |
-          [System.IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\docker\.env", $env:QA_ENV_FILE, (New-Object System.Text.UTF8Encoding($false)))
+          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\docker\.env" -Force
       - name: Bajar entorno previo (si existe)
         run: docker compose -f docker/docker-compose.yml down -v
         continue-on-error: true
@@ -62,11 +60,9 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v4
-      - name: Generar docker/.env desde el secret
-        env:
-          QA_ENV_FILE: ${{ secrets.QA_ENV_FILE }}
+      - name: Generar docker/.env (desde el archivo local del runner)
         run: |
-          [System.IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\docker\.env", $env:QA_ENV_FILE, (New-Object System.Text.UTF8Encoding($false)))
+          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\docker\.env" -Force
       - name: Bajar entorno
         run: docker compose -f docker/docker-compose.yml down -v
         continue-on-error: true
