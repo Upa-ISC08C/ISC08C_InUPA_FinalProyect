@@ -9,6 +9,28 @@ Construida con **React + Node.js + PostgreSQL** e infraestructura **Docker** on-
 
 ---
 
+## ⚡ Inicio rápido — encender el motor
+
+> Necesitas **Docker Desktop** instalado. La primera vez, crea tu `docker/.env` a partir de `docker/.env.example` (pide los valores al líder).
+
+1. **Enciende Docker Desktop** y espera a *"running"* — es el "motor" que corre los contenedores.
+2. **Levanta la app** (base de datos + backend + frontend):
+   ```bash
+   docker compose -f docker/docker-compose.yml up -d
+   ```
+   - Frontend → http://localhost:5173
+   - Backend (health) → http://localhost:3000/health
+3. **Apagar todo:** `docker compose -f docker/docker-compose.yml down`
+
+**Solo para las previews de QA** (revisar un PR con la etiqueta `qa`), enciende además el runner:
+```powershell
+cd C:\actions-runner
+.\run.cmd
+```
+Déjalo abierto mientras haces QA. El runner toma las variables de un archivo **local** (`C:\actions-runner\inupa.env`) — **no hay secretos en GitHub**.
+
+---
+
 ## 📑 Índice
 
 1. [¿Qué es InUPA?](#-qué-es-inupa)
