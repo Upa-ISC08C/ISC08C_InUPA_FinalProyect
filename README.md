@@ -736,3 +736,5 @@ Ejemplos: `feat(jobs): filtro por carrera` · `fix(auth): validacion de correo i
 ---
 
 > Hecho con ❤️ por el equipo InUPA · ISC08C
+
+<!-- prueba QA sin secret: 20260721-2026 -->
