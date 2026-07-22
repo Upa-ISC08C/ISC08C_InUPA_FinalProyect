@@ -1,3 +1,5 @@
+//nota porque no me deja subirlo a git
+
 import { Router } from 'express';
 import { ConnectionsController } from './connections.controller';
 import { authenticateToken } from '../../middlewares/auth.middleware';

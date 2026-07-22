@@ -1,3 +1,5 @@
+//nota porque no me deja subirlo a git
+
 import { db } from '../config/db';
 import { CreateConnectionDTO, ConnectionFilters } from '../modules/connections/connections.types';
 
