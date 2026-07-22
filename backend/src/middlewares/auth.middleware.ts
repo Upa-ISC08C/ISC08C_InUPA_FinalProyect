@@ -24,7 +24,17 @@ export const authenticateToken = (
     });
   }
 
-  const jwtSecret = process.env.JWT_SECRET || 'secret';
+  // NUNCA usar un valor por defecto aqui: si JWT_SECRET no esta configurado,
+  // se aceptarian tokens firmados con un secreto publico y cualquiera podria
+  // suplantar a un usuario. Mejor fallar de forma explicita.
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    return res.status(500).json({
+      success: false,
+      error: 'JWT_SECRET no está configurado en el servidor',
+    });
+  }
 
   jwt.verify(token, jwtSecret, (err, user) => {
     if (err) {
