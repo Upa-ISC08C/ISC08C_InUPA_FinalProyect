@@ -1,5 +1,3 @@
-//nota porque no me deja subirlo a git
-
 import { Request, Response } from 'express';
 import { ConnectionsService } from './connections.service';
 import { CreateConnectionDTO, ConnectionFilters } from './connections.types';

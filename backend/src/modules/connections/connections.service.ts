@@ -1,5 +1,3 @@
-//nota porque no me deja subirlo a git
-
 import { connectionsDAO } from '../../daos/connections.dao';
 import { CreateConnectionDTO, ConnectionFilters } from './connections.types';
 
