@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
-import { sendTokenEmail } from '../../utils/mailer';
+import { sendTokenEmail, mailConfigurado } from '../../utils/mailer';
 import { authDAO, User } from '../../daos/auth.dao';
 
 // Almacén temporal en memoria para los OTPs. En producción usaríamos Redis.
@@ -31,8 +31,16 @@ export class AuthService {
     });
 
     // Enviar correo
-    const success = await sendTokenEmail(email, otp);
-    return success;
+    const enviado = await sendTokenEmail(email, otp);
+
+    // Si el correo NO esta configurado (caso tipico al clonar el repo), en
+    // desarrollo damos la operacion por buena: el OTP queda impreso en los logs
+    // del backend para poder completar el login sin credenciales de correo.
+    if (!enviado && !mailConfigurado && process.env.NODE_ENV !== 'production') {
+      return true;
+    }
+
+    return enviado;
   }
 
   /**

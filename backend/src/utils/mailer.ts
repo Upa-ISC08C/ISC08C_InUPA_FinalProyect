@@ -13,7 +13,22 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+/** El correo es opcional: sin credenciales la app arranca igual. */
+export const mailConfigurado = Boolean(process.env.MAIL_USER && process.env.MAIL_PASS);
+
 export const sendTokenEmail = async (to: string, token: string) => {
+  if (!mailConfigurado) {
+    console.warn(
+      '[mailer] MAIL_USER/MAIL_PASS no configurados: no se envio el correo. ' +
+        'Rellena esas variables en docker/.env para probar el login por OTP.'
+    );
+    // En desarrollo mostramos el codigo en consola para poder continuar sin correo.
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[mailer] (solo desarrollo) OTP para ${to}: ${token}`);
+    }
+    return false;
+  }
+
   const mailOptions = {
     from: `"InUPA Support" <${process.env.MAIL_USER}>`,
     to,
