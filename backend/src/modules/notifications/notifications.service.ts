@@ -6,11 +6,7 @@ import {
   NotificacionesPage,
   TIPOS_NOTIFICACION,
 } from './notifications.types';
-
-/** Error de validacion: el controller lo traduce a HTTP 400. */
-export class ValidationError extends Error {}
-/** Recurso inexistente o ajeno: el controller lo traduce a HTTP 404. */
-export class NotFoundError extends Error {}
+import { ValidationError, NotFoundError } from '../../shared/errors';
 
 export class NotificationsService {
   /**

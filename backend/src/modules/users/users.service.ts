@@ -1,10 +1,6 @@
 import { usersDAO } from '../../daos/users.dao';
 import { UserProfile, UpdateUserProfileDTO } from './users.types';
-
-/** Error de validacion: el controller lo traduce a HTTP 400. */
-export class ValidationError extends Error {}
-/** Recurso inexistente: el controller lo traduce a HTTP 404. */
-export class NotFoundError extends Error {}
+import { ValidationError, NotFoundError } from '../../shared/errors';
 
 const URL_REGEX = /^https?:\/\/.+/i;
 
