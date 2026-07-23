@@ -18,7 +18,8 @@ const crypto = require('crypto');
 
 const RAIZ = path.resolve(__dirname, '..');
 const EJEMPLO = path.join(RAIZ, 'docker', '.env.example');
-const DESTINO = path.join(RAIZ, 'docker', '.env');
+const DESTINO_RAIZ = path.join(RAIZ, '.env');
+const DESTINO_BACKEND = path.join(RAIZ, 'backend', '.env');
 
 /** Lee un archivo .env como pares clave/valor (ignora comentarios y vacias). */
 function leerEnv(ruta) {
@@ -41,37 +42,47 @@ function main() {
     process.exit(1);
   }
 
-  // Caso 1: ya existe -> no tocar, solo revisar que no falten variables
-  if (fs.existsSync(DESTINO)) {
-    const actuales = leerEnv(DESTINO);
+  const raizExiste = fs.existsSync(DESTINO_RAIZ);
+  const backendExiste = fs.existsSync(DESTINO_BACKEND);
+
+  // Caso 1: ya existen ambos -> revisar que no falten variables
+  if (raizExiste && backendExiste) {
+    const actuales = leerEnv(DESTINO_RAIZ);
     const esperadas = Object.keys(leerEnv(EJEMPLO));
     const faltantes = esperadas.filter((k) => !(k in actuales));
 
-    console.log('docker/.env ya existe: no se sobrescribe.');
+    console.log('.env ya existe en la raiz y en backend: no se sobrescribe.');
     if (faltantes.length > 0) {
       console.log('\n  Faltan variables nuevas que si estan en .env.example:');
       faltantes.forEach((k) => console.log(`   - ${k}`));
-      console.log('\n  Agregalas a mano a docker/.env (o borra el archivo y vuelve a correr este script).');
+      console.log('\n  Agregalas a mano a tus archivos .env.');
     } else {
       console.log('Todas las variables estan presentes. Nada que hacer.');
     }
     return;
   }
 
-  // Caso 2: no existe -> crearlo con un JWT_SECRET aleatorio
+  // Caso 2: generar contenido nuevo con JWT_SECRET aleatorio
   const contenido = fs
     .readFileSync(EJEMPLO, 'utf8')
     .replace(/^JWT_SECRET=.*$/m, `JWT_SECRET=${generarSecreto()}`);
 
-  fs.writeFileSync(DESTINO, contenido, 'utf8');
+  if (!raizExiste) {
+    fs.writeFileSync(DESTINO_RAIZ, contenido, 'utf8');
+    console.log('Listo: se creo .env en la raiz.');
+  }
 
-  console.log('Listo: se creo docker/.env con un JWT_SECRET aleatorio.');
+  if (!backendExiste) {
+    fs.writeFileSync(DESTINO_BACKEND, contenido, 'utf8');
+    console.log('Listo: se creo backend/.env (necesario para Prisma y ejecucion manual).');
+  }
+
   console.log('');
   console.log('Ya puedes levantar el proyecto:');
   console.log('   docker compose -f docker/docker-compose.yml up -d');
   console.log('');
   console.log('Opcional: si vas a probar el login por correo (OTP), rellena');
-  console.log('MAIL_USER y MAIL_PASS en docker/.env (App Password de Gmail).');
+  console.log('MAIL_USER y MAIL_PASS en tus archivos .env.');
 }
 
 main();

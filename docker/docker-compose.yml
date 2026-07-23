@@ -1,7 +1,7 @@
 version: '3.8'
 
-# Los valores sensibles NO van aqui: viven en docker/.env (no versionado).
-# Copia docker/.env.example a docker/.env y rellena tus valores reales.
+# Los valores sensibles NO van aqui: viven en el archivo .env de la raiz (no versionado).
+# Ejecuta 'node scripts/setup-env.js' para generarlo a partir de docker/.env.example.
 
 services:
   db:
@@ -9,9 +9,9 @@ services:
     container_name: inupa_db
     restart: always
     env_file:
-      - .env
+      - ../.env
     ports:
-      - "5432:5432"
+      - "${HOST_DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -23,7 +23,9 @@ services:
     container_name: inupa_backend
     restart: always
     env_file:
-      - .env
+      - ../.env
+    environment:
+      - DB_HOST=db # Sobrescribe localhost para usar el contenedor de la BD
     ports:
       - "3000:3000"
     volumes:
@@ -40,9 +42,8 @@ services:
     restart: always
     environment:
       - NODE_ENV=development
-      # Client ID de Google: es PUBLICO (viaja al navegador), por eso puede ir aqui.
-      # No se usa ${VAR} porque Compose busca el .env en el directorio de trabajo, no junto al compose.
-      - VITE_GOOGLE_CLIENT_ID=72476361188-5q85ahrv0i6j8bagr44p6n8m42dfaqgb.apps.googleusercontent.com
+      # Carga el ID de Google desde el .env de la raiz (leido por compose)
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     ports:
       - "5173:5173"
     volumes:
