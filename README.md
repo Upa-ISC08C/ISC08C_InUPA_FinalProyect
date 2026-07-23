@@ -11,8 +11,13 @@ Construida con **React + Node.js + PostgreSQL** e infraestructura **Docker** on-
 
 ## ⚡ Inicio rápido — encender el motor
 
-> Necesitas **Docker Desktop** instalado. La primera vez, crea tu `docker/.env` a partir de `docker/.env.example` (pide los valores al líder).
+> Necesitas **Docker Desktop** y **Node.js** instalados. Funciona igual en Windows, Mac o Linux.
 
+0. **Solo la primera vez** — genera tus variables de entorno:
+   ```bash
+   node scripts/setup-env.js
+   ```
+   Crea tu `docker/.env` con un `JWT_SECRET` aleatorio propio de tu máquina. **No pidas el `.env` a nadie ni lo subas al repo.**
 1. **Enciende Docker Desktop** y espera a *"running"* — es el "motor" que corre los contenedores.
 2. **Levanta la app** (base de datos + backend + frontend):
    ```bash
@@ -186,9 +191,23 @@ npm run dev        # arranca en http://localhost:5173
 > ⚠️ **Nunca subas archivos `.env`, contraseñas, secretos ni tokens al repositorio.**
 > Los `.env` ya están en `.gitignore`. Guarda los valores reales **solo en tu `.env` local**.
 
-Cada quien crea sus propios archivos de entorno en local. Pide al **líder del proyecto** los
-valores reales (o usa una plantilla `.env.example` **sin secretos**). Estas son las variables
-que se usan (solo los nombres, sin valores):
+**No copies ni pidas el `.env` de nadie.** Cada quien genera el suyo con:
+```bash
+node scripts/setup-env.js
+```
+El script crea `docker/.env` desde `docker/.env.example` con un **`JWT_SECRET` aleatorio** único
+de tu máquina. Es idempotente: si ya tienes `.env`, no lo sobrescribe (solo avisa si faltan
+variables nuevas).
+
+**Qué es obligatorio y qué no:**
+
+| Variables | ¿Obligatorias? |
+|---|---|
+| `DB_*`, `POSTGRES_*`, `PORT`, `JWT_SECRET` | ✅ Sí — las genera el script, ya funcionan |
+| `MAIL_USER`, `MAIL_PASS` | ⚪ Opcionales — solo para probar el login por OTP. Sin ellas la app arranca igual y el código OTP se imprime en los logs del backend (solo en desarrollo) |
+| `GOOGLE_CLIENT_ID`, `VITE_GOOGLE_CLIENT_ID` | ⚪ Opcionales — solo para el botón de Google (el Client ID es público) |
+
+Estas son las variables que se usan (solo los nombres, sin valores):
 
 - **Backend** (`backend/.env`):
   - Conexión a PostgreSQL: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
