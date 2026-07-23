@@ -6,6 +6,7 @@
 -- =====================================================
 
 -- Eliminar tablas existentes (en orden inverso de dependencias)
+DROP TABLE IF EXISTS NOTIFICACIONES CASCADE;
 DROP TABLE IF EXISTS POSTULACIONES CASCADE;
 DROP TABLE IF EXISTS ADAPTACIONES_CV CASCADE;
 DROP TABLE IF EXISTS VACANTE_HABILIDADES CASCADE;
@@ -221,6 +222,21 @@ CREATE TABLE POSTULACIONES (
 );
 
 -- =====================================================
+-- TABLA: NOTIFICACIONES
+-- Avisos internos para el usuario (postulaciones, conexiones, matches...)
+-- =====================================================
+CREATE TABLE NOTIFICACIONES (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES USUARIOS(id) ON DELETE CASCADE,
+    tipo VARCHAR(50) NOT NULL,
+    titulo VARCHAR(200) NOT NULL,
+    mensaje TEXT NOT NULL,
+    enlace VARCHAR(500),
+    leida BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
 -- TRIGGERS PARA updated_at
 -- =====================================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -247,6 +263,8 @@ CREATE TRIGGER update_perfiles_updated_at
 CREATE INDEX idx_usuarios_correo ON USUARIOS(correo_institucional);
 CREATE INDEX idx_usuarios_matricula ON USUARIOS(matricula_o_rfc);
 CREATE INDEX idx_perfiles_usuario ON PERFILES(usuario_id);
+CREATE INDEX idx_notificaciones_usuario ON NOTIFICACIONES(usuario_id, created_at DESC);
+CREATE INDEX idx_notificaciones_no_leidas ON NOTIFICACIONES(usuario_id, leida);
 CREATE INDEX idx_perfiles_buscando ON PERFILES(buscando_empleo, disponibilidad);
 CREATE INDEX idx_experiencia_perfil ON EXPERIENCIA_LABORAL(perfil_id);
 CREATE INDEX idx_experiencia_empresa ON EXPERIENCIA_LABORAL(empresa_id);
