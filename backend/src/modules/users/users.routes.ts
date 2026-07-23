@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { UsersController } from './users.controller';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import { asyncHandler } from '../../middlewares/error.middleware';
 
 const router = Router();
 
@@ -8,7 +9,7 @@ const router = Router();
 // usuario autenticado (el id se toma del token, nunca del cliente).
 router.use(authenticateToken);
 
-router.get('/me', UsersController.getMe);
-router.put('/me', UsersController.updateMe);
+router.get('/me', asyncHandler(UsersController.getMe));
+router.put('/me', asyncHandler(UsersController.updateMe));
 
 export default router;
