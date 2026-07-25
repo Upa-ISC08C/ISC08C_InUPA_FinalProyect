@@ -351,10 +351,26 @@ COMMENT ON TABLE POSTULACIONES IS 'Registro de postulaciones a vacantes';
 -- DATOS SEMILLA (para que la plataforma arranque funcional)
 -- =====================================================
 
+-- Usuarios sembrados con contraseña (bcrypt). Credenciales de prueba:
+--   Admin:       admin@upa.edu.mx                  ->  Admin2025!
+--   Estudiantes: <correo institucional>            ->  Alumno2025!
+-- Los hashes se generaron con bcryptjs (10 rondas).
+
 -- Cuenta de administrador dedicada (solo para gestionar la plataforma).
--- Login por OTP: en desarrollo el codigo se imprime en los logs del backend.
 INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol)
-VALUES ('ADMIN', 'Administrador InUPA', 'admin@upa.edu.mx', 'OTP_LOGIN_NO_PASSWORD', 'admin')
+VALUES ('ADMIN', 'Administrador InUPA', 'admin@upa.edu.mx',
+        '$2b$10$//uB5ZkrG2fyyQBNwuzbKuj01.XhHzIC46SZUQzTWOtpRtuf174Re', 'admin')
+ON CONFLICT (correo_institucional) DO NOTHING;
+
+-- Estudiantes de ejemplo (contraseña: Alumno2025!)
+INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol)
+VALUES
+  ('UP230253', 'Juan Jesús Rodríguez Arellano', 'up230253@alumnos.upa.edu.mx',
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante'),
+  ('UP230188', 'Estudiante Demo', 'up230188@alumnos.upa.edu.mx',
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante'),
+  ('UP230254', 'María Fernanda López', 'up230254@alumnos.upa.edu.mx',
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante')
 ON CONFLICT (correo_institucional) DO NOTHING;
 
 -- Categorias y habilidades base

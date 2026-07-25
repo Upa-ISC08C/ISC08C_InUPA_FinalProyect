@@ -21,6 +21,26 @@ export class AuthDAO {
   }
 
   /**
+   * Crea un usuario con contraseña (registro clasico usuario/contraseña).
+   * El password ya debe venir hasheado (bcrypt).
+   */
+  async createUserWithPassword(
+    email: string,
+    nombreCompleto: string,
+    passwordHash: string
+  ): Promise<User> {
+    const matricula = email.split('@')[0].toUpperCase();
+    const query = `
+      INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol)
+      VALUES ($1, $2, $3, $4, 'estudiante')
+      RETURNING *
+    `;
+    const values = [matricula, nombreCompleto.trim(), email, passwordHash];
+    const result = await db.query(query, values);
+    return result.rows[0];
+  }
+
+  /**
    * Crea un nuevo usuario en la base de datos a partir de su correo (primer login)
    */
   async createUserFromEmail(email: string, nombreCompleto?: string): Promise<User> {

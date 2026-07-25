@@ -1,30 +1,56 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { authService } from "../../../services/auth.service";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
-import { GraduationCap, ArrowRight, Loader2, Mail, KeyRound } from "lucide-react";
+import { GraduationCap, ArrowRight, Loader2, Mail, Lock, Shield } from "lucide-react";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
 
-  // paso 1 = pedir correo, paso 2 = capturar el código OTP
-  const [step, setStep] = useState<1 | 2>(1);
+  const [adminMode, setAdminMode] = useState(false);
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
 
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
 
-  const dominioValido = (correo: string) =>
-    correo.endsWith("@alumnos.upa.edu.mx") || correo.endsWith("@upa.edu.mx");
-
   const extraerError = (err: any, fallback: string) =>
     err?.response?.data?.error || err?.response?.data?.message || fallback;
+
+  const entrarSegunRol = (user: any) => {
+    navigate(user?.rol === "admin" ? "/admin" : "/dashboard");
+  };
+
+  // Inicio de sesión con correo institucional + contraseña
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+    try {
+      const { accessToken, user } = await authService.login({
+        correo_institucional: email.toLowerCase().trim(),
+        password,
+      });
+
+      // En el acceso de administrador exigimos rol admin.
+      if (adminMode && user?.rol !== "admin") {
+        setError("Esta cuenta no tiene permisos de administrador.");
+        setIsLoading(false);
+        return;
+      }
+
+      login(accessToken, user);
+      entrarSegunRol(user);
+    } catch (err: any) {
+      setError(extraerError(err, "Correo o contraseña incorrectos."));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Recibe el ID token de Google y lo canjea por el JWT de InUPA
   const handleGoogleCredential = async (idToken: string) => {
@@ -33,7 +59,7 @@ export function LoginPage() {
     try {
       const { accessToken, user } = await authService.googleLogin(idToken);
       login(accessToken, user);
-      navigate(user?.rol === "admin" ? "/admin" : "/dashboard");
+      entrarSegunRol(user);
     } catch (err: any) {
       setError(extraerError(err, "No se pudo iniciar sesión con Google."));
     } finally {
@@ -41,10 +67,10 @@ export function LoginPage() {
     }
   };
 
-  // Carga Google Identity Services y renderiza el botón oficial de Google (solo en el paso 1)
+  // Google Identity Services (solo en el acceso de estudiantes)
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId || step !== 1) return;
+    if (!clientId || adminMode) return;
 
     const renderGoogleButton = () => {
       const google = (window as any).google;
@@ -55,88 +81,20 @@ export function LoginPage() {
       });
       googleBtnRef.current.innerHTML = "";
       google.accounts.id.renderButton(googleBtnRef.current, {
-        theme: "outline",
-        size: "large",
-        text: "continue_with",
-        width: 320,
-        locale: "es",
+        theme: "outline", size: "large", text: "continue_with", width: 320, locale: "es",
       });
     };
 
-    if ((window as any).google?.accounts?.id) {
-      renderGoogleButton();
-      return;
-    }
-
+    if ((window as any).google?.accounts?.id) { renderGoogleButton(); return; }
     const existing = document.getElementById("google-gsi-script");
-    if (existing) {
-      existing.addEventListener("load", renderGoogleButton);
-      return;
-    }
-
+    if (existing) { existing.addEventListener("load", renderGoogleButton); return; }
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.id = "google-gsi-script";
+    script.async = true; script.defer = true; script.id = "google-gsi-script";
     script.onload = renderGoogleButton;
     document.body.appendChild(script);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
-
-  // Paso 1: solicitar el código OTP al backend
-  const handleRequestCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setInfo("");
-
-    const normalizedEmail = email.toLowerCase().trim();
-    if (!dominioValido(normalizedEmail)) {
-      setError("Debes usar tu correo institucional de la UPA.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await authService.requestToken(normalizedEmail);
-      setEmail(normalizedEmail);
-      setStep(2);
-      setInfo("Te enviamos un código de 6 dígitos. Revisa tu correo institucional.");
-    } catch (err: any) {
-      setError(extraerError(err, "No se pudo enviar el código. Intenta de nuevo."));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Paso 2: verificar el código y entrar
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (code.trim().length !== 6) {
-      setError("El código debe tener 6 dígitos.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { accessToken, user } = await authService.verifyToken(email, code.trim());
-      login(accessToken, user);
-      navigate(user?.rol === "admin" ? "/admin" : "/dashboard");
-    } catch (err: any) {
-      setError(extraerError(err, "Código inválido o expirado."));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const volverAlCorreo = () => {
-    setStep(1);
-    setCode("");
-    setError("");
-    setInfo("");
-  };
+  }, [adminMode]);
 
   return (
     <div className="min-h-screen flex bg-white font-[Poppins,sans-serif]">
@@ -212,163 +170,97 @@ export function LoginPage() {
           </div>
 
           <div>
-            <h2 className="text-3xl font-bold text-[#2C3E50] tracking-tight">Bienvenido</h2>
-            <p className="text-[#7F8C8D] text-sm mt-1.5 leading-relaxed">
-              Acceso exclusivo para{" "}
-              <span className="font-semibold text-[#003366]">@alumnos.upa.edu.mx</span>
-            </p>
+            {adminMode ? (
+              <>
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#003366] bg-[#003366]/[0.08] px-2.5 py-1 rounded-full mb-2">
+                  <Shield className="size-3.5" /> Acceso administrador
+                </div>
+                <h2 className="text-3xl font-bold text-[#2C3E50] tracking-tight">Panel de administración</h2>
+                <p className="text-[#7F8C8D] text-sm mt-1.5">Ingresa con tu cuenta de administrador.</p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-3xl font-bold text-[#2C3E50] tracking-tight">Bienvenido</h2>
+                <p className="text-[#7F8C8D] text-sm mt-1.5 leading-relaxed">
+                  Inicia sesión con tu correo{" "}
+                  <span className="font-semibold text-[#003366]">@alumnos.upa.edu.mx</span>
+                </p>
+              </>
+            )}
           </div>
 
-          {/* PASO 1: correo institucional */}
-          {step === 1 && (
-            <form onSubmit={handleRequestCode} className="space-y-4">
-              {error && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium flex items-center gap-2">
-                  <span className="size-4 flex items-center justify-center rounded-full bg-red-100 font-bold">!</span>
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-sm font-semibold text-[#2C3E50]">
-                  Correo electrónico
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[#7F8C8D]" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="ej. up230188@alumnos.upa.edu.mx"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium flex items-center gap-2">
+                <span className="size-4 flex items-center justify-center rounded-full bg-red-100 font-bold">!</span>
+                {error}
               </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-11 bg-[#003366] hover:bg-[#002244] disabled:bg-[#003366]/70 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors mt-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Enviando código...
-                  </>
-                ) : (
-                  <>
-                    Enviar código de acceso
-                    <ArrowRight className="size-4" />
-                  </>
-                )}
-              </button>
-            </form>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-semibold text-[#2C3E50]">Correo institucional</Label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[#7F8C8D]" />
+                <Input
+                  id="email" type="email"
+                  placeholder={adminMode ? "admin@upa.edu.mx" : "up230188@alumnos.upa.edu.mx"}
+                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm"
+                  required disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm font-semibold text-[#2C3E50]">Contraseña</Label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[#7F8C8D]" />
+                <Input
+                  id="password" type="password" placeholder="••••••••"
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm"
+                  required disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit" disabled={isLoading}
+              className="w-full h-11 bg-[#003366] hover:bg-[#002244] disabled:bg-[#003366]/70 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors mt-2"
+            >
+              {isLoading ? (<><Loader2 className="size-4 animate-spin" />Ingresando...</>) : (<>Iniciar sesión<ArrowRight className="size-4" /></>)}
+            </button>
+          </form>
+
+          {/* Registro + Google (solo en acceso de estudiantes) */}
+          {!adminMode && (
+            <>
+              <p className="text-center text-sm text-[#7F8C8D]">
+                ¿No tienes cuenta?{" "}
+                <Link to="/register" className="text-[#003366] font-semibold hover:underline">Crear cuenta</Link>
+              </p>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#E5E7EB]" />
+                  <span className="text-xs text-[#7F8C8D] font-medium">o continúa con</span>
+                  <div className="h-px flex-1 bg-[#E5E7EB]" />
+                </div>
+                <div ref={googleBtnRef} className="flex justify-center" />
+              </div>
+            </>
           )}
 
-          {/* PASO 2: código OTP */}
-          {step === 2 && (
-            <form onSubmit={handleVerifyCode} className="space-y-4">
-              {info && (
-                <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-[#003366] text-xs font-medium">
-                  {info}
-                </div>
-              )}
-              {error && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium flex items-center gap-2">
-                  <span className="size-4 flex items-center justify-center rounded-full bg-red-100 font-bold">!</span>
-                  {error}
-                </div>
-              )}
-
-              <div className="text-xs text-[#7F8C8D]">
-                Código enviado a{" "}
-                <span className="font-semibold text-[#2C3E50]">{email}</span>
-                <button
-                  type="button"
-                  onClick={volverAlCorreo}
-                  className="text-[#003366] font-semibold hover:underline ml-1"
-                >
-                  Cambiar
-                </button>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="code" className="text-sm font-semibold text-[#2C3E50]">
-                  Código de acceso (6 dígitos)
-                </Label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[#7F8C8D]" />
-                  <Input
-                    id="code"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="000000"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                    className="pl-10 h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm tracking-[0.4em] font-mono"
-                    required
-                    disabled={isLoading}
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-11 bg-[#003366] hover:bg-[#002244] disabled:bg-[#003366]/70 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors mt-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Verificando...
-                  </>
-                ) : (
-                  <>
-                    Verificar y entrar
-                    <ArrowRight className="size-4" />
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleRequestCode}
-                disabled={isLoading}
-                className="w-full text-center text-xs text-[#7F8C8D] hover:text-[#003366] font-medium"
-              >
-                Reenviar código
-              </button>
-            </form>
-          )}
-
-          {/* Inicio de sesión con Google (solo en el paso del correo) */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-[#E5E7EB]" />
-                <span className="text-xs text-[#7F8C8D] font-medium">o continúa con</span>
-                <div className="h-px flex-1 bg-[#E5E7EB]" />
-              </div>
-              <div ref={googleBtnRef} className="flex justify-center" />
-            </div>
-          )}
-
-          <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-[#F5F7FA] border border-[#E5E7EB]">
-            <div className="size-6 rounded-lg bg-[#003366] flex items-center justify-center flex-shrink-0">
-              <svg className="size-3.5 text-[#FFD700] fill-current" viewBox="0 0 24 24">
-                <path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" />
-              </svg>
-            </div>
-            <div className="text-xs text-[#7F8C8D] text-center">
-              <p className="font-semibold text-[#2C3E50]">Acceso sin contraseña (OTP)</p>
-              <p>Administrador: <span className="font-mono bg-white px-1 rounded">admin@upa.edu.mx</span></p>
-              <p>Estudiante: usa tu correo <span className="font-mono bg-white px-1 rounded">@alumnos.upa.edu.mx</span></p>
-            </div>
+          {/* Acceso administrador AL FONDO */}
+          <div className="pt-2 border-t border-[#F0F0F0] text-center">
+            <button
+              type="button"
+              onClick={() => { setAdminMode(!adminMode); setError(""); }}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#7F8C8D] hover:text-[#003366] mt-3"
+            >
+              <Shield className="size-3.5" />
+              {adminMode ? "Volver al acceso de estudiantes" : "Acceso administrador"}
+            </button>
           </div>
         </div>
       </div>

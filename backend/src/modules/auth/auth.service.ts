@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { sendTokenEmail, mailConfigurado } from '../../utils/mailer';
 import { authDAO, User } from '../../daos/auth.dao';
@@ -56,6 +57,64 @@ export class AuthService {
     }
 
     return enviado;
+  }
+
+  /**
+   * Registro clásico: crea un usuario con correo institucional y contraseña.
+   * Devuelve el JWT de sesión + los datos del usuario (auto-login).
+   */
+  async register(nombre: string, email: string, password: string): Promise<AuthResult> {
+    const correo = email.toLowerCase().trim();
+
+    if (!nombre || nombre.trim().length < 3) {
+      throw new Error('El nombre completo debe tener al menos 3 caracteres');
+    }
+    this.validarCorreoInstitucional(correo);
+    if (!password || password.length < 6) {
+      throw new Error('La contraseña debe tener al menos 6 caracteres');
+    }
+
+    const existente = await authDAO.findUserByEmail(correo);
+    if (existente) {
+      throw new Error('Ya existe una cuenta con este correo institucional');
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await authDAO.createUserWithPassword(correo, nombre.trim(), passwordHash);
+
+    return {
+      token: this.generarAccessToken(user),
+      user: this.toPublicUser(user),
+    };
+  }
+
+  /**
+   * Inicio de sesión clásico con correo institucional + contraseña.
+   */
+  async loginWithPassword(email: string, password: string): Promise<AuthResult> {
+    const correo = email.toLowerCase().trim();
+
+    if (!correo || !password) {
+      throw new Error('Correo y contraseña son requeridos');
+    }
+
+    const user = await authDAO.findUserByEmail(correo);
+    // Mensaje genérico para no revelar si el correo existe.
+    const credencialesInvalidas = new Error('Correo o contraseña incorrectos');
+
+    if (!user) {
+      throw credencialesInvalidas;
+    }
+
+    const coincide = await bcrypt.compare(password, user.password_hash);
+    if (!coincide) {
+      throw credencialesInvalidas;
+    }
+
+    return {
+      token: this.generarAccessToken(user),
+      user: this.toPublicUser(user),
+    };
   }
 
   /**

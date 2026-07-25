@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./app/pages/auth/LoginPage";
+import { RegisterPage } from "./app/pages/auth/RegisterPage";
 import { useAuthStore } from "./store/authStore";
 
 // Layouts
@@ -58,6 +59,18 @@ function App() {
               <Navigate to={user?.rol === 'admin' ? '/admin' : '/dashboard'} replace />
             ) : (
               <LoginPage />
+            )
+          }
+        />
+
+        {/* Registro */}
+        <Route
+          path="/register"
+          element={
+            isAuthenticated ? (
+              <Navigate to={user?.rol === 'admin' ? '/admin' : '/dashboard'} replace />
+            ) : (
+              <RegisterPage />
             )
           }
         />
