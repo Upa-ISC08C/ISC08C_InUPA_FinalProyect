@@ -1,27 +1,27 @@
 import api from './api';
+import type { User, LoginResponse } from '../features/user/user.types';
 
 export const authService = {
-  /**
-   * Solicita el envío del código OTP al correo proporcionado
-   */
-  requestToken: async (email: string): Promise<{ message: string }> => {
+  async login(credentials: { 
+    correo_institucional: string; 
+    password: string 
+  }): Promise<LoginResponse> {
+    const response = await api.post('/auth/login', credentials);
+    return response.data;
+  },
+
+  async googleLogin(idToken: string): Promise<{ accessToken: string; user: User }> {
+    const response = await api.post('/auth/google', { idToken });
+    return response.data;
+  },
+
+  async requestToken(email: string): Promise<void> {
     const response = await api.post('/auth/request-token', { email });
     return response.data;
   },
 
-  /**
-   * Verifica el código OTP y devuelve el accessToken
-   */
-  verifyToken: async (email: string, token: string): Promise<{ message: string; accessToken: string }> => {
+  async verifyToken(email: string, token: string): Promise<{ accessToken: string; user: User }> {
     const response = await api.post('/auth/verify-token', { email, token });
-    return response.data;
-  },
-
-  /**
-   * Inicia sesión con el ID token que devuelve Google Identity Services
-   */
-  googleLogin: async (idToken: string): Promise<{ message: string; accessToken: string }> => {
-    const response = await api.post('/auth/google', { idToken });
     return response.data;
   },
 };

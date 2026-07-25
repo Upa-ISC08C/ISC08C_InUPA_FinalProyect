@@ -6,6 +6,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     matricula: string;
+    rol?: string;
   };
 }
 
@@ -47,4 +48,32 @@ export const authenticateToken = (
     (req as AuthenticatedRequest).user = user as any;
     next();
   });
+};
+
+/**
+ * Restringe el acceso a usuarios con rol de administrador.
+ * Debe montarse SIEMPRE despues de authenticateToken.
+ */
+export const requireAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const user = (req as AuthenticatedRequest).user;
+
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'No autenticado',
+    });
+  }
+
+  if (user.rol !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Acceso restringido a administradores',
+    });
+  }
+
+  next();
 };

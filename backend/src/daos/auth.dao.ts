@@ -6,6 +6,7 @@ export interface User {
   nombre_completo: string;
   correo_institucional: string;
   password_hash: string;
+  rol: string;
   activo: boolean;
 }
 

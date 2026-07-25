@@ -39,11 +39,12 @@ export class AuthController {
         return res.status(400).json({ error: 'El email y el token son requeridos' });
       }
 
-      const accessToken = await authService.verifyToken(email, token);
-      
-      return res.status(200).json({ 
+      const { token: accessToken, user } = await authService.verifyToken(email, token);
+
+      return res.status(200).json({
         message: 'Autenticación exitosa',
-        accessToken 
+        accessToken,
+        user
       });
     } catch (error: any) {
       return res.status(401).json({ error: error.message || 'Credenciales inválidas' });
@@ -62,11 +63,12 @@ export class AuthController {
         return res.status(400).json({ error: 'El idToken de Google es requerido' });
       }
 
-      const accessToken = await authService.loginWithGoogle(idToken);
+      const { token: accessToken, user } = await authService.loginWithGoogle(idToken);
 
       return res.status(200).json({
         message: 'Autenticación con Google exitosa',
-        accessToken
+        accessToken,
+        user
       });
     } catch (error: any) {
       return res.status(401).json({ error: error.message || 'No se pudo iniciar sesión con Google' });

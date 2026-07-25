@@ -13,6 +13,21 @@ const otpStore = new Map<string, OTPData>();
 // Cliente para verificar los ID token que emite Google
 const googleClient = new OAuth2Client();
 
+/** Datos publicos del usuario que se envian al frontend (sin password_hash). */
+export interface PublicUser {
+  id: string;
+  matricula_o_rfc: string;
+  nombre_completo: string;
+  correo_institucional: string;
+  rol: string;
+}
+
+/** Resultado de un login exitoso: token de sesion + datos del usuario. */
+export interface AuthResult {
+  token: string;
+  user: PublicUser;
+}
+
 export class AuthService {
   /**
    * Valida el formato del correo y genera/envía un OTP
@@ -44,9 +59,10 @@ export class AuthService {
   }
 
   /**
-   * Verifica el OTP. Si es válido, retorna un JWT de sesión. Crea el usuario si no existe.
+   * Verifica el OTP. Si es válido, retorna el JWT de sesión y los datos del
+   * usuario. Crea el usuario si no existe.
    */
-  async verifyToken(email: string, token: string): Promise<string> {
+  async verifyToken(email: string, token: string): Promise<AuthResult> {
     const otpData = otpStore.get(email);
 
     if (!otpData) {
@@ -71,15 +87,18 @@ export class AuthService {
       user = await authDAO.createUserFromEmail(email);
     }
 
-    // Generar JWT
-    return this.generarAccessToken(user);
+    // Generar JWT + datos del usuario
+    return {
+      token: this.generarAccessToken(user),
+      user: this.toPublicUser(user),
+    };
   }
 
   /**
    * Inicia sesión con Google: verifica el ID token emitido por Google,
    * valida que el correo sea institucional y crea el usuario si no existe.
    */
-  async loginWithGoogle(idToken: string): Promise<string> {
+  async loginWithGoogle(idToken: string): Promise<AuthResult> {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
       throw new Error('GOOGLE_CLIENT_ID no está configurado en las variables de entorno');
@@ -104,7 +123,10 @@ export class AuthService {
       user = await authDAO.createUserFromEmail(email, payload.name);
     }
 
-    return this.generarAccessToken(user);
+    return {
+      token: this.generarAccessToken(user),
+      user: this.toPublicUser(user),
+    };
   }
 
   /**
@@ -128,11 +150,25 @@ export class AuthService {
       {
         id: user.id,
         email: user.correo_institucional,
-        matricula: user.matricula_o_rfc
+        matricula: user.matricula_o_rfc,
+        rol: user.rol
       },
       jwtSecret,
       { expiresIn: '24h' }
     );
+  }
+
+  /**
+   * Devuelve los datos publicos del usuario (sin password_hash) para el frontend.
+   */
+  private toPublicUser(user: User): PublicUser {
+    return {
+      id: user.id,
+      matricula_o_rfc: user.matricula_o_rfc,
+      nombre_completo: user.nombre_completo,
+      correo_institucional: user.correo_institucional,
+      rol: user.rol,
+    };
   }
 }
 
