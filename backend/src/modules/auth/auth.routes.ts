@@ -3,6 +3,12 @@ import { authController } from './auth.controller';
 
 const router = Router();
 
+// Registro clásico (correo institucional + contraseña)
+router.post('/register', authController.register.bind(authController));
+
+// Inicio de sesión clásico (correo institucional + contraseña)
+router.post('/login', authController.login.bind(authController));
+
 // Endpoint para solicitar el token (enviar correo)
 router.post('/request-token', authController.requestToken.bind(authController));
 

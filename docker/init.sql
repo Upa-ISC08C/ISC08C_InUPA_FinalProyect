@@ -31,6 +31,7 @@ CREATE TABLE USUARIOS (
     nombre_completo VARCHAR(200) NOT NULL,
     correo_institucional VARCHAR(200) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    rol VARCHAR(20) DEFAULT 'estudiante',
     activo BOOLEAN DEFAULT TRUE,
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -61,9 +62,16 @@ CREATE TABLE EMPRESAS (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(200) UNIQUE NOT NULL,
     rfc VARCHAR(50),
+    industria VARCHAR(150),
     sitio_web VARCHAR(200),
     descripcion TEXT,
     logo_url VARCHAR(500),
+    correo_contacto VARCHAR(200),
+    telefono VARCHAR(30),
+    ciudad VARCHAR(150),
+    direccion VARCHAR(300),
+    tamano VARCHAR(50),
+    activa BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -106,6 +114,7 @@ CREATE TABLE EXPERIENCIA_LABORAL (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     perfil_id UUID REFERENCES PERFILES(id) ON DELETE CASCADE,
     empresa_id UUID REFERENCES EMPRESAS(id),
+    empresa_nombre VARCHAR(200),
     puesto VARCHAR(200) NOT NULL,
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE,
@@ -222,6 +231,19 @@ CREATE TABLE POSTULACIONES (
 );
 
 -- =====================================================
+-- TABLA: CONEXIONES
+-- Red profesional: un perfil sigue/conecta con otro perfil
+-- =====================================================
+CREATE TABLE CONEXIONES (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    follower_id UUID NOT NULL REFERENCES PERFILES(id) ON DELETE CASCADE,
+    following_id UUID NOT NULL REFERENCES PERFILES(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(follower_id, following_id),
+    CONSTRAINT check_no_auto_conexion CHECK (follower_id <> following_id)
+);
+
+-- =====================================================
 -- TABLA: NOTIFICACIONES
 -- Avisos internos para el usuario (postulaciones, conexiones, matches...)
 -- =====================================================
@@ -287,6 +309,8 @@ CREATE INDEX idx_empresa_reclutadores_usuario ON EMPRESA_RECLUTADORES(usuario_id
 CREATE INDEX idx_empresa_reclutadores_empresa ON EMPRESA_RECLUTADORES(empresa_id);
 CREATE INDEX idx_adaptaciones_cv_perfil ON ADAPTACIONES_CV(perfil_id);
 CREATE INDEX idx_adaptaciones_cv_vacante ON ADAPTACIONES_CV(vacante_id);
+CREATE INDEX idx_conexiones_follower ON CONEXIONES(follower_id);
+CREATE INDEX idx_conexiones_following ON CONEXIONES(following_id);
 
 -- =====================================================
 -- CONSTRAINTS ADICIONALES DE VALIDACIÓN
@@ -322,6 +346,75 @@ COMMENT ON TABLE EMPRESAS IS 'Empresas que publican vacantes';
 COMMENT ON TABLE VACANTES IS 'Ofertas laborales publicadas';
 COMMENT ON TABLE HABILIDADES IS 'Catálogo de habilidades técnicas y blandas';
 COMMENT ON TABLE POSTULACIONES IS 'Registro de postulaciones a vacantes';
+
+-- =====================================================
+-- DATOS SEMILLA (para que la plataforma arranque funcional)
+-- =====================================================
+
+-- Usuarios sembrados con contraseña (bcrypt). Credenciales de prueba:
+--   Admin:       admin@upa.edu.mx                  ->  Admin2025!
+--   Estudiantes: <correo institucional>            ->  Alumno2025!
+-- Los hashes se generaron con bcryptjs (10 rondas).
+
+-- Cuenta de administrador dedicada (solo para gestionar la plataforma).
+INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol)
+VALUES ('ADMIN', 'Administrador InUPA', 'admin@upa.edu.mx',
+        '$2b$10$//uB5ZkrG2fyyQBNwuzbKuj01.XhHzIC46SZUQzTWOtpRtuf174Re', 'admin')
+ON CONFLICT (correo_institucional) DO NOTHING;
+
+-- Estudiantes de ejemplo (contraseña: Alumno2025!)
+INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol)
+VALUES
+  ('UP230253', 'Juan Jesús Rodríguez Arellano', 'up230253@alumnos.upa.edu.mx',
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante'),
+  ('UP230188', 'Estudiante Demo', 'up230188@alumnos.upa.edu.mx',
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante'),
+  ('UP230254', 'María Fernanda López', 'up230254@alumnos.upa.edu.mx',
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante')
+ON CONFLICT (correo_institucional) DO NOTHING;
+
+-- Categorias y habilidades base
+INSERT INTO CATEGORIAS_HABILIDAD (nombre) VALUES
+    ('Lenguajes de Programación'),
+    ('Frameworks y Librerías'),
+    ('Bases de Datos'),
+    ('Herramientas y DevOps')
+ON CONFLICT (nombre) DO NOTHING;
+
+INSERT INTO HABILIDADES (nombre, categoria_id) VALUES
+    ('JavaScript',  (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Lenguajes de Programación')),
+    ('TypeScript',  (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Lenguajes de Programación')),
+    ('Python',      (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Lenguajes de Programación')),
+    ('React',       (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Frameworks y Librerías')),
+    ('Node.js',     (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Frameworks y Librerías')),
+    ('PostgreSQL',  (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Bases de Datos')),
+    ('Docker',      (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Herramientas y DevOps')),
+    ('Git',         (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Herramientas y DevOps'))
+ON CONFLICT (nombre) DO NOTHING;
+
+-- Empresas de ejemplo
+INSERT INTO EMPRESAS (nombre, industria, sitio_web, descripcion, correo_contacto, telefono, ciudad, direccion, tamano, activa) VALUES
+    ('TechAgs Solutions', 'Tecnología', 'https://techags.example.com', 'Desarrollo de software a la medida para empresas de la región.', 'rh@techags.example.com', '449-100-1000', 'Aguascalientes', 'Av. Universidad 100', '50–200', TRUE),
+    ('Innova Software', 'Software', 'https://innova.example.com', 'Fábrica de software especializada en soluciones web y móviles.', 'talento@innova.example.com', '449-200-2000', 'Aguascalientes', 'Blvd. Zacatecas 200', '200–500', TRUE),
+    ('DataMX', 'Datos e IA', 'https://datamx.example.com', 'Consultoría de datos, analítica e inteligencia artificial.', 'jobs@datamx.example.com', '449-300-3000', 'Ciudad de México', 'Reforma 300', '1,000+', TRUE),
+    ('Nube Digital', 'Cloud', 'https://nubedigital.example.com', 'Servicios de infraestructura en la nube y DevOps.', 'contacto@nubedigital.example.com', '449-400-4000', 'Guadalajara', 'Av. Chapultepec 400', '50–200', TRUE)
+ON CONFLICT (nombre) DO NOTHING;
+
+-- Vacantes de ejemplo (empresa referenciada por nombre)
+INSERT INTO VACANTES (empresa_id, titulo, descripcion, requisitos, activa, salario_min, salario_max, modalidad, tipo_contrato, nivel_experiencia, ubicacion, fecha_limite) VALUES
+    ((SELECT id FROM EMPRESAS WHERE nombre = 'TechAgs Solutions'),
+     'Desarrollador Frontend Jr', 'Únete al equipo de producto para construir interfaces con React y TypeScript.',
+     'React, TypeScript, HTML/CSS. Deseable experiencia con Tailwind.', TRUE, 12000, 18000, 'Híbrido', 'Tiempo completo', 'Junior', 'Aguascalientes', CURRENT_DATE + INTERVAL '30 days'),
+    ((SELECT id FROM EMPRESAS WHERE nombre = 'Innova Software'),
+     'Desarrollador Backend Node.js', 'Diseño e implementación de APIs REST con Node.js y PostgreSQL.',
+     'Node.js, Express, PostgreSQL, Git. Deseable Docker.', TRUE, 15000, 22000, 'Remoto', 'Tiempo completo', 'Junior', 'Remoto', CURRENT_DATE + INTERVAL '25 days'),
+    ((SELECT id FROM EMPRESAS WHERE nombre = 'DataMX'),
+     'Practicante de Ciencia de Datos', 'Apoya proyectos de analítica y modelos de datos con Python.',
+     'Python, SQL, estadística básica. Ganas de aprender.', TRUE, 8000, 10000, 'Presencial', 'Prácticas', 'Sin experiencia', 'Ciudad de México', CURRENT_DATE + INTERVAL '40 days'),
+    ((SELECT id FROM EMPRESAS WHERE nombre = 'Nube Digital'),
+     'Ingeniero DevOps Jr', 'Automatización de despliegues y mantenimiento de infraestructura en la nube.',
+     'Docker, Git, Linux. Deseable CI/CD y cloud.', TRUE, 16000, 24000, 'Híbrido', 'Tiempo completo', 'Junior', 'Guadalajara', CURRENT_DATE + INTERVAL '20 days')
+ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- CONSULTA DE VERIFICACIÓN

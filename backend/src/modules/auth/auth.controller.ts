@@ -2,7 +2,56 @@ import { Request, Response } from 'express';
 import { authService } from './auth.service';
 
 export class AuthController {
-  
+
+  /**
+   * Endpoint: POST /api/auth/register
+   * Body: { "nombre_completo", "email", "password" }
+   */
+  async register(req: Request, res: Response) {
+    try {
+      const { nombre_completo, email, password } = req.body;
+
+      if (!nombre_completo || !email || !password) {
+        return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos' });
+      }
+
+      const { token: accessToken, user } = await authService.register(nombre_completo, email, password);
+
+      return res.status(201).json({
+        message: 'Cuenta creada exitosamente',
+        accessToken,
+        user
+      });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'No se pudo crear la cuenta' });
+    }
+  }
+
+  /**
+   * Endpoint: POST /api/auth/login
+   * Body: { "correo_institucional" | "email", "password" }
+   */
+  async login(req: Request, res: Response) {
+    try {
+      const email = req.body.correo_institucional ?? req.body.email;
+      const { password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Correo y contraseña son requeridos' });
+      }
+
+      const { token: accessToken, user } = await authService.loginWithPassword(email, password);
+
+      return res.status(200).json({
+        message: 'Autenticación exitosa',
+        accessToken,
+        user
+      });
+    } catch (error: any) {
+      return res.status(401).json({ error: error.message || 'Credenciales inválidas' });
+    }
+  }
+
   /**
    * Endpoint: POST /api/auth/request-token
    * Body: { "email": "up200000@alumnos.upa.edu.mx" }
@@ -39,11 +88,12 @@ export class AuthController {
         return res.status(400).json({ error: 'El email y el token son requeridos' });
       }
 
-      const accessToken = await authService.verifyToken(email, token);
-      
-      return res.status(200).json({ 
+      const { token: accessToken, user } = await authService.verifyToken(email, token);
+
+      return res.status(200).json({
         message: 'Autenticación exitosa',
-        accessToken 
+        accessToken,
+        user
       });
     } catch (error: any) {
       return res.status(401).json({ error: error.message || 'Credenciales inválidas' });
@@ -62,11 +112,12 @@ export class AuthController {
         return res.status(400).json({ error: 'El idToken de Google es requerido' });
       }
 
-      const accessToken = await authService.loginWithGoogle(idToken);
+      const { token: accessToken, user } = await authService.loginWithGoogle(idToken);
 
       return res.status(200).json({
         message: 'Autenticación con Google exitosa',
-        accessToken
+        accessToken,
+        user
       });
     } catch (error: any) {
       return res.status(401).json({ error: error.message || 'No se pudo iniciar sesión con Google' });

@@ -1,4 +1,5 @@
 import { usersDAO } from '../../daos/users.dao';
+import { jobsDAO } from '../../daos/jobs.dao';
 import { UserProfile, UpdateUserProfileDTO } from './users.types';
 import { ValidationError, NotFoundError } from '../../shared/errors';
 
@@ -35,6 +36,45 @@ export class UsersService {
     }
 
     return usersDAO.updateProfile(usuarioId, data);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Estadisticas del dashboard del estudiante
+  // ---------------------------------------------------------------------------
+  static async getStats(usuarioId: string) {
+    const stats = await usersDAO.getStats(usuarioId);
+    // Trabajos recomendados: por ahora, las vacantes activas mas recientes.
+    const recommendedJobs = await jobsDAO.getRecentVacantes(3);
+    return { ...stats, recommendedJobs };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Administracion (solo admin)
+  // ---------------------------------------------------------------------------
+  static async listAll() {
+    return usersDAO.listAll();
+  }
+
+  static async adminUpdate(
+    id: string,
+    data: { activo?: boolean; rol?: string; nombre_completo?: string }
+  ) {
+    if (data.rol !== undefined && !['estudiante', 'admin'].includes(data.rol)) {
+      throw new ValidationError('El rol debe ser "estudiante" o "admin"');
+    }
+    const user = await usersDAO.adminUpdate(id, data);
+    if (!user) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+    return user;
+  }
+
+  static async adminRemove(id: string) {
+    const ok = await usersDAO.adminSoftDelete(id);
+    if (!ok) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+    return true;
   }
 
   private static validar(data: UpdateUserProfileDTO): void {
