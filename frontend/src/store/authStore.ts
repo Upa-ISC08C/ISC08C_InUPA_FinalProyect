@@ -1,21 +1,31 @@
 import { create } from 'zustand';
 
+interface User {
+  id: string;
+  matricula_o_rfc: string;
+  nombre_completo: string;
+  correo_institucional: string;
+  rol?: string;
+}
+
 interface AuthState {
-  token: string | null;
   isAuthenticated: boolean;
-  setToken: (token: string) => void;
+  user: User | null;
+  login: (token: string, user: User) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: localStorage.getItem('inupa_token'),
-  isAuthenticated: !!localStorage.getItem('inupa_token'),
-  setToken: (token: string) => {
-    localStorage.setItem('inupa_token', token);
-    set({ token, isAuthenticated: true });
+  isAuthenticated: !!localStorage.getItem('token'),
+  user: JSON.parse(localStorage.getItem('user') || 'null'),
+  login: (token: string, user: User) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ isAuthenticated: true, user });
   },
   logout: () => {
-    localStorage.removeItem('inupa_token');
-    set({ token: null, isAuthenticated: false });
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    set({ isAuthenticated: false, user: null });
   },
 }));

@@ -6,6 +6,7 @@ import jobsRoutes from './modules/jobs/jobs.routes';
 import applicationsRoutes from './modules/applications/applications.routes';
 import usersRoutes from './modules/users/users.routes';
 import notificationsRoutes from './modules/notifications/notifications.routes';
+import connectionsRoutes from './modules/connections/connections.routes'; // <-- AGREGAR ESTO
 import { requestLogger } from './middlewares/logger.middleware';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 
@@ -24,6 +25,8 @@ app.use('/api/jobs', jobsRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/connections', connectionsRoutes); // <-- AGREGAR ESTO
+
 
 // Health check endpoint
 app.get('/health', (req, res) => {
