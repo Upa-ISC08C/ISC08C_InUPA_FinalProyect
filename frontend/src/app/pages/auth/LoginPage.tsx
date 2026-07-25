@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { authService } from "../../../services/auth.service";
@@ -18,11 +18,71 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
 
+  const googleBtnRef = useRef<HTMLDivElement | null>(null);
+
   const dominioValido = (correo: string) =>
     correo.endsWith("@alumnos.upa.edu.mx") || correo.endsWith("@upa.edu.mx");
 
   const extraerError = (err: any, fallback: string) =>
     err?.response?.data?.error || err?.response?.data?.message || fallback;
+
+  // Recibe el ID token de Google y lo canjea por el JWT de InUPA
+  const handleGoogleCredential = async (idToken: string) => {
+    setError("");
+    setIsLoading(true);
+    try {
+      const { accessToken, user } = await authService.googleLogin(idToken);
+      login(accessToken, user);
+      navigate(user?.rol === "admin" ? "/admin" : "/dashboard");
+    } catch (err: any) {
+      setError(extraerError(err, "No se pudo iniciar sesión con Google."));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Carga Google Identity Services y renderiza el botón oficial de Google (solo en el paso 1)
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId || step !== 1) return;
+
+    const renderGoogleButton = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.id || !googleBtnRef.current) return;
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response: any) => handleGoogleCredential(response.credential),
+      });
+      googleBtnRef.current.innerHTML = "";
+      google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        width: 320,
+        locale: "es",
+      });
+    };
+
+    if ((window as any).google?.accounts?.id) {
+      renderGoogleButton();
+      return;
+    }
+
+    const existing = document.getElementById("google-gsi-script");
+    if (existing) {
+      existing.addEventListener("load", renderGoogleButton);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.id = "google-gsi-script";
+    script.onload = renderGoogleButton;
+    document.body.appendChild(script);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   // Paso 1: solicitar el código OTP al backend
   const handleRequestCode = async (e: React.FormEvent) => {
@@ -284,6 +344,18 @@ export function LoginPage() {
                 Reenviar código
               </button>
             </form>
+          )}
+
+          {/* Inicio de sesión con Google (solo en el paso del correo) */}
+          {step === 1 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-[#E5E7EB]" />
+                <span className="text-xs text-[#7F8C8D] font-medium">o continúa con</span>
+                <div className="h-px flex-1 bg-[#E5E7EB]" />
+              </div>
+              <div ref={googleBtnRef} className="flex justify-center" />
+            </div>
           )}
 
           <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-[#F5F7FA] border border-[#E5E7EB]">
