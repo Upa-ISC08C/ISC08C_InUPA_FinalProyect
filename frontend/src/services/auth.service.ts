@@ -1,44 +1,34 @@
-import api from './api';
-import type { User } from '../features/user/user.types';
-
-export interface AuthResponse {
-  accessToken: string;
-  user: User;
-}
+import { api } from "./api";
+import type { AuthResponse } from "./types";
 
 export const authService = {
   // Inicio de sesión clásico (correo institucional + contraseña)
-  async login(credentials: {
-    correo_institucional: string;
-    password: string;
-  }): Promise<AuthResponse> {
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
+  login(correo_institucional: string, password: string) {
+    return api
+      .post<AuthResponse>("/auth/login", { correo_institucional, password })
+      .then((res) => res.data);
   },
 
-  // Registro clásico (crea la cuenta y devuelve sesión iniciada)
-  async register(data: {
-    nombre_completo: string;
-    email: string;
-    password: string;
-  }): Promise<AuthResponse> {
-    const response = await api.post('/auth/register', data);
-    return response.data;
+  // Registro (crea la cuenta y devuelve sesión iniciada)
+  register(nombre_completo: string, email: string, password: string) {
+    return api
+      .post<AuthResponse>("/auth/register", { nombre_completo, email, password })
+      .then((res) => res.data);
   },
 
-  async googleLogin(idToken: string): Promise<AuthResponse> {
-    const response = await api.post('/auth/google', { idToken });
-    return response.data;
+  googleLogin(idToken: string) {
+    return api
+      .post<AuthResponse>("/auth/google", { idToken })
+      .then((res) => res.data);
   },
 
-  // Acceso alternativo por código (OTP) — se mantiene disponible en el backend
-  async requestToken(email: string): Promise<void> {
-    const response = await api.post('/auth/request-token', { email });
-    return response.data;
+  // Acceso alternativo por código (OTP) — disponible en el backend
+  requestToken(email: string) {
+    return api.post("/auth/request-token", { email }).then((res) => res.data);
   },
-
-  async verifyToken(email: string, token: string): Promise<AuthResponse> {
-    const response = await api.post('/auth/verify-token', { email, token });
-    return response.data;
+  verifyToken(email: string, token: string) {
+    return api
+      .post<AuthResponse>("/auth/verify-token", { email, token })
+      .then((res) => res.data);
   },
 };
