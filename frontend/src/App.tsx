@@ -12,6 +12,7 @@ import { Dashboard } from "./app/pages/Dashboard";
 import { JobBoard } from "./app/pages/JobBoard";
 import { Postulaciones } from "./app/pages/Postulaciones";
 import { Networking } from "./app/pages/Networking";
+import { Profile } from "./app/pages/Profile";
 
 // Pages - Admin
 import { AdminDashboard } from "./app/pages/admin/AdminDashboard";
@@ -19,9 +20,8 @@ import { AdminVacantes } from "./app/pages/admin/AdminVacantes";
 import { AdminEmpresas } from "./app/pages/admin/AdminEmpresas";
 import { AdminUsuarios } from "./app/pages/admin/AdminUsuarios";
 
-// Placeholders
+// Placeholder del modulo de IA (sin funcionalidad en esta entrega)
 const CVBuilder = () => <div className="p-8 text-center text-[#7F8C8D]">Constructor de CV (Próximamente)</div>;
-const ProfilePage = () => <div className="p-8 text-center text-[#7F8C8D]">Mi Perfil (Próximamente)</div>;
 
 // Rutas protegidas (para estudiantes)
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -76,7 +76,7 @@ function App() {
           <Route path="postulaciones" element={<Postulaciones />} />
           <Route path="networking" element={<Networking />} />
           <Route path="cv-builder" element={<CVBuilder />} />
-          <Route path="perfil" element={<ProfilePage />} />
+          <Route path="perfil" element={<Profile />} />
         </Route>
 
         {/* Rutas de Admin */}

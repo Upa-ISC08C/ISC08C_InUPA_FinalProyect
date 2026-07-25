@@ -114,6 +114,7 @@ CREATE TABLE EXPERIENCIA_LABORAL (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     perfil_id UUID REFERENCES PERFILES(id) ON DELETE CASCADE,
     empresa_id UUID REFERENCES EMPRESAS(id),
+    empresa_nombre VARCHAR(200),
     puesto VARCHAR(200) NOT NULL,
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE,
