@@ -153,7 +153,7 @@ export function ProfilePage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="font-semibold text-[#2C3E50]">{e.puesto}</p>
-                      <p className="text-sm text-[#2C3E50]">{e.empresa_nombre}{e.tipo_contrato ? ` · ${e.tipo_contrato}` : ""}</p>
+                      <p className="text-sm text-[#2C3E50]">{e.empresa_nombre}</p>
                       <p className="text-xs text-[#7F8C8D]">{rango(e.fecha_inicio, e.fecha_fin, e.actual)}</p>
                     </div>
                     <div className="flex flex-shrink-0">
@@ -161,7 +161,19 @@ export function ProfilePage() {
                       <IconBtn onClick={async () => { await profileService.deleteExperience(e.id); cargar(); }}><Trash2 className="size-4" /></IconBtn>
                     </div>
                   </div>
-                  {e.descripcion && <p className="text-sm text-[#2C3E50] mt-1.5 whitespace-pre-line">{e.descripcion}</p>}
+                  {/* Actividades realizadas: actividad en negrita + su descripción debajo */}
+                  {e.actividades?.length > 0 ? (
+                    <ul className="mt-2 space-y-1.5">
+                      {e.actividades.map((ac: any, i: number) => (
+                        <li key={i} className="text-sm">
+                          <span className="font-semibold text-[#2C3E50]">{ac.actividad}</span>
+                          {ac.descripcion && <span className="block text-[#7F8C8D] leading-relaxed">{ac.descripcion}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    e.descripcion && <p className="text-sm text-[#2C3E50] mt-1.5 whitespace-pre-line">{e.descripcion}</p>
+                  )}
                   {e.tecnologias_usadas?.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{e.tecnologias_usadas.map((t: string, i: number) => <Chip key={i}>{t}</Chip>)}</div>}
                 </div>
               </div>
@@ -388,36 +400,91 @@ function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onC
 
 function ExperienceDialog({ item, onClose, onSaved }: { item: any | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
-    puesto: item?.puesto || "", empresa_nombre: item?.empresa_nombre || "", tipo_contrato: item?.tipo_contrato || "",
+    puesto: item?.puesto || "", empresa_nombre: item?.empresa_nombre || "",
     fecha_inicio: toDateInput(item?.fecha_inicio ?? null), fecha_fin: toDateInput(item?.fecha_fin ?? null),
-    actual: item?.actual ?? false, descripcion: item?.descripcion || "", tecnologias: (item?.tecnologias_usadas || []).join(", "),
+    actual: item?.actual ?? false, tecnologias: (item?.tecnologias_usadas || []).join(", "),
   });
+  const [actividades, setActividades] = useState<{ actividad: string; descripcion: string }[]>(
+    item?.actividades?.length ? item.actividades.map((a: any) => ({ actividad: a.actividad || "", descripcion: a.descripcion || "" }))
+      : [{ actividad: "", descripcion: "" }]
+  );
   const [saving, setSaving] = useState(false);
+  const [iaLoading, setIaLoading] = useState(false);
+  const [error, setError] = useState("");
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-  const guardar = async () => {
-    setSaving(true);
+  const setAct = (i: number, k: string, v: string) => setActividades((p) => p.map((a, j) => (j === i ? { ...a, [k]: v } : a)));
+  const addAct = () => setActividades((p) => [...p, { actividad: "", descripcion: "" }]);
+  const rmAct = (i: number) => setActividades((p) => p.filter((_, j) => j !== i));
+
+  // Sugerir actividades con IA a partir del puesto + lo que ya escribiste
+  const sugerirIA = async () => {
+    setError(""); setIaLoading(true);
     try {
-      const payload = { puesto: form.puesto, empresa_nombre: form.empresa_nombre, tipo_contrato: form.tipo_contrato,
+      const seed = `Puesto: ${form.puesto || "(sin especificar)"}${form.empresa_nombre ? ` en ${form.empresa_nombre}` : ""}. Actividades: ` +
+        actividades.map((a) => `${a.actividad} ${a.descripcion}`).join("; ");
+      const r = await aiService.optimizarTexto(seed);
+      if (r?.error) { setError(r.error); return; }
+      if (r.experiencia?.length) {
+        setActividades(r.experiencia.map((linea: string) => {
+          const idx = linea.indexOf(":");
+          if (idx > 0 && idx < 60) return { actividad: linea.slice(0, idx).trim(), descripcion: linea.slice(idx + 1).trim() };
+          return { actividad: linea.trim(), descripcion: "" };
+        }));
+      }
+    } catch (e: any) { setError(e?.response?.data?.error || "No se pudo generar la sugerencia."); }
+    finally { setIaLoading(false); }
+  };
+
+  const guardar = async () => {
+    setSaving(true); setError("");
+    try {
+      const acts = actividades.filter((a) => a.actividad.trim());
+      const payload = {
+        puesto: form.puesto, empresa_nombre: form.empresa_nombre,
         fecha_inicio: form.fecha_inicio, fecha_fin: form.actual ? null : form.fecha_fin || null, actual: form.actual,
-        descripcion: form.descripcion, tecnologias_usadas: splitTech(form.tecnologias) };
+        actividades: acts, tecnologias_usadas: splitTech(form.tecnologias),
+      };
       if (item) await profileService.updateExperience(item.id, payload); else await profileService.addExperience(payload);
       onSaved();
-    } finally { setSaving(false); }
+    } catch (e: any) { setError(e?.response?.data?.error || "No se pudo guardar."); } finally { setSaving(false); }
   };
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader><DialogTitle>{item ? "Editar experiencia" : "Agregar experiencia"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
+          {error && <div className="p-2.5 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>}
           <Field label="Puesto *"><Input value={form.puesto} onChange={(e) => set("puesto", e.target.value)} /></Field>
           <Field label="Empresa"><Input value={form.empresa_nombre} onChange={(e) => set("empresa_nombre", e.target.value)} /></Field>
-          <Field label="Tipo de contrato"><Input placeholder="Tiempo completo, Prácticas…" value={form.tipo_contrato} onChange={(e) => set("tipo_contrato", e.target.value)} /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Inicio *"><Input type="date" value={form.fecha_inicio} onChange={(e) => set("fecha_inicio", e.target.value)} /></Field>
             <Field label="Fin"><Input type="date" value={form.fecha_fin} onChange={(e) => set("fecha_fin", e.target.value)} disabled={form.actual} /></Field>
           </div>
           <label className="flex items-center gap-2 text-sm text-[#2C3E50] cursor-pointer"><input type="checkbox" checked={form.actual} onChange={(e) => set("actual", e.target.checked)} /> Trabajo aquí actualmente</label>
-          <Field label="Descripción"><Textarea rows={3} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} /></Field>
+
+          {/* Actividades realizadas */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs font-semibold text-[#2C3E50]">Actividades realizadas</Label>
+              <button type="button" onClick={sugerirIA} disabled={iaLoading} className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:bg-[#FEF9C3] px-2 py-1 rounded-lg">
+                {iaLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-[#CA8A04]" />} Sugerir con IA
+              </button>
+            </div>
+            <div className="space-y-2.5">
+              {actividades.map((a, i) => (
+                <div key={i} className="border border-[#E5E7EB] rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex gap-2">
+                    <Input placeholder="Actividad (título)" value={a.actividad} onChange={(e) => setAct(i, "actividad", e.target.value)} className="font-semibold" />
+                    {actividades.length > 1 && <button type="button" onClick={() => rmAct(i)} className="size-9 flex items-center justify-center rounded-lg text-[#7F8C8D] hover:bg-[#FEE2E2] hover:text-[#E74C3C] flex-shrink-0"><X className="size-4" /></button>}
+                  </div>
+                  <Textarea rows={2} placeholder="Descripción de la actividad" value={a.descripcion} onChange={(e) => setAct(i, "descripcion", e.target.value)} />
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={addAct} className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:underline mt-2"><Plus className="size-3.5" /> Agregar actividad</button>
+          </div>
+
           <Field label="Tecnologías (separadas por comas)"><Input value={form.tecnologias} onChange={(e) => set("tecnologias", e.target.value)} /></Field>
         </div>
         <Footer onCancel={onClose} onSave={guardar} saving={saving} />

@@ -1,6 +1,11 @@
 // ==========================================================================
 // EXPERIENCIA LABORAL
 // ==========================================================================
+export interface Actividad {
+  actividad: string;
+  descripcion?: string;
+}
+
 export interface Experiencia {
   id: string;
   perfil_id: string;
@@ -10,6 +15,7 @@ export interface Experiencia {
   fecha_fin: string | null;
   actual: boolean;
   descripcion: string | null;
+  actividades: Actividad[] | null;
   tipo_contrato: string | null;
   tecnologias_usadas: string[] | null;
 }
@@ -21,6 +27,7 @@ export interface CreateExperienciaDTO {
   fecha_fin?: string | null;
   actual?: boolean;
   descripcion?: string;
+  actividades?: Actividad[];
   tipo_contrato?: string;
   tecnologias_usadas?: string[];
 }

@@ -122,6 +122,7 @@ CREATE TABLE EXPERIENCIA_LABORAL (
     fecha_fin DATE,
     actual BOOLEAN DEFAULT FALSE,
     descripcion TEXT,
+    actividades JSONB,
     tipo_contrato VARCHAR(100),
     tecnologias_usadas TEXT[],
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

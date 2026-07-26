@@ -28,7 +28,6 @@ import { notificationsService } from "../../services/notifications.service";
 const navigation = [
   { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
   { name: "Ofertas", href: "/dashboard/empleos", icon: Briefcase },
-  { name: "Postulaciones", href: "/dashboard/postulaciones", icon: Send },
   { name: "Mi Perfil / CV", href: "/dashboard/perfil", icon: FileText },
 ];
 
