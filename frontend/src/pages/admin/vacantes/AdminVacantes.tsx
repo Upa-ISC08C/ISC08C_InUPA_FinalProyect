@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Textarea } from "../../../components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Save, Briefcase, X, ChevronsUpDown, Check, ImagePlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Save, Briefcase, X, ChevronsUpDown, Check, ImagePlus, Search, LayoutGrid, List } from "lucide-react";
 import { jobsService } from "../../../services/jobs.service";
 import { companiesService, type Company } from "../../../services/companies.service";
 import { CARRERAS_UPA, CUATRIMESTRES, TIPOS_CONTRATO, MODALIDADES } from "../../../utils/catalogos";
@@ -19,6 +19,11 @@ export function AdminVacantes() {
   const [empresas, setEmpresas] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Vacante | "new" | null>(null);
+  const [q, setQ] = useState("");
+  const [estado, setEstado] = useState<"todas" | "activas" | "inactivas">("todas");
+  const [vista, setVista] = useState<"lista" | "cuadricula">(() => (localStorage.getItem("inupa_vacantes_view") as any) || "lista");
+
+  useEffect(() => { localStorage.setItem("inupa_vacantes_view", vista); }, [vista]);
 
   const cargar = () => {
     setLoading(true);
@@ -28,24 +33,82 @@ export function AdminVacantes() {
 
   const eliminar = async (id: string) => { await jobsService.remove(id); cargar(); };
 
+  const filtradas = useMemo(() => vacantes.filter((v) => {
+    const t = (v.titulo + (v.empresa?.nombre || "") + (v.ubicacion || "")).toLowerCase().includes(q.toLowerCase());
+    const s = estado === "todas" || (estado === "activas" ? v.activa : !v.activa);
+    return t && s;
+  }), [vacantes, q, estado]);
+
+  const sel = "h-10 rounded-xl border border-border bg-background px-3 text-sm";
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 animate-in fade-in duration-300">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#2C3E50] tracking-tight">Gestión de Vacantes</h1>
-          <p className="text-sm text-[#7F8C8D] mt-0.5">{vacantes.length} vacantes publicadas</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Gestión de Vacantes</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{vacantes.length} vacantes publicadas</p>
         </div>
         <Button onClick={() => setEdit("new")} className="flex items-center gap-1.5"><Plus className="size-4" /> Nueva vacante</Button>
       </div>
 
+      {/* Búsqueda + filtro + toggle vista */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input placeholder="Buscar por título, empresa o ubicación..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-10 h-10 rounded-xl text-sm" />
+        </div>
+        <select className={sel} value={estado} onChange={(e) => setEstado(e.target.value as any)}>
+          <option value="todas">Todas</option>
+          <option value="activas">Activas</option>
+          <option value="inactivas">Inactivas</option>
+        </select>
+        <div className="ml-auto flex items-center rounded-xl border border-border p-0.5">
+          <button onClick={() => setVista("lista")} title="Vista de lista" className={`size-8 flex items-center justify-center rounded-lg transition-colors ${vista === "lista" ? "bg-[#003366] text-white" : "text-muted-foreground hover:bg-muted"}`}><List className="size-4" /></button>
+          <button onClick={() => setVista("cuadricula")} title="Vista de cuadrícula" className={`size-8 flex items-center justify-center rounded-lg transition-colors ${vista === "cuadricula" ? "bg-[#003366] text-white" : "text-muted-foreground hover:bg-muted"}`}><LayoutGrid className="size-4" /></button>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="size-7 animate-spin text-[#003366]" /></div>
+      ) : filtradas.length === 0 ? (
+        <Card className="border-0 shadow-sm"><CardContent className="p-10 text-center text-muted-foreground"><Briefcase className="size-6 mx-auto mb-2" />No hay vacantes que coincidan.</CardContent></Card>
+      ) : vista === "cuadricula" ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtradas.map((v) => (
+            <Card key={v.id} className="border-0 shadow-sm hover:shadow-md transition-all overflow-hidden">
+              <div className="h-28 bg-[#F5F7FA] flex items-center justify-center overflow-hidden">
+                {v.imagen_url ? <img src={v.imagen_url} alt="" className="size-full object-cover" /> : <Briefcase className="size-8 text-[#B0B8C1]" />}
+              </div>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-bold text-foreground truncate">{v.titulo}</p>
+                    <p className="text-xs text-muted-foreground truncate">{v.empresa?.nombre}</p>
+                  </div>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-none ${v.activa ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEE2E2] text-[#DC2626]"}`}>{v.activa ? "Activa" : "Inactiva"}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">{v.modalidad || "—"} · {v.ubicacion || "—"}</p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {v.carreras && v.carreras.length > 0
+                    ? v.carreras.map((c) => <span key={c} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#003366]/[0.07] text-[#003366]">{abreviaCarrera(c)}</span>)
+                    : <span className="text-[10px] text-muted-foreground">Todas las carreras</span>}
+                  {v.cuatrimestre ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{v.cuatrimestre}º+</span> : null}
+                </div>
+                {fmtFecha(v.fecha_limite) && <p className="text-[11px] text-muted-foreground mt-2">Cierra el {fmtFecha(v.fecha_limite)}</p>}
+                <div className="flex gap-1 mt-3 pt-3 border-t border-border">
+                  <button onClick={() => setEdit(v)} className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:bg-muted px-2.5 py-1.5 rounded-lg"><Pencil className="size-3.5" />Editar</button>
+                  <button onClick={() => eliminar(v.id)} className="flex items-center gap-1 text-xs font-semibold text-[#E74C3C] hover:bg-[#FEE2E2] px-2.5 py-1.5 rounded-lg"><Trash2 className="size-3.5" />Desactivar</button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : (
         <Card className="border-0 shadow-sm"><CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#F5F7FA] text-left text-xs text-[#7F8C8D] uppercase tracking-wide">
+                <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase tracking-wide">
                   <th className="px-5 py-3 font-semibold">Vacante</th>
                   <th className="px-5 py-3 font-semibold">Empresa</th>
                   <th className="px-5 py-3 font-semibold">Carreras</th>
@@ -55,44 +118,41 @@ export function AdminVacantes() {
                 </tr>
               </thead>
               <tbody>
-                {vacantes.map((v) => (
-                  <tr key={v.id} className="border-b border-[#F5F7FA] last:border-0 hover:bg-[#FAFAFA]">
+                {filtradas.map((v) => (
+                  <tr key={v.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-lg bg-[#F5F7FA] overflow-hidden flex items-center justify-center flex-none">
+                        <div className="size-10 rounded-lg bg-muted overflow-hidden flex items-center justify-center flex-none">
                           {v.imagen_url ? <img src={v.imagen_url} alt="" className="size-full object-cover" /> : <Briefcase className="size-4 text-[#B0B8C1]" />}
                         </div>
                         <div>
-                          <p className="font-semibold text-[#2C3E50]">{v.titulo}</p>
-                          <p className="text-xs text-[#7F8C8D]">{v.modalidad || "—"} · {v.ubicacion || "—"}{fmtFecha(v.fecha_limite) ? ` · Cierra ${fmtFecha(v.fecha_limite)}` : ""}</p>
+                          <p className="font-semibold text-foreground">{v.titulo}</p>
+                          <p className="text-xs text-muted-foreground">{v.modalidad || "—"} · {v.ubicacion || "—"}{fmtFecha(v.fecha_limite) ? ` · Cierra ${fmtFecha(v.fecha_limite)}` : ""}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-[#2C3E50]">{v.empresa?.nombre}</td>
+                    <td className="px-5 py-3 text-foreground">{v.empresa?.nombre}</td>
                     <td className="px-5 py-3">
                       {v.carreras && v.carreras.length > 0 ? (
                         <div className="flex flex-wrap gap-1 max-w-[220px]">
                           {v.carreras.map((c) => (
-                            <span key={c} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#003366]/[0.07] text-[#003366]">{abreviaCarrera(c)}</span>
+                            <span key={c} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#003366]/[0.1] text-[#003366]">{abreviaCarrera(c)}</span>
                           ))}
                         </div>
-                      ) : <span className="text-xs text-[#7F8C8D]">Todas</span>}
+                      ) : <span className="text-xs text-muted-foreground">Todas</span>}
                     </td>
-                    <td className="px-5 py-3 text-[#7F8C8D]">{v.cuatrimestre ? `${v.cuatrimestre}º+` : "—"}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{v.cuatrimestre ? `${v.cuatrimestre}º+` : "—"}</td>
                     <td className="px-5 py-3">
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${v.activa ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEE2E2] text-[#DC2626]"}`}>{v.activa ? "Activa" : "Inactiva"}</span>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex gap-1 justify-end">
-                        <button onClick={() => setEdit(v)} className="size-8 flex items-center justify-center rounded-lg text-[#7F8C8D] hover:bg-[#F5F7FA] hover:text-[#003366]"><Pencil className="size-4" /></button>
-                        <button onClick={() => eliminar(v.id)} className="size-8 flex items-center justify-center rounded-lg text-[#7F8C8D] hover:bg-[#FEE2E2] hover:text-[#E74C3C]"><Trash2 className="size-4" /></button>
+                        <button onClick={() => setEdit(v)} className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-[#003366]"><Pencil className="size-4" /></button>
+                        <button onClick={() => eliminar(v.id)} className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-[#FEE2E2] hover:text-[#E74C3C]"><Trash2 className="size-4" /></button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {vacantes.length === 0 && (
-                  <tr><td colSpan={6} className="px-5 py-10 text-center text-[#7F8C8D]"><Briefcase className="size-6 mx-auto mb-2" />No hay vacantes.</td></tr>
-                )}
               </tbody>
             </table>
           </div>
