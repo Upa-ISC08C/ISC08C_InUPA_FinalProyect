@@ -14,6 +14,11 @@ export const aiService = {
     return api.post<PerfilOptimizado>("/ai/optimizar", { texto }).then((r) => r.data);
   },
 
+  // Texto del perfil -> CV en markdown (generador de CV con IA)
+  generarCV(texto: string) {
+    return api.post<{ markdown: string }>("/ai/cv-markdown", { texto }).then((r) => r.data.markdown);
+  },
+
   // PDF de CV -> markdown optimizado
   pdfAMarkdown(file: File) {
     const fd = new FormData();

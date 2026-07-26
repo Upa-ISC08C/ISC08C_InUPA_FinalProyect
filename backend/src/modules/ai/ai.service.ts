@@ -113,6 +113,35 @@ class AIService {
         const data = await response.json();
         return data.choices[0].message.content; // Retornamos el markdown limpio
     }
+
+    /**
+     * Genera un CV en Markdown a partir del texto del perfil (sin PDF de por medio).
+     * Se usa para el generador de CV con IA a partir de la informacion del perfil.
+     */
+    public async procesarTextoAMarkdown(texto: string) {
+        if (!texto || texto.trim() === "") {
+            throw new Error("No hay informacion de perfil para generar el CV.");
+        }
+        const config = this.getOpenRouterConfig();
+        const systemPrompt = `${ROL_MAESTRO}\n\n${INSTRUCCION_MEJORAR}`;
+
+        const response = await fetch(config.url, {
+            method: "POST",
+            headers: config.headers,
+            body: JSON.stringify({
+                model: "openai/gpt-oss-20b",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: texto }
+                ],
+                temperature: 0.2
+            })
+        });
+
+        if (!response.ok) throw new Error(`Error en OpenRouter: ${response.statusText}`);
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
 }
 
 export const aiService = new AIService();

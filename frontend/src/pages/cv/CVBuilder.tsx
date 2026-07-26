@@ -2,9 +2,62 @@ import { useState } from "react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
-import { Sparkles, Loader2, FileText, Upload, User, Briefcase, GraduationCap, Wrench, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, FileText, Upload, User, Briefcase, GraduationCap, Wrench, AlertCircle, Download, FileDown } from "lucide-react";
 import { aiService, type PerfilOptimizado } from "../../services/ai.service";
-import { profileService } from "../../services/profile.service";
+import { profileService, type FullProfile } from "../../services/profile.service";
+
+const fmtFecha = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-MX", { month: "short", year: "numeric" });
+};
+
+// Construye un texto con toda la info del perfil para que la IA arme el CV
+function perfilATexto(p: FullProfile): string {
+  const L: string[] = [];
+  L.push(`Nombre: ${p.nombre_completo}`);
+  if (p.carrera) L.push(`Carrera: ${p.carrera}${p.cuatrimestre ? ` (${p.cuatrimestre}° cuatrimestre)` : ""}`);
+  L.push(`Correo: ${p.correo_institucional}`);
+  const pe: any = p.perfil || {};
+  if (pe.telefono) L.push(`Teléfono: ${pe.telefono}`);
+  if (pe.ubicacion) L.push(`Ubicación: ${pe.ubicacion}`);
+  if (pe.github_url) L.push(`GitHub: ${pe.github_url}`);
+  if (pe.linkedin_url) L.push(`LinkedIn: ${pe.linkedin_url}`);
+  if (pe.titular_profesional) L.push(`Titular profesional: ${pe.titular_profesional}`);
+  if (pe.biografia) L.push(`Perfil: ${pe.biografia}`);
+  if (p.experiencia?.length) {
+    L.push("\nExperiencia:");
+    p.experiencia.forEach((e: any) => {
+      L.push(`- ${e.puesto}${e.empresa_nombre ? " en " + e.empresa_nombre : ""} (${fmtFecha(e.fecha_inicio)} - ${e.actual ? "Actualidad" : fmtFecha(e.fecha_fin)})`);
+      (e.actividades || []).forEach((a: any) => L.push(`  * ${a.actividad}${a.descripcion ? ": " + a.descripcion : ""}`));
+      if (e.tecnologias_usadas?.length) L.push(`  Tecnologías: ${e.tecnologias_usadas.join(", ")}`);
+    });
+  }
+  if (p.educacion?.length) { L.push("\nEducación:"); p.educacion.forEach((ed: any) => L.push(`- ${ed.carrera_o_grado} en ${ed.institucion} (${fmtFecha(ed.fecha_inicio)} - ${ed.graduado ? "Graduado" : fmtFecha(ed.fecha_fin) || "En curso"})`)); }
+  if (p.habilidades?.length) L.push(`\nHabilidades: ${p.habilidades.map((h: any) => h.nombre).join(", ")}`);
+  if (p.proyectos?.length) { L.push("\nProyectos:"); p.proyectos.forEach((pr: any) => L.push(`- ${pr.nombre_proyecto}${pr.descripcion ? ": " + pr.descripcion : ""}${pr.tecnologias?.length ? ` [${pr.tecnologias.join(", ")}]` : ""}`)); }
+  return L.join("\n");
+}
+
+// Markdown -> HTML minimalista para el PDF
+function mdToHtml(md: string): string {
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const inline = (s: string) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
+  const out: string[] = [];
+  let inList = false;
+  const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
+  md.split(/\r?\n/).forEach((line) => {
+    const t = line.trim();
+    if (/^#{3}\s/.test(t)) { closeList(); out.push(`<h3>${inline(t.replace(/^#{3}\s/, ""))}</h3>`); }
+    else if (/^#{2}\s/.test(t)) { closeList(); out.push(`<h2>${inline(t.replace(/^#{2}\s/, ""))}</h2>`); }
+    else if (/^#\s/.test(t)) { closeList(); out.push(`<h1>${inline(t.replace(/^#\s/, ""))}</h1>`); }
+    else if (/^[-*]\s/.test(t)) { if (!inList) { out.push("<ul>"); inList = true; } out.push(`<li>${inline(t.replace(/^[-*]\s/, ""))}</li>`); }
+    else if (t === "") { closeList(); }
+    else { closeList(); out.push(`<p>${inline(t)}</p>`); }
+  });
+  closeList();
+  return out.join("\n");
+}
 
 export function CVBuilder() {
   const [texto, setTexto] = useState("");
@@ -17,6 +70,47 @@ export function CVBuilder() {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [markdown, setMarkdown] = useState("");
   const [errorPdf, setErrorPdf] = useState("");
+
+  // Generador de CV con IA (desde el perfil)
+  const [cvMd, setCvMd] = useState("");
+  const [cvLoading, setCvLoading] = useState(false);
+  const [cvNombre, setCvNombre] = useState("");
+  const [cvError, setCvError] = useState("");
+
+  const generarMiCV = async () => {
+    setCvLoading(true); setCvError(""); setCvMd("");
+    try {
+      const p = await profileService.getMyProfile();
+      setCvNombre(p.nombre_completo || "CV");
+      const texto = perfilATexto(p);
+      const md = await aiService.generarCV(texto);
+      setCvMd(md);
+    } catch (e: any) {
+      setCvError(e?.response?.data?.error || "No se pudo generar el CV. Completa tu perfil e intenta de nuevo.");
+    } finally { setCvLoading(false); }
+  };
+
+  const descargarPDF = () => {
+    if (!cvMd) return;
+    const html = mdToHtml(cvMd);
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CV - ${cvNombre}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        * { box-sizing: border-box; }
+        body { font-family: 'Poppins', Arial, sans-serif; color: #2C3E50; max-width: 780px; margin: 0 auto; padding: 40px; line-height: 1.5; }
+        h1 { color: #003366; font-size: 26px; margin: 0 0 4px; border-bottom: 3px solid #FFD700; padding-bottom: 8px; }
+        h2 { color: #003366; font-size: 16px; margin: 22px 0 6px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px; }
+        h3 { color: #2C3E50; font-size: 14px; margin: 12px 0 2px; }
+        p { margin: 4px 0; font-size: 13px; }
+        ul { margin: 4px 0 10px; padding-left: 20px; } li { font-size: 13px; margin: 2px 0; }
+        strong { color: #003366; }
+        @media print { body { padding: 0; } }
+      </style></head><body>${html}
+      <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
+  };
 
   // Precargar el textarea con los datos del perfil del usuario
   const usarMiPerfil = async () => {
@@ -76,6 +170,41 @@ export function CVBuilder() {
         <h1 className="text-2xl font-bold text-[#2C3E50] tracking-tight">Constructor de CV con IA</h1>
         <p className="text-sm text-[#7F8C8D] mt-0.5">Genera y optimiza tu currículum con inteligencia artificial</p>
       </div>
+
+      {/* Generar CV desde el perfil (principal) */}
+      <Card className="border-0 shadow-sm ring-1 ring-[#003366]/10">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="size-9 rounded-xl bg-[#E8F0FC] flex items-center justify-center"><FileDown className="size-5 text-[#003366]" /></div>
+            <div>
+              <h2 className="font-bold text-[#2C3E50]">Genera mi CV con IA</h2>
+              <p className="text-xs text-[#7F8C8D]">Arma tu currículum a partir de la información de tu perfil (incluye tus links de GitHub/LinkedIn) y descárgalo en PDF.</p>
+            </div>
+          </div>
+
+          {cvError && (
+            <div className="flex items-center gap-2 text-xs text-[#DC2626] bg-red-50 border border-red-200 rounded-lg px-3 py-2"><AlertCircle className="size-4 flex-shrink-0" />{cvError}</div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={generarMiCV} disabled={cvLoading} className="flex items-center gap-1.5">
+              {cvLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Generar mi CV con IA
+            </Button>
+            {cvMd && (
+              <Button variant="outline" onClick={descargarPDF} className="flex items-center gap-1.5">
+                <Download className="size-4" /> Descargar PDF
+              </Button>
+            )}
+          </div>
+
+          {cvMd && (
+            <div
+              className="rounded-xl border border-[#E5E7EB] bg-white p-5 text-sm text-[#2C3E50] [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-[#003366] [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[#003366] [&_h2]:mt-4 [&_h2]:mb-1 [&_h2]:uppercase [&_h3]:font-semibold [&_h3]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_li]:my-0.5 [&_p]:my-1 [&_strong]:text-[#003366]"
+              dangerouslySetInnerHTML={{ __html: mdToHtml(cvMd) }}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Generar desde texto */}
       <Card className="border-0 shadow-sm">

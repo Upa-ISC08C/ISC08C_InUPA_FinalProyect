@@ -23,6 +23,20 @@ class AIController {
         }
     }
 
+    public async generarCV(req: Request, res: Response) {
+        try {
+            const { texto } = req.body;
+            if (!texto) {
+                return res.status(400).json({ error: "El campo 'texto' (perfil) es requerido." });
+            }
+            const markdown = await aiService.procesarTextoAMarkdown(texto);
+            res.json({ markdown });
+        } catch (error: any) {
+            console.error("Error en generarCV:", error);
+            res.status(500).json({ error: "Ocurrió un error al generar el CV.", detalle: error.message });
+        }
+    }
+
     public async optimizarPDF(req: Request, res: Response) {
         try {
             if (!req.file || !req.file.buffer) {

@@ -14,6 +14,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Ruta para optimizar texto crudo a JSON
 router.post('/optimizar', aiController.optimizarTexto);
 
+// Ruta para generar un CV en Markdown a partir del texto del perfil
+router.post('/cv-markdown', aiController.generarCV);
+
 // Ruta para procesar un PDF y devolver Markdown
 router.post('/pdf-a-markdown', upload.single('curriculum'), aiController.optimizarPDF);
 
