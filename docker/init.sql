@@ -195,6 +195,7 @@ CREATE TABLE VACANTES (
     carreras TEXT[],
     cuatrimestre INTEGER,
     fecha_limite DATE,
+    imagen_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -34,6 +34,7 @@ export interface CreateVacanteDTO {
   carreras?: string[];
   cuatrimestre?: number;
   fecha_limite?: string;
+  imagen_url?: string;
 }
 
 export const jobsService = {

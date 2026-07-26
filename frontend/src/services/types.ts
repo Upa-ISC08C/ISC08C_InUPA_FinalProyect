@@ -41,6 +41,7 @@ export interface Vacante {
   ubicacion: string | null;
   carreras: string[] | null;
   cuatrimestre: number | null;
+  imagen_url: string | null;
   activa: boolean;
   fecha_publicacion: string;
   fecha_limite: string | null;

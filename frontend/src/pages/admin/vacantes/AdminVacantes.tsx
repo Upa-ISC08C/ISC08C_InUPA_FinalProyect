@@ -5,11 +5,14 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Textarea } from "../../../components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Save, Briefcase, X, ChevronsUpDown, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Save, Briefcase, X, ChevronsUpDown, Check, ImagePlus } from "lucide-react";
 import { jobsService } from "../../../services/jobs.service";
 import { companiesService, type Company } from "../../../services/companies.service";
 import { CARRERAS_UPA, CUATRIMESTRES, TIPOS_CONTRATO, MODALIDADES } from "../../../utils/catalogos";
+import { fileToDataUrl } from "../../../utils/image";
 import type { Vacante } from "../../../services/types";
+
+const fmtFecha = (s: string | null) => s ? new Date(s).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : null;
 
 export function AdminVacantes() {
   const [vacantes, setVacantes] = useState<Vacante[]>([]);
@@ -55,8 +58,15 @@ export function AdminVacantes() {
                 {vacantes.map((v) => (
                   <tr key={v.id} className="border-b border-[#F5F7FA] last:border-0 hover:bg-[#FAFAFA]">
                     <td className="px-5 py-3">
-                      <p className="font-semibold text-[#2C3E50]">{v.titulo}</p>
-                      <p className="text-xs text-[#7F8C8D]">{v.modalidad || "—"} · {v.ubicacion || "—"}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-lg bg-[#F5F7FA] overflow-hidden flex items-center justify-center flex-none">
+                          {v.imagen_url ? <img src={v.imagen_url} alt="" className="size-full object-cover" /> : <Briefcase className="size-4 text-[#B0B8C1]" />}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#2C3E50]">{v.titulo}</p>
+                          <p className="text-xs text-[#7F8C8D]">{v.modalidad || "—"} · {v.ubicacion || "—"}{fmtFecha(v.fecha_limite) ? ` · Cierra ${fmtFecha(v.fecha_limite)}` : ""}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-3 text-[#2C3E50]">{v.empresa?.nombre}</td>
                     <td className="px-5 py-3">
@@ -155,7 +165,10 @@ function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | n
     tipo_contrato: item?.tipo_contrato || TIPOS_CONTRATO[0], nivel_experiencia: item?.nivel_experiencia || "Junior",
     ubicacion: item?.ubicacion || "", activa: item?.activa ?? true,
     cuatrimestre: item?.cuatrimestre ? String(item.cuatrimestre) : "",
+    fecha_limite: item?.fecha_limite ? item.fecha_limite.slice(0, 10) : "",
   });
+  const [imagen, setImagen] = useState<string>(item?.imagen_url || "");
+  const [imgError, setImgError] = useState("");
   // Requisitos como lista de chips (se guardan como texto separado por saltos de línea).
   const [requisitos, setRequisitos] = useState<string[]>(() =>
     (item?.requisitos || "").split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
@@ -166,6 +179,12 @@ function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | n
   const [error, setError] = useState("");
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
+  const subirImagen = async (file?: File) => {
+    if (!file) return;
+    setImgError("");
+    try { setImagen(await fileToDataUrl(file, 900, 0.82)); }
+    catch { setImgError("No se pudo procesar la imagen."); }
+  };
   const addReq = () => { const t = reqInput.trim(); if (t && !requisitos.includes(t)) setRequisitos((r) => [...r, t]); setReqInput(""); };
   const toggleCarrera = (c: string) => setCarreras((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
 
@@ -178,6 +197,7 @@ function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | n
         salario_min: form.salario_min ? Number(form.salario_min) : undefined, salario_max: form.salario_max ? Number(form.salario_max) : undefined,
         modalidad: form.modalidad, tipo_contrato: form.tipo_contrato, nivel_experiencia: form.nivel_experiencia, ubicacion: form.ubicacion,
         carreras, cuatrimestre: form.cuatrimestre ? Number(form.cuatrimestre) : undefined,
+        fecha_limite: form.fecha_limite || undefined, imagen_url: imagen || undefined,
       };
       if (item) await jobsService.update(item.id, { ...payload, activa: form.activa }); else await jobsService.create(payload);
       onSaved();
@@ -191,6 +211,26 @@ function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | n
         <DialogHeader><DialogTitle>{item ? "Editar vacante" : "Nueva vacante"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           {error && <div className="p-2.5 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>}
+
+          {/* Imagen / banner de la vacante */}
+          <F label="Imagen de la vacante">
+            <div className="rounded-xl border border-dashed border-[#D1D5DB] p-3">
+              {imagen ? (
+                <div className="relative">
+                  <img src={imagen} alt="Vista previa" className="w-full h-32 object-cover rounded-lg" />
+                  <button type="button" onClick={() => setImagen("")} className="absolute top-2 right-2 size-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"><X className="size-4" /></button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center gap-1 py-4 cursor-pointer text-[#7F8C8D] hover:text-[#003366]">
+                  <ImagePlus className="size-6" />
+                  <span className="text-xs font-medium">Subir imagen (logo o banner)</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => subirImagen(e.target.files?.[0])} />
+                </label>
+              )}
+              {imgError && <p className="text-xs text-red-600 mt-1">{imgError}</p>}
+            </div>
+          </F>
+
           <F label="Título *"><Input value={form.titulo} onChange={(e) => set("titulo", e.target.value)} /></F>
           <F label="Empresa *"><EmpresaCombo empresas={empresas} value={form.empresa_id} onChange={(id) => set("empresa_id", id)} /></F>
           <F label="Descripción *"><Textarea rows={3} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} /></F>
@@ -235,8 +275,9 @@ function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | n
                 {CUATRIMESTRES.map((n) => <option key={n} value={n}>{n}º en adelante</option>)}
               </select>
             </F>
-            <F label="Ubicación"><Input value={form.ubicacion} onChange={(e) => set("ubicacion", e.target.value)} /></F>
+            <F label="Fecha límite para postularse"><Input type="date" value={form.fecha_limite} onChange={(e) => set("fecha_limite", e.target.value)} /></F>
           </div>
+          <F label="Ubicación"><Input value={form.ubicacion} onChange={(e) => set("ubicacion", e.target.value)} /></F>
           <div className="grid grid-cols-2 gap-3">
             <F label="Salario mín."><Input type="number" value={form.salario_min} onChange={(e) => set("salario_min", e.target.value)} /></F>
             <F label="Salario máx."><Input type="number" value={form.salario_max} onChange={(e) => set("salario_max", e.target.value)} /></F>

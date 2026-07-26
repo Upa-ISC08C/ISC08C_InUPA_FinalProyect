@@ -61,9 +61,9 @@ export class JobsDAO {
       INSERT INTO VACANTES (
         titulo, descripcion, requisitos, url_origen, empresa_id,
         salario_min, salario_max, modalidad, tipo_contrato,
-        nivel_experiencia, ubicacion, carreras, cuatrimestre, fecha_limite, activa
+        nivel_experiencia, ubicacion, carreras, cuatrimestre, fecha_limite, imagen_url, activa
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, true)
       RETURNING *
     `;
 
@@ -82,6 +82,7 @@ export class JobsDAO {
       data.carreras && data.carreras.length > 0 ? data.carreras : null,
       data.cuatrimestre ?? null,
       data.fecha_limite || null,
+      data.imagen_url || null,
     ];
 
     const result = await db.query(query, values);
@@ -254,6 +255,7 @@ export class JobsDAO {
     mapField('carreras', data.carreras && data.carreras.length > 0 ? data.carreras : null);
     mapField('cuatrimestre', data.cuatrimestre);
     mapField('fecha_limite', data.fecha_limite);
+    mapField('imagen_url', data.imagen_url);
     mapField('activa', data.activa);
 
     if (fields.length > 0) {

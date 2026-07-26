@@ -13,6 +13,7 @@ export interface CreateVacanteDTO {
   carreras?: string[];
   cuatrimestre?: number;
   fecha_limite?: Date;
+  imagen_url?: string;
   habilidades_ids?: string[];
 }
 
@@ -30,6 +31,7 @@ export interface UpdateVacanteDTO {
   carreras?: string[];
   cuatrimestre?: number;
   fecha_limite?: Date;
+  imagen_url?: string;
   activa?: boolean;
   habilidades_ids?: string[];
 }
@@ -63,6 +65,7 @@ export interface VacanteWithRelations {
   ubicacion: string | null;
   carreras: string[] | null;
   cuatrimestre: number | null;
+  imagen_url: string | null;
   activa: boolean;
   fecha_publicacion: Date;
   fecha_limite: Date | null;
