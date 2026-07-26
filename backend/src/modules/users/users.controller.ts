@@ -63,6 +63,12 @@ export class UsersController {
     return res.json({ success: true, data: users });
   }
 
+  /** GET /api/users/dashboard/admin — estadisticas del panel de administracion. */
+  static async dashboardStats(_req: AuthenticatedRequest, res: Response) {
+    const data = await UsersService.adminDashboard();
+    return res.json({ success: true, data });
+  }
+
   /** PUT /api/users/:id — actualiza activo/rol/nombre de un usuario. */
   static async adminUpdate(req: AuthenticatedRequest, res: Response) {
     const { activo, rol, nombre_completo } = req.body ?? {};

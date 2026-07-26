@@ -55,6 +55,10 @@ export class UsersService {
     return usersDAO.listAll();
   }
 
+  static async adminDashboard() {
+    return usersDAO.dashboardStats();
+  }
+
   static async adminUpdate(
     id: string,
     data: { activo?: boolean; rol?: string; nombre_completo?: string }

@@ -425,6 +425,32 @@ INSERT INTO VACANTES (empresa_id, titulo, descripcion, requisitos, activa, salar
      ARRAY['Ingeniería en Mecatrónica','Ingeniería en Sistemas Computacionales'], 8, CURRENT_DATE + INTERVAL '20 days')
 ON CONFLICT DO NOTHING;
 
+-- Mas estudiantes de ejemplo (para poblar las graficas del panel; contraseña: Alumno2025!)
+INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol, carrera, cuatrimestre, fecha_registro) VALUES
+  ('UP230301','Sofía Mendoza Pérez','up230301@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Nanotecnología',8, CURRENT_DATE - INTERVAL '5 months'),
+  ('UP230302','Jorge Ramírez Soto','up230302@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Sistemas Estratégicos de Información',5, CURRENT_DATE - INTERVAL '4 months'),
+  ('UP230303','Luis Torres Vargas','up230303@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Logística',3, CURRENT_DATE - INTERVAL '4 months'),
+  ('UP230304','Valentina Cruz Herrera','up230304@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Sistemas Computacionales',6, CURRENT_DATE - INTERVAL '3 months'),
+  ('UP230305','Carlos Núñez Leal','up230305@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Mecatrónica',9, CURRENT_DATE - INTERVAL '2 months'),
+  ('UP230306','Andrea Flores Salinas','up230306@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Sistemas Estratégicos de Información',4, CURRENT_DATE - INTERVAL '1 months'),
+  ('UP230307','Diego Herrera Ruiz','up230307@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería Financiera',7, CURRENT_DATE),
+  ('UP230308','Paola Vega Ortiz','up230308@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Nanotecnología',6, CURRENT_DATE)
+ON CONFLICT (correo_institucional) DO NOTHING;
+
+-- Perfil vacio para cada estudiante (necesario para las postulaciones de ejemplo)
+INSERT INTO PERFILES (usuario_id)
+SELECT id FROM USUARIOS WHERE rol = 'estudiante'
+ON CONFLICT DO NOTHING;
+
+-- Postulaciones de ejemplo (reparte perfiles entre vacantes, fechas en varios meses)
+INSERT INTO POSTULACIONES (perfil_id, vacante_id, estado, fecha_postulacion)
+SELECT p.id, v.id,
+       (ARRAY['pendiente','revisada','aceptada','rechazada'])[1 + (row_number() OVER () % 4)],
+       CURRENT_DATE - ((row_number() OVER () % 6) || ' months')::interval
+FROM PERFILES p
+CROSS JOIN LATERAL (SELECT id FROM VACANTES ORDER BY random() LIMIT 1) v
+ON CONFLICT DO NOTHING;
+
 -- =====================================================
 -- CONSULTA DE VERIFICACIÓN
 -- =====================================================

@@ -211,6 +211,56 @@ export class UsersDAO {
       cvDetails: { basics, education, experience, skills, projects },
     };
   }
+
+  /**
+   * Estadisticas agregadas para el panel de administracion (graficas + resumen).
+   */
+  async dashboardStats() {
+    const [tot, porCarrera, postMes, regMes] = await Promise.all([
+      db.query(`
+        SELECT
+          (SELECT count(*) FROM EMPRESAS) AS empresas,
+          (SELECT count(*) FROM EMPRESAS WHERE activa) AS empresas_activas,
+          (SELECT count(*) FROM USUARIOS WHERE rol = 'estudiante') AS usuarios,
+          (SELECT count(*) FROM USUARIOS WHERE rol = 'estudiante' AND activo) AS usuarios_activos,
+          (SELECT count(*) FROM VACANTES WHERE activa) AS vacantes_activas,
+          (SELECT count(*) FROM POSTULACIONES) AS postulaciones
+      `),
+      db.query(`
+        SELECT carrera, count(*)::int AS total
+        FROM USUARIOS
+        WHERE rol = 'estudiante' AND carrera IS NOT NULL
+        GROUP BY carrera ORDER BY total DESC
+      `),
+      db.query(`
+        SELECT to_char(date_trunc('month', fecha_postulacion), 'YYYY-MM') AS mes, count(*)::int AS total
+        FROM POSTULACIONES
+        WHERE fecha_postulacion >= (CURRENT_DATE - INTERVAL '6 months')
+        GROUP BY 1 ORDER BY 1
+      `),
+      db.query(`
+        SELECT to_char(date_trunc('month', fecha_registro), 'YYYY-MM') AS mes, count(*)::int AS total
+        FROM USUARIOS
+        WHERE rol = 'estudiante' AND fecha_registro >= (CURRENT_DATE - INTERVAL '6 months')
+        GROUP BY 1 ORDER BY 1
+      `),
+    ]);
+
+    const t = tot.rows[0];
+    return {
+      totales: {
+        empresas: parseInt(t.empresas, 10),
+        empresasActivas: parseInt(t.empresas_activas, 10),
+        usuarios: parseInt(t.usuarios, 10),
+        usuariosActivos: parseInt(t.usuarios_activos, 10),
+        vacantesActivas: parseInt(t.vacantes_activas, 10),
+        postulaciones: parseInt(t.postulaciones, 10),
+      },
+      porCarrera: porCarrera.rows,
+      postulacionesPorMes: postMes.rows,
+      registrosPorMes: regMes.rows,
+    };
+  }
 }
 
 export const usersDAO = new UsersDAO();

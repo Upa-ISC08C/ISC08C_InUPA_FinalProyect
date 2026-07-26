@@ -14,6 +14,7 @@ router.put('/me', asyncHandler(UsersController.updateMe));
 
 // --- Administracion (solo admin) ---
 // Nota: /me se define ANTES que /:id para que no lo capture el parametro.
+router.get('/dashboard/admin', requireAdmin, asyncHandler(UsersController.dashboardStats));
 router.get('/', requireAdmin, asyncHandler(UsersController.list));
 router.put('/:id', requireAdmin, asyncHandler(UsersController.adminUpdate));
 router.delete('/:id', requireAdmin, asyncHandler(UsersController.remove));
