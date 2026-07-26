@@ -3,8 +3,9 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import {
-  Search, MapPin, Clock, Briefcase, X, Globe, DollarSign, CheckCircle2,
-  Loader2, Send, Mail, Phone, GraduationCap, SlidersHorizontal, MessageCircle,
+  Search, MapPin, Clock, Briefcase, Globe, DollarSign, CheckCircle2,
+  Loader2, Mail, Phone, GraduationCap, SlidersHorizontal, MessageCircle,
+  Star, CalendarClock,
 } from "lucide-react";
 import { jobsService } from "../../services/jobs.service";
 import type { Vacante } from "../../services/types";
@@ -23,6 +24,16 @@ const salaryStr = (min: number | null, max: number | null) => {
   if (min && max) return `$${min.toLocaleString()} – $${max.toLocaleString()} MXN`;
   if (min) return `$${min.toLocaleString()} MXN`;
   return "Sueldo a convenir";
+};
+const fmtFecha = (iso: string) => new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+// Información del límite de postulación: etiqueta + si está cerrada + si urge.
+const deadlineInfo = (iso: string | null) => {
+  if (!iso) return null;
+  const dias = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+  if (dias < 0) return { label: `Cerró el ${fmtFecha(iso)}`, cerrada: true, urgente: false };
+  if (dias === 0) return { label: "Último día para postularte", cerrada: false, urgente: true };
+  if (dias <= 5) return { label: `Cierra en ${dias} día${dias === 1 ? "" : "s"}`, cerrada: false, urgente: true };
+  return { label: `Cierra el ${fmtFecha(iso)}`, cerrada: false, urgente: false };
 };
 const initials = (n: string) => n.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 const color = (n: string) => PALETTE[(n?.charCodeAt(0) || 0) % PALETTE.length];
@@ -63,7 +74,9 @@ export function JobBoard() {
     setF(nf); cargar(nf);
   };
 
-  const aplicar = async (id: string) => {
+  // Registra el interés del alumno por la vacante (NO contacta a nadie; solo la
+  // guarda para su lista de interés y para las métricas del administrador).
+  const marcarInteres = async (id: string) => {
     if (applied.includes(id)) return;
     setApplying(id);
     try { await jobsService.apply(id); setApplied((p) => [...p, id]); }
@@ -182,8 +195,15 @@ ${user?.correo_institucional || ""}`;
           ) : jobs.length === 0 ? (
             <Card className="border-0 shadow-sm"><CardContent className="p-10 text-center text-sm text-[#7F8C8D]">No se encontraron vacantes con esos filtros.</CardContent></Card>
           ) : (
-            jobs.map((job) => (
-              <Card key={job.id} className="border-0 shadow-sm hover:shadow-md transition-all">
+            jobs.map((job) => {
+              const dl = deadlineInfo(job.fecha_limite);
+              return (
+              <Card key={job.id} className="border-0 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                {job.imagen_url && (
+                  <div className="h-32 bg-[#F5F7FA] overflow-hidden">
+                    <img src={job.imagen_url} alt="" className="size-full object-cover" />
+                  </div>
+                )}
                 <CardContent className="p-5">
                   <div className="flex gap-4">
                     <div className="size-12 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: color(job.empresa?.nombre || "E") }}>
@@ -198,14 +218,19 @@ ${user?.correo_institucional || ""}`;
                         <span className="flex items-center gap-1"><Clock className="size-3" />{rel(job.fecha_publicacion)}</span>
                         {job.carreras && job.carreras.length > 0 && <span className="flex items-center gap-1"><GraduationCap className="size-3" />{job.carreras.length === 1 ? job.carreras[0] : `${job.carreras.length} carreras`}</span>}
                       </div>
+                      {dl && (
+                        <span className={`inline-flex items-center gap-1 mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-full ${dl.cerrada ? "bg-[#F1F1F1] text-[#9CA3AF]" : dl.urgente ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#FEF9E7] text-[#B7791F]"}`}>
+                          <CalendarClock className="size-3" />{dl.label}
+                        </span>
+                      )}
                       <p className="text-xs text-[#7F8C8D] mt-2 line-clamp-2 leading-relaxed">{job.descripcion}</p>
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#F5F7FA] gap-2 flex-wrap">
                         <span className="text-sm font-bold text-[#2C3E50]">{salaryStr(job.salario_min, job.salario_max)}</span>
                         <div className="flex gap-2">
-                          <button onClick={() => setSelected(job)} className="text-xs px-3.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#2C3E50] font-semibold hover:bg-[#F5F7FA]">Ver detalles</button>
-                          <button onClick={() => aplicar(job.id)} disabled={applied.includes(job.id) || applying === job.id}
+                          <button onClick={() => setSelected(job)} className="text-xs px-3.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#2C3E50] font-semibold hover:bg-[#F5F7FA]">Ver y contactar</button>
+                          <button onClick={() => marcarInteres(job.id)} disabled={applied.includes(job.id) || applying === job.id}
                             className={`text-xs px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 ${applied.includes(job.id) ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#003366] text-white hover:bg-[#002244]"}`}>
-                            {applying === job.id ? <Loader2 className="size-3 animate-spin" /> : applied.includes(job.id) ? <><CheckCircle2 className="size-3" />Postulado</> : <><Send className="size-3" />Aplicar</>}
+                            {applying === job.id ? <Loader2 className="size-3 animate-spin" /> : applied.includes(job.id) ? <><CheckCircle2 className="size-3" />Te interesa</> : <><Star className="size-3" />Me interesa</>}
                           </button>
                         </div>
                       </div>
@@ -213,7 +238,8 @@ ${user?.correo_institucional || ""}`;
                   </div>
                 </CardContent>
               </Card>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -222,6 +248,11 @@ ${user?.correo_institucional || ""}`;
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         {selected && (
           <DialogContent className="sm:max-w-2xl p-0">
+            {selected.imagen_url && (
+              <div className="h-40 bg-[#F5F7FA] overflow-hidden rounded-t-xl">
+                <img src={selected.imagen_url} alt="" className="size-full object-cover" />
+              </div>
+            )}
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-[#E5E7EB]">
               <div className="flex items-start gap-4">
                 <div className="size-14 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0" style={{ backgroundColor: color(selected.empresa?.nombre || "E") }}>
@@ -243,6 +274,9 @@ ${user?.correo_institucional || ""}`;
               <div className="flex flex-wrap gap-2">
                 <span className="text-xs bg-[#F5F7FA] text-[#2C3E50] px-2.5 py-1 rounded-full border border-[#E5E7EB] font-medium flex items-center gap-1"><DollarSign className="size-3" />{salaryStr(selected.salario_min, selected.salario_max)}</span>
                 {selected.cuatrimestre && <span className="text-xs bg-[#F5F7FA] text-[#7F8C8D] px-2.5 py-1 rounded-full border border-[#E5E7EB]">Desde {selected.cuatrimestre}° cuatri</span>}
+                {(() => { const dl = deadlineInfo(selected.fecha_limite); return dl ? (
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${dl.cerrada ? "bg-[#F1F1F1] text-[#9CA3AF]" : dl.urgente ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#FEF9E7] text-[#B7791F]"}`}><CalendarClock className="size-3" />{dl.label}</span>
+                ) : null; })()}
               </div>
 
               <div>
@@ -275,23 +309,28 @@ ${user?.correo_institucional || ""}`;
                   <a href={selected.empresa.sitio_web} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-[#003366] font-semibold hover:underline"><Globe className="size-4" />Ir al sitio web de la empresa</a>
                 )}
               </div>
-              <p className="text-xs text-[#7F8C8D]">Se abrirá tu correo/WhatsApp con un <b>mensaje sugerido</b> que puedes editar antes de enviar. Recuerda adjuntar tu CV (genéralo en «Mi Perfil / CV»).</p>
+              <p className="text-xs text-[#7F8C8D]">La plataforma <b>no contacta a la empresa por ti</b>: al pulsar «Contactar por correo» se abre <b>tu</b> correo con un <b>mensaje sugerido</b> que puedes editar antes de enviarlo. Recuerda adjuntar tu CV (genéralo en «Mi Perfil / CV»).</p>
+              {!selected.empresa?.correo_contacto && !selected.empresa?.telefono && (
+                <p className="text-xs text-[#B7791F] bg-[#FEF9E7] rounded-lg p-2.5">Esta empresa no registró datos de contacto. Revisa su sitio web o vuelve más tarde.</p>
+              )}
             </div>
 
             <div className="px-6 pb-6 flex flex-wrap gap-2 border-t border-[#E5E7EB] pt-4">
               {selected.empresa?.correo_contacto && (
-                <a href={mailtoLink(selected)} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-sm font-bold flex-1 min-w-[160px]">
-                  <Mail className="size-4" />Aplicar por correo
+                <a href={mailtoLink(selected)} onClick={() => marcarInteres(selected.id)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-sm font-bold flex-1 min-w-[160px]">
+                  <Mail className="size-4" />Contactar por correo
                 </a>
               )}
               {selected.empresa?.telefono && (
-                <a href={waLink(selected)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1da851] text-white text-sm font-bold flex-1 min-w-[140px]">
+                <a href={waLink(selected)} onClick={() => marcarInteres(selected.id)} target="_blank" rel="noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1da851] text-white text-sm font-bold flex-1 min-w-[140px]">
                   <MessageCircle className="size-4" />WhatsApp
                 </a>
               )}
-              <button onClick={() => aplicar(selected.id)} disabled={applied.includes(selected.id)}
+              <button onClick={() => marcarInteres(selected.id)} disabled={applied.includes(selected.id)}
                 className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border ${applied.includes(selected.id) ? "border-[#16A34A] bg-[#DCFCE7] text-[#16A34A]" : "border-[#E5E7EB] text-[#2C3E50] hover:bg-[#F5F7FA]"}`}>
-                {applied.includes(selected.id) ? <><CheckCircle2 className="size-4" />Postulación registrada</> : <><Send className="size-4" />Registrar postulación</>}
+                {applied.includes(selected.id) ? <><CheckCircle2 className="size-4" />Guardada en tus intereses</> : <><Star className="size-4" />Me interesa</>}
               </button>
             </div>
           </DialogContent>
