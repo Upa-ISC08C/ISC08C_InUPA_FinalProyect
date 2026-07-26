@@ -6,6 +6,8 @@ export interface AppUser {
   nombre_completo: string;
   correo_institucional: string;
   rol: string; // 'estudiante' | 'admin'
+  carrera?: string | null;
+  cuatrimestre?: number | null;
   url_foto?: string | null;
   activo?: boolean;
 }

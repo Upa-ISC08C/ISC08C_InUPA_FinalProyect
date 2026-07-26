@@ -4,11 +4,15 @@ import { GraduationCap, ArrowRight, Loader2 } from "lucide-react";
 import { useNavigate, Link } from "react-router";
 import { useState } from "react";
 import { useAuthStore } from "../../store/authStore";
+import { CARRERAS_UPA, CUATRIMESTRES } from "../../utils/catalogos";
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuthStore();
   const [nombre, setNombre] = useState("");
+  const [matricula, setMatricula] = useState("");
+  const [carrera, setCarrera] = useState("");
+  const [cuatrimestre, setCuatrimestre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -16,18 +20,29 @@ export function RegisterPage() {
   const [error, setError] = useState("");
 
   const dominioValido = (c: string) => c.endsWith("@alumnos.upa.edu.mx") || c.endsWith("@upa.edu.mx");
+  const selCls = "w-full h-11 rounded-xl border border-[#D1D5DB] focus:border-[#003366] px-3 text-sm bg-white";
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     const correo = email.toLowerCase().trim();
     if (nombre.trim().length < 3) return setError("Escribe tu nombre completo.");
+    if (!matricula.trim()) return setError("Escribe tu matrícula (UP).");
+    if (!carrera) return setError("Selecciona tu carrera.");
+    if (!cuatrimestre) return setError("Selecciona tu cuatrimestre.");
     if (!dominioValido(correo)) return setError("Debes usar tu correo institucional de la UPA.");
     if (password.length < 6) return setError("La contraseña debe tener al menos 6 caracteres.");
     if (password !== confirm) return setError("Las contraseñas no coinciden.");
     setIsLoading(true);
     try {
-      const user = await register(nombre.trim(), correo, password);
+      const user = await register({
+        nombre_completo: nombre.trim(),
+        email: correo,
+        password,
+        matricula_o_rfc: matricula.trim().toUpperCase(),
+        carrera,
+        cuatrimestre: Number(cuatrimestre),
+      });
       navigate(user.rol === "admin" ? "/admin" : "/dashboard");
     } catch (err: any) {
       setError(err?.response?.data?.error || "No se pudo crear la cuenta.");
@@ -88,6 +103,27 @@ export function RegisterPage() {
               <Label htmlFor="nombre" className="text-sm font-semibold text-[#2C3E50]">Nombre completo</Label>
               <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre completo"
                 className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm" required disabled={isLoading} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="matricula" className="text-sm font-semibold text-[#2C3E50]">Matrícula (UP)</Label>
+                <Input id="matricula" value={matricula} onChange={(e) => setMatricula(e.target.value)} placeholder="UP230188"
+                  className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm" required disabled={isLoading} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cuatri" className="text-sm font-semibold text-[#2C3E50]">Cuatrimestre</Label>
+                <select id="cuatri" value={cuatrimestre} onChange={(e) => setCuatrimestre(e.target.value)} className={selCls} required disabled={isLoading}>
+                  <option value="">—</option>
+                  {CUATRIMESTRES.map((c) => <option key={c} value={c}>{c}°</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="carrera" className="text-sm font-semibold text-[#2C3E50]">Carrera</Label>
+              <select id="carrera" value={carrera} onChange={(e) => setCarrera(e.target.value)} className={selCls} required disabled={isLoading}>
+                <option value="">Selecciona tu carrera</option>
+                {CARRERAS_UPA.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-semibold text-[#2C3E50]">Correo institucional</Label>

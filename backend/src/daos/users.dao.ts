@@ -12,7 +12,8 @@ export class UsersDAO {
    */
   async findById(usuarioId: string): Promise<UserProfile | null> {
     const query = `
-      SELECT id, matricula_o_rfc, nombre_completo, correo_institucional, activo, fecha_registro
+      SELECT id, matricula_o_rfc, nombre_completo, correo_institucional, rol,
+             carrera, cuatrimestre, activo, fecha_registro
       FROM USUARIOS
       WHERE id = $1 AND activo = true
     `;
@@ -56,11 +57,18 @@ export class UsersDAO {
    * columnas sensibles (correo, matricula, activo) aunque las mande en el body.
    */
   async updateProfile(usuarioId: string, data: UpdateUserProfileDTO): Promise<UserProfile> {
-    // 1) El nombre completo vive en USUARIOS
-    if (data.nombre_completo !== undefined) {
+    // 1) Datos que viven en USUARIOS (nombre, carrera, cuatrimestre)
+    const usuarioSets: string[] = [];
+    const usuarioVals: any[] = [];
+    let ui = 1;
+    if (data.nombre_completo !== undefined) { usuarioSets.push(`nombre_completo = $${ui++}`); usuarioVals.push(data.nombre_completo); }
+    if (data.carrera !== undefined) { usuarioSets.push(`carrera = $${ui++}`); usuarioVals.push(data.carrera); }
+    if (data.cuatrimestre !== undefined) { usuarioSets.push(`cuatrimestre = $${ui++}`); usuarioVals.push(data.cuatrimestre); }
+    if (usuarioSets.length > 0) {
+      usuarioVals.push(usuarioId);
       await db.query(
-        `UPDATE USUARIOS SET nombre_completo = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-        [data.nombre_completo, usuarioId]
+        `UPDATE USUARIOS SET ${usuarioSets.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${ui}`,
+        usuarioVals
       );
     }
 
@@ -103,7 +111,7 @@ export class UsersDAO {
   async listAll() {
     const query = `
       SELECT u.id, u.matricula_o_rfc, u.nombre_completo, u.correo_institucional,
-             u.rol, u.activo, u.fecha_registro, p.url_foto
+             u.rol, u.carrera, u.cuatrimestre, u.activo, u.fecha_registro, p.url_foto
       FROM USUARIOS u
       LEFT JOIN PERFILES p ON p.usuario_id = u.id
       ORDER BY u.fecha_registro DESC

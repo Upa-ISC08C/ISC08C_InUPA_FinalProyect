@@ -32,6 +32,8 @@ CREATE TABLE USUARIOS (
     correo_institucional VARCHAR(200) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     rol VARCHAR(20) DEFAULT 'estudiante',
+    carrera VARCHAR(150),
+    cuatrimestre INTEGER,
     activo BOOLEAN DEFAULT TRUE,
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -363,14 +365,14 @@ VALUES ('ADMIN', 'Administrador InUPA', 'admin@upa.edu.mx',
 ON CONFLICT (correo_institucional) DO NOTHING;
 
 -- Estudiantes de ejemplo (contraseña: Alumno2025!)
-INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol)
+INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol, carrera, cuatrimestre)
 VALUES
   ('UP230253', 'Juan Jesús Rodríguez Arellano', 'up230253@alumnos.upa.edu.mx',
-   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante'),
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante', 'Ingeniería en Sistemas Computacionales', 8),
   ('UP230188', 'Estudiante Demo', 'up230188@alumnos.upa.edu.mx',
-   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante'),
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante', 'Ingeniería en Sistemas Computacionales', 6),
   ('UP230254', 'María Fernanda López', 'up230254@alumnos.upa.edu.mx',
-   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante')
+   '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante', 'Ingeniería en Mecatrónica', 4)
 ON CONFLICT (correo_institucional) DO NOTHING;
 
 -- Categorias y habilidades base

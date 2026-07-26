@@ -10,10 +10,15 @@ export const authService = {
   },
 
   // Registro (crea la cuenta y devuelve sesión iniciada)
-  register(nombre_completo: string, email: string, password: string) {
-    return api
-      .post<AuthResponse>("/auth/register", { nombre_completo, email, password })
-      .then((res) => res.data);
+  register(data: {
+    nombre_completo: string;
+    email: string;
+    password: string;
+    matricula_o_rfc?: string;
+    carrera?: string;
+    cuatrimestre?: number;
+  }) {
+    return api.post<AuthResponse>("/auth/register", data).then((res) => res.data);
   },
 
   googleLogin(idToken: string) {

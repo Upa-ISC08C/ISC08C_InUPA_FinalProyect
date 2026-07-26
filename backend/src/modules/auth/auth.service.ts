@@ -21,6 +21,8 @@ export interface PublicUser {
   nombre_completo: string;
   correo_institucional: string;
   rol: string;
+  carrera: string | null;
+  cuatrimestre: number | null;
 }
 
 /** Resultado de un login exitoso: token de sesion + datos del usuario. */
@@ -63,14 +65,21 @@ export class AuthService {
    * Registro clásico: crea un usuario con correo institucional y contraseña.
    * Devuelve el JWT de sesión + los datos del usuario (auto-login).
    */
-  async register(nombre: string, email: string, password: string): Promise<AuthResult> {
-    const correo = email.toLowerCase().trim();
+  async register(data: {
+    nombre: string;
+    email: string;
+    password: string;
+    matricula?: string;
+    carrera?: string;
+    cuatrimestre?: number;
+  }): Promise<AuthResult> {
+    const correo = data.email.toLowerCase().trim();
 
-    if (!nombre || nombre.trim().length < 3) {
+    if (!data.nombre || data.nombre.trim().length < 3) {
       throw new Error('El nombre completo debe tener al menos 3 caracteres');
     }
     this.validarCorreoInstitucional(correo);
-    if (!password || password.length < 6) {
+    if (!data.password || data.password.length < 6) {
       throw new Error('La contraseña debe tener al menos 6 caracteres');
     }
 
@@ -79,8 +88,15 @@ export class AuthService {
       throw new Error('Ya existe una cuenta con este correo institucional');
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await authDAO.createUserWithPassword(correo, nombre.trim(), passwordHash);
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const user = await authDAO.createUserWithPassword({
+      email: correo,
+      nombreCompleto: data.nombre.trim(),
+      passwordHash,
+      matricula: data.matricula,
+      carrera: data.carrera,
+      cuatrimestre: data.cuatrimestre,
+    });
 
     return {
       token: this.generarAccessToken(user),
@@ -227,6 +243,8 @@ export class AuthService {
       nombre_completo: user.nombre_completo,
       correo_institucional: user.correo_institucional,
       rol: user.rol,
+      carrera: user.carrera ?? null,
+      cuatrimestre: user.cuatrimestre ?? null,
     };
   }
 }

@@ -9,13 +9,20 @@ export class AuthController {
    */
   async register(req: Request, res: Response) {
     try {
-      const { nombre_completo, email, password } = req.body;
+      const { nombre_completo, email, password, matricula_o_rfc, carrera, cuatrimestre } = req.body;
 
       if (!nombre_completo || !email || !password) {
         return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos' });
       }
 
-      const { token: accessToken, user } = await authService.register(nombre_completo, email, password);
+      const { token: accessToken, user } = await authService.register({
+        nombre: nombre_completo,
+        email,
+        password,
+        matricula: matricula_o_rfc,
+        carrera,
+        cuatrimestre: cuatrimestre ? Number(cuatrimestre) : undefined,
+      });
 
       return res.status(201).json({
         message: 'Cuenta creada exitosamente',

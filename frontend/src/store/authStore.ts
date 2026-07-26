@@ -23,7 +23,14 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   login: (correo: string, password: string) => Promise<AppUser>;
-  register: (nombre: string, email: string, password: string) => Promise<AppUser>;
+  register: (data: {
+    nombre_completo: string;
+    email: string;
+    password: string;
+    matricula_o_rfc?: string;
+    carrera?: string;
+    cuatrimestre?: number;
+  }) => Promise<AppUser>;
   loginWithGoogle: (idToken: string) => Promise<AppUser>;
   setSession: (token: string, user: AppUser) => void;
   logout: () => void;
@@ -46,8 +53,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     return user;
   },
 
-  register: async (nombre, email, password) => {
-    const { accessToken, user } = await authService.register(nombre, email, password);
+  register: async (data) => {
+    const { accessToken, user } = await authService.register(data);
     persist(accessToken, user);
     set({ token: accessToken, user, isAuthenticated: true });
     return user;

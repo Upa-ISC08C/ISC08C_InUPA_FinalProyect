@@ -7,6 +7,8 @@ export interface User {
   correo_institucional: string;
   password_hash: string;
   rol: string;
+  carrera: string | null;
+  cuatrimestre: number | null;
   activo: boolean;
 }
 
@@ -24,18 +26,29 @@ export class AuthDAO {
    * Crea un usuario con contraseña (registro clasico usuario/contraseña).
    * El password ya debe venir hasheado (bcrypt).
    */
-  async createUserWithPassword(
-    email: string,
-    nombreCompleto: string,
-    passwordHash: string
-  ): Promise<User> {
-    const matricula = email.split('@')[0].toUpperCase();
+  async createUserWithPassword(data: {
+    email: string;
+    nombreCompleto: string;
+    passwordHash: string;
+    matricula?: string;
+    carrera?: string;
+    cuatrimestre?: number;
+  }): Promise<User> {
+    const matricula = (data.matricula || data.email.split('@')[0]).toUpperCase();
     const query = `
-      INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol)
-      VALUES ($1, $2, $3, $4, 'estudiante')
+      INSERT INTO USUARIOS
+        (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol, carrera, cuatrimestre)
+      VALUES ($1, $2, $3, $4, 'estudiante', $5, $6)
       RETURNING *
     `;
-    const values = [matricula, nombreCompleto.trim(), email, passwordHash];
+    const values = [
+      matricula,
+      data.nombreCompleto.trim(),
+      data.email,
+      data.passwordHash,
+      data.carrera ?? null,
+      data.cuatrimestre ?? null,
+    ];
     const result = await db.query(query, values);
     return result.rows[0];
   }

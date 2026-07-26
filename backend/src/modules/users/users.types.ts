@@ -7,6 +7,9 @@ export interface UserProfile {
   matricula_o_rfc: string;
   nombre_completo: string;
   correo_institucional: string;
+  rol?: string;
+  carrera: string | null;
+  cuatrimestre: number | null;
   activo: boolean;
   fecha_registro: Date;
   perfil: Perfil | null;
@@ -35,6 +38,8 @@ export interface Perfil {
  */
 export interface UpdateUserProfileDTO {
   nombre_completo?: string;
+  carrera?: string;
+  cuatrimestre?: number;
   titular_profesional?: string;
   biografia?: string;
   url_foto?: string;
