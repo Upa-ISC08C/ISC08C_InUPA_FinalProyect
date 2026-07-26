@@ -216,7 +216,7 @@ export class UsersDAO {
    * Estadisticas agregadas para el panel de administracion (graficas + resumen).
    */
   async dashboardStats() {
-    const [tot, porCarrera, postMes, regMes] = await Promise.all([
+    const [tot, porCarrera, postMes, regMes, cv] = await Promise.all([
       db.query(`
         SELECT
           (SELECT count(*) FROM EMPRESAS) AS empresas,
@@ -244,9 +244,31 @@ export class UsersDAO {
         WHERE rol = 'estudiante' AND fecha_registro >= (CURRENT_DATE - INTERVAL '6 months')
         GROUP BY 1 ORDER BY 1
       `),
+      // CV score = % de secciones completas del perfil (5 secciones × 20 pts).
+      db.query(`
+        WITH perfil_score AS (
+          SELECT (
+              (CASE WHEN p.titular_profesional IS NOT NULL AND p.titular_profesional <> '' AND p.biografia IS NOT NULL AND p.biografia <> '' THEN 1 ELSE 0 END)
+            + (CASE WHEN EXISTS (SELECT 1 FROM EDUCACION e WHERE e.perfil_id = p.id) THEN 1 ELSE 0 END)
+            + (CASE WHEN EXISTS (SELECT 1 FROM EXPERIENCIA_LABORAL x WHERE x.perfil_id = p.id) THEN 1 ELSE 0 END)
+            + (CASE WHEN EXISTS (SELECT 1 FROM PERFIL_HABILIDADES h WHERE h.perfil_id = p.id) THEN 1 ELSE 0 END)
+            + (CASE WHEN EXISTS (SELECT 1 FROM PROYECTOS_PORTAFOLIO pr WHERE pr.perfil_id = p.id) THEN 1 ELSE 0 END)
+          ) * 20 AS score
+          FROM PERFILES p
+          JOIN USUARIOS u ON u.id = p.usuario_id AND u.rol = 'estudiante' AND u.activo
+        )
+        SELECT
+          COALESCE(ROUND(AVG(score)), 0)::int AS promedio,
+          COUNT(*) FILTER (WHERE score >= 80)::int AS altos,
+          COUNT(*) FILTER (WHERE score >= 50 AND score < 80)::int AS medios,
+          COUNT(*) FILTER (WHERE score < 50)::int AS bajos,
+          COUNT(*)::int AS total
+        FROM perfil_score
+      `),
     ]);
 
     const t = tot.rows[0];
+    const c = cv.rows[0] || { promedio: 0, altos: 0, medios: 0, bajos: 0, total: 0 };
     return {
       totales: {
         empresas: parseInt(t.empresas, 10),
@@ -259,6 +281,13 @@ export class UsersDAO {
       porCarrera: porCarrera.rows,
       postulacionesPorMes: postMes.rows,
       registrosPorMes: regMes.rows,
+      cvScore: {
+        promedio: c.promedio,
+        altos: c.altos,
+        medios: c.medios,
+        bajos: c.bajos,
+        total: c.total,
+      },
     };
   }
 }

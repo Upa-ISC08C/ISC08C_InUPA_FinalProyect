@@ -8,6 +8,7 @@ export interface AdminDashboard {
   porCarrera: { carrera: string; total: number }[];
   postulacionesPorMes: { mes: string; total: number }[];
   registrosPorMes: { mes: string; total: number }[];
+  cvScore: { promedio: number; altos: number; medios: number; bajos: number; total: number };
 }
 
 export const adminService = {
