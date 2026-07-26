@@ -29,8 +29,7 @@ const navigation = [
   { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
   { name: "Ofertas", href: "/dashboard/empleos", icon: Briefcase },
   { name: "Postulaciones", href: "/dashboard/postulaciones", icon: Send },
-  { name: "Red", href: "/dashboard/networking", icon: Users },
-  { name: "Mi CV", href: "/dashboard/cv-builder", icon: FileText },
+  { name: "Mi Perfil / CV", href: "/dashboard/perfil", icon: FileText },
 ];
 
 type Notif = { id: string; title: string; desc: string; time: string; read: boolean };

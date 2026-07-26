@@ -6,6 +6,8 @@ export interface FullProfile {
   matricula_o_rfc: string;
   nombre_completo: string;
   correo_institucional: string;
+  carrera: string | null;
+  cuatrimestre: number | null;
   perfil: any;
   experiencia: any[];
   educacion: any[];

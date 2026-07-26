@@ -96,7 +96,12 @@ export class UsersService {
       throw new ValidationError('El telefono no tiene un formato valido');
     }
 
-    for (const campo of ['url_foto', 'github_url', 'linkedin_url'] as const) {
+    // La foto puede venir como URL http(s) o como imagen subida (data URI base64).
+    if (data.url_foto !== undefined && data.url_foto !== '' &&
+        !URL_REGEX.test(data.url_foto) && !data.url_foto.startsWith('data:image/')) {
+      throw new ValidationError('La foto debe ser una URL válida o una imagen subida');
+    }
+    for (const campo of ['github_url', 'linkedin_url'] as const) {
       const valor = data[campo];
       if (valor !== undefined && valor !== '' && !URL_REGEX.test(valor)) {
         throw new ValidationError(`El campo ${campo} debe ser una URL valida (http/https)`);

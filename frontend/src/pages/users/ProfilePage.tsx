@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Briefcase, GraduationCap, MapPin, Mail, Phone, Code2, Link2,
   Pencil, Trash2, Plus, X, ExternalLink, FolderGit2, Loader2, Save, BadgeCheck,
+  Sparkles, Upload,
 } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -11,6 +12,32 @@ import { Textarea } from "../../components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { profileService, type FullProfile } from "../../services/profile.service";
 import { userService } from "../../services/user.service";
+import { aiService } from "../../services/ai.service";
+import { CARRERAS_UPA, CUATRIMESTRES } from "../../utils/catalogos";
+
+// Reescala una imagen a un cuadrado ~256px y la devuelve como data URL JPEG (ligero)
+function fileToThumbnail(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d")!;
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const fmtMes = (iso: string | null) => {
@@ -71,38 +98,40 @@ export function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-10">
       {/* Encabezado */}
-      <Card className="overflow-hidden border-0 shadow-sm">
-        <div className="h-28 bg-gradient-to-r from-[#003366] to-[#00509E]" />
-        <CardContent className="pt-0">
+      <Card className="overflow-hidden border-0 shadow-sm p-0 gap-0">
+        <div className="h-24 bg-gradient-to-r from-[#003366] to-[#00509E]" />
+        <div className="px-4 sm:px-6 pb-6">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12">
-            <div className="size-24 rounded-full ring-4 ring-white bg-[#003366] flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="size-24 rounded-full ring-4 ring-white bg-[#003366] flex items-center justify-center overflow-hidden flex-shrink-0 relative z-10">
               {p.url_foto ? <img src={p.url_foto} alt="Foto" className="size-full object-cover" /> : <span className="text-white text-2xl font-bold">{initials(profile.nombre_completo)}</span>}
             </div>
-            <div className="flex-1 min-w-0 pb-1">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-2xl font-bold text-[#2C3E50] leading-tight">{profile.nombre_completo}</h2>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-bold text-[#2C3E50] leading-tight break-words">{profile.nombre_completo}</h2>
                   <p className="text-[#003366] font-medium">{p.titular_profesional || "Agrega tu titular profesional"}</p>
                 </div>
-                <Button variant="outline" onClick={() => setBasicsOpen(true)} className="flex items-center gap-1.5 flex-shrink-0">
+                <Button variant="outline" onClick={() => setBasicsOpen(true)} className="flex items-center gap-1.5 flex-shrink-0 self-start">
                   <Pencil className="size-3.5" /> Editar
                 </Button>
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-[#7F8C8D]">
-                {p.ubicacion && <span className="flex items-center gap-1"><MapPin className="size-4" />{p.ubicacion}</span>}
-                <span className="flex items-center gap-1"><Mail className="size-4" />{profile.correo_institucional}</span>
-                {p.telefono && <span className="flex items-center gap-1"><Phone className="size-4" />{p.telefono}</span>}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                {p.buscando_empleo && <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#16A34A] bg-[#DCFCE7] px-2.5 py-1 rounded-full"><BadgeCheck className="size-3.5" /> Buscando empleo</span>}
-                {p.disponibilidad && <span className="text-xs font-semibold text-[#003366] bg-[#003366]/[0.08] px-2.5 py-1 rounded-full">Disponible</span>}
-                {p.nivel_experiencia && <span className="text-xs font-semibold text-[#D97706] bg-[#FEF3C7] px-2.5 py-1 rounded-full">{p.nivel_experiencia}</span>}
-                {p.github_url && <a href={p.github_url} target="_blank" rel="noreferrer" className="text-[#7F8C8D] hover:text-[#003366]"><Code2 className="size-4" /></a>}
-                {p.linkedin_url && <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="text-[#7F8C8D] hover:text-[#003366]"><Link2 className="size-4" /></a>}
-              </div>
             </div>
           </div>
-        </CardContent>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-[#7F8C8D]">
+            {profile.carrera && <span className="flex items-center gap-1"><GraduationCap className="size-4" />{profile.carrera}{profile.cuatrimestre ? ` · ${profile.cuatrimestre}° cuatri` : ""}</span>}
+            {p.ubicacion && <span className="flex items-center gap-1"><MapPin className="size-4" />{p.ubicacion}</span>}
+            <span className="flex items-center gap-1 min-w-0"><Mail className="size-4 flex-shrink-0" /><span className="truncate">{profile.correo_institucional}</span></span>
+            {p.telefono && <span className="flex items-center gap-1"><Phone className="size-4" />{p.telefono}</span>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            {p.buscando_empleo && <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#16A34A] bg-[#DCFCE7] px-2.5 py-1 rounded-full"><BadgeCheck className="size-3.5" /> Buscando empleo</span>}
+            {p.disponibilidad && <span className="text-xs font-semibold text-[#003366] bg-[#003366]/[0.08] px-2.5 py-1 rounded-full">Disponible</span>}
+            {p.nivel_experiencia && <span className="text-xs font-semibold text-[#D97706] bg-[#FEF3C7] px-2.5 py-1 rounded-full">{p.nivel_experiencia}</span>}
+            {p.github_url && <a href={p.github_url} target="_blank" rel="noreferrer" className="text-[#7F8C8D] hover:text-[#003366]"><Code2 className="size-4" /></a>}
+            {p.linkedin_url && <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="text-[#7F8C8D] hover:text-[#003366]"><Link2 className="size-4" /></a>}
+          </div>
+        </div>
       </Card>
 
       {/* Acerca de */}
@@ -243,37 +272,105 @@ function SkillEditor({ skills, onChange }: { skills: any[]; onChange: () => void
 function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onClose: () => void; onSaved: () => void }) {
   const p = profile.perfil;
   const [form, setForm] = useState({
-    nombre_completo: profile.nombre_completo || "", titular_profesional: p.titular_profesional || "", biografia: p.biografia || "",
+    nombre_completo: profile.nombre_completo || "", carrera: profile.carrera || "", cuatrimestre: profile.cuatrimestre ? String(profile.cuatrimestre) : "",
+    titular_profesional: p.titular_profesional || "", biografia: p.biografia || "",
     ubicacion: p.ubicacion || "", telefono: p.telefono || "", url_foto: p.url_foto || "", github_url: p.github_url || "",
     linkedin_url: p.linkedin_url || "", nivel_experiencia: p.nivel_experiencia || "", buscando_empleo: p.buscando_empleo, disponibilidad: p.disponibilidad,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [iaLoading, setIaLoading] = useState(false);
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const selCls = "w-full h-10 rounded-xl border border-[#D1D5DB] px-3 text-sm bg-white";
+
+  const subirFoto = async (file?: File | null) => {
+    if (!file) return;
+    try { set("url_foto", await fileToThumbnail(file)); } catch { setError("No se pudo procesar la imagen."); }
+  };
+
+  // Sugerencia con IA: mejora "Acerca de" y propone un titular a partir de lo que escribiste + tu carrera
+  const sugerirIA = async () => {
+    setError(""); setIaLoading(true);
+    try {
+      const seed = [
+        form.biografia,
+        form.titular_profesional,
+        form.carrera ? `Estudio ${form.carrera}` : "",
+      ].filter(Boolean).join(". ") || `Soy estudiante de ${form.carrera || "mi carrera"} en la UPA`;
+      const r = await aiService.optimizarTexto(seed);
+      if (r?.error) { setError(r.error); return; }
+      if (r.perfil) set("biografia", r.perfil);
+      if (!form.titular_profesional && r.perfil) {
+        set("titular_profesional", `Estudiante de ${form.carrera || "la UPA"}`);
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.error || "No se pudo generar la sugerencia.");
+    } finally { setIaLoading(false); }
+  };
+
   const guardar = async () => {
     setSaving(true); setError("");
-    try { await userService.updateMe(form); onSaved(); }
-    catch (e: any) { setError(e?.response?.data?.error || "No se pudo guardar."); } finally { setSaving(false); }
+    try {
+      await userService.updateMe({ ...form, cuatrimestre: form.cuatrimestre ? Number(form.cuatrimestre) : undefined });
+      onSaved();
+    } catch (e: any) { setError(e?.response?.data?.error || "No se pudo guardar."); } finally { setSaving(false); }
   };
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader><DialogTitle>Editar perfil</DialogTitle></DialogHeader>
         <div className="space-y-3">
           {error && <div className="p-2.5 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>}
+
+          {/* Foto */}
+          <div className="flex items-center gap-3">
+            <div className="size-16 rounded-full bg-[#003366] flex items-center justify-center overflow-hidden flex-shrink-0">
+              {form.url_foto ? <img src={form.url_foto} alt="" className="size-full object-cover" /> : <span className="text-white font-bold">{initials(form.nombre_completo)}</span>}
+            </div>
+            <label className="flex items-center gap-1.5 text-sm font-semibold text-[#003366] cursor-pointer hover:bg-[#003366]/[0.06] px-3 py-2 rounded-lg">
+              <Upload className="size-4" /> Subir foto
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => subirFoto(e.target.files?.[0])} />
+            </label>
+            {form.url_foto && <button type="button" onClick={() => set("url_foto", "")} className="text-xs text-[#E74C3C] hover:underline">Quitar</button>}
+          </div>
+
           <Field label="Nombre completo"><Input value={form.nombre_completo} onChange={(e) => set("nombre_completo", e.target.value)} /></Field>
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <Field label="Carrera">
+              <select value={form.carrera} onChange={(e) => set("carrera", e.target.value)} className={selCls}>
+                <option value="">Selecciona…</option>{CARRERAS_UPA.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+            <Field label="Cuatri">
+              <select value={form.cuatrimestre} onChange={(e) => set("cuatrimestre", e.target.value)} className={selCls}>
+                <option value="">—</option>{CUATRIMESTRES.map((c) => <option key={c} value={c}>{c}°</option>)}
+              </select>
+            </Field>
+          </div>
+
           <Field label="Titular profesional"><Input placeholder="Ej. Estudiante de ISC | Desarrollador Frontend" value={form.titular_profesional} onChange={(e) => set("titular_profesional", e.target.value)} /></Field>
-          <Field label="Acerca de"><Textarea rows={4} value={form.biografia} onChange={(e) => set("biografia", e.target.value)} /></Field>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs font-semibold text-[#2C3E50]">Acerca de</Label>
+              <button type="button" onClick={sugerirIA} disabled={iaLoading}
+                className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:bg-[#FEF9C3] px-2 py-1 rounded-lg">
+                {iaLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-[#CA8A04]" />} Sugerir con IA
+              </button>
+            </div>
+            <Textarea rows={4} placeholder="Escribe algo tuyo y pulsa 'Sugerir con IA' para redactarlo profesionalmente…" value={form.biografia} onChange={(e) => set("biografia", e.target.value)} />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="Ubicación"><Input value={form.ubicacion} onChange={(e) => set("ubicacion", e.target.value)} /></Field>
             <Field label="Teléfono"><Input value={form.telefono} onChange={(e) => set("telefono", e.target.value)} /></Field>
           </div>
           <Field label="Nivel de experiencia">
-            <select value={form.nivel_experiencia} onChange={(e) => set("nivel_experiencia", e.target.value)} className="w-full h-10 rounded-xl border border-[#D1D5DB] px-3 text-sm bg-white">
+            <select value={form.nivel_experiencia} onChange={(e) => set("nivel_experiencia", e.target.value)} className={selCls}>
               <option value="">Selecciona…</option><option>Sin experiencia</option><option>Junior</option><option>Semi-senior</option><option>Senior</option>
             </select>
           </Field>
-          <Field label="Foto (URL)"><Input placeholder="https://…" value={form.url_foto} onChange={(e) => set("url_foto", e.target.value)} /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="GitHub (URL)"><Input placeholder="https://github.com/…" value={form.github_url} onChange={(e) => set("github_url", e.target.value)} /></Field>
             <Field label="LinkedIn (URL)"><Input placeholder="https://linkedin.com/in/…" value={form.linkedin_url} onChange={(e) => set("linkedin_url", e.target.value)} /></Field>

@@ -86,7 +86,7 @@ CREATE TABLE PERFILES (
     titular_profesional VARCHAR(200),
     biografia TEXT,
     url_cv_base VARCHAR(500),
-    url_foto VARCHAR(500),
+    url_foto TEXT,
     github_url VARCHAR(200),
     linkedin_url VARCHAR(200),
     telefono VARCHAR(20),
