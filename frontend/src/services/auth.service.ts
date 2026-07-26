@@ -36,4 +36,20 @@ export const authService = {
       .post<AuthResponse>("/auth/verify-token", { email, token })
       .then((res) => res.data);
   },
+
+  // Recuperación de contraseña por código enviado al correo
+  forgotPassword(email: string) {
+    return api.post<{ message: string }>("/auth/forgot-password", { email }).then((res) => res.data);
+  },
+  resetPassword(email: string, token: string, password: string) {
+    return api.post<{ message: string }>("/auth/reset-password", { email, token, password }).then((res) => res.data);
+  },
+
+  // Verificación de correo
+  verifyEmail(email: string, token: string) {
+    return api.post<{ message: string }>("/auth/verify-email", { email, token }).then((res) => res.data);
+  },
+  resendVerification(email: string) {
+    return api.post<{ message: string }>("/auth/resend-verification", { email }).then((res) => res.data);
+  },
 };

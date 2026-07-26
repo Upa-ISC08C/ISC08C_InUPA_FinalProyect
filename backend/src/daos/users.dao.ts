@@ -111,7 +111,7 @@ export class UsersDAO {
   async listAll() {
     const query = `
       SELECT u.id, u.matricula_o_rfc, u.nombre_completo, u.correo_institucional,
-             u.rol, u.carrera, u.cuatrimestre, u.activo, u.fecha_registro, p.url_foto
+             u.rol, u.carrera, u.cuatrimestre, u.activo, u.email_verificado, u.fecha_registro, p.url_foto
       FROM USUARIOS u
       LEFT JOIN PERFILES p ON p.usuario_id = u.id
       ORDER BY u.fecha_registro DESC

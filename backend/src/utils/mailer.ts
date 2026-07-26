@@ -54,3 +54,48 @@ export const sendTokenEmail = async (to: string, token: string) => {
     return false;
   }
 };
+
+/** Envoltorio genérico para enviar un correo HTML. Devuelve false si el mail no está configurado. */
+async function sendHtmlEmail(to: string, subject: string, html: string, devLog?: string): Promise<boolean> {
+  if (!mailConfigurado) {
+    console.warn('[mailer] MAIL_USER/MAIL_PASS no configurados: no se envio el correo.');
+    if (devLog && process.env.NODE_ENV !== 'production') console.warn(devLog);
+    return false;
+  }
+  try {
+    const info = await transporter.sendMail({ from: `"InUPA Support" <${process.env.MAIL_USER}>`, to, subject, html });
+    console.log('Message sent: %s', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return false;
+  }
+}
+
+const shell = (titulo: string, cuerpo: string) => `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h2 style="color: #2c3e50;">${titulo}</h2>
+    ${cuerpo}
+    <p style="color: #7f8c8d; font-size: 12px; margin-top: 24px;">InUPA · Universidad Politécnica de Aguascalientes</p>
+  </div>`;
+
+const codeBox = (code: string) => `
+  <div style="background:#f8f9fa;padding:20px;text-align:center;font-size:24px;font-weight:bold;letter-spacing:5px;border-radius:5px;margin:20px 0;">${code}</div>`;
+
+/** Correo para restablecer la contraseña (código de un solo uso). */
+export const sendResetEmail = (to: string, code: string) =>
+  sendHtmlEmail(
+    to,
+    'Restablece tu contraseña · InUPA',
+    shell('Restablecer contraseña', `<p>Usa este código para restablecer tu contraseña:</p>${codeBox(code)}<p style="color:#7f8c8d;font-size:14px;">Expira en 15 minutos. Si no lo solicitaste, ignora este correo.</p>`),
+    `[mailer] (solo desarrollo) Código de reset para ${to}: ${code}`
+  );
+
+/** Correo de verificación de cuenta (código de un solo uso). */
+export const sendVerificationEmail = (to: string, code: string) =>
+  sendHtmlEmail(
+    to,
+    'Verifica tu cuenta · InUPA',
+    shell('Verifica tu correo', `<p>¡Bienvenido a InUPA! Confirma tu correo con este código:</p>${codeBox(code)}<p style="color:#7f8c8d;font-size:14px;">Expira en 24 horas.</p>`),
+    `[mailer] (solo desarrollo) Código de verificación para ${to}: ${code}`
+  );

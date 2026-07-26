@@ -91,7 +91,10 @@ export interface AdminUser {
   nombre_completo: string;
   correo_institucional: string;
   rol: string;
+  carrera: string | null;
+  cuatrimestre: number | null;
   activo: boolean;
+  email_verificado?: boolean;
   fecha_registro: string;
   url_foto: string | null;
 }

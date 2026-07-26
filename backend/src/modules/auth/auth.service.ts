@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
-import { sendTokenEmail, mailConfigurado } from '../../utils/mailer';
+import { sendTokenEmail, sendResetEmail, sendVerificationEmail, mailConfigurado } from '../../utils/mailer';
 import { authDAO, User } from '../../daos/auth.dao';
 
 // Almacén temporal en memoria para los OTPs. En producción usaríamos Redis.
@@ -10,6 +10,12 @@ interface OTPData {
   expires: number;
 }
 const otpStore = new Map<string, OTPData>();
+// Stores separados para restablecer contraseña y verificar correo.
+const resetStore = new Map<string, OTPData>();
+const verifyStore = new Map<string, OTPData>();
+
+/** Genera un código numérico de 6 dígitos. */
+const generarCodigo = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // Cliente para verificar los ID token que emite Google
 const googleClient = new OAuth2Client();
@@ -98,10 +104,61 @@ export class AuthService {
       cuatrimestre: data.cuatrimestre,
     });
 
+    // Enviamos el correo de verificación (no bloquea el registro/auto-login).
+    void this.enviarVerificacion(correo);
+
     return {
       token: this.generarAccessToken(user),
       user: this.toPublicUser(user),
     };
+  }
+
+  /**
+   * Genera y envía un código de restablecimiento de contraseña.
+   * Por seguridad devuelve siempre true (no revela si el correo existe).
+   */
+  async forgotPassword(email: string): Promise<boolean> {
+    const correo = email.toLowerCase().trim();
+    const user = await authDAO.findUserByEmail(correo);
+    if (user) {
+      const codigo = generarCodigo();
+      resetStore.set(correo, { token: codigo, expires: Date.now() + 15 * 60 * 1000 });
+      await sendResetEmail(correo, codigo);
+    }
+    return true;
+  }
+
+  /** Verifica el código y actualiza la contraseña. */
+  async resetPassword(email: string, token: string, nuevaPassword: string): Promise<void> {
+    const correo = email.toLowerCase().trim();
+    const data = resetStore.get(correo);
+    if (!data) throw new Error('No hay una solicitud de restablecimiento activa para este correo');
+    if (Date.now() > data.expires) { resetStore.delete(correo); throw new Error('El código ha expirado'); }
+    if (data.token !== token) throw new Error('Código inválido');
+    if (!nuevaPassword || nuevaPassword.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
+
+    const passwordHash = await bcrypt.hash(nuevaPassword, 10);
+    await authDAO.updatePasswordByEmail(correo, passwordHash);
+    resetStore.delete(correo);
+  }
+
+  /** Genera y envía un código de verificación de correo. */
+  async enviarVerificacion(email: string): Promise<boolean> {
+    const correo = email.toLowerCase().trim();
+    const codigo = generarCodigo();
+    verifyStore.set(correo, { token: codigo, expires: Date.now() + 24 * 60 * 60 * 1000 });
+    return sendVerificationEmail(correo, codigo);
+  }
+
+  /** Confirma el código de verificación y marca el correo como verificado. */
+  async verifyEmail(email: string, token: string): Promise<void> {
+    const correo = email.toLowerCase().trim();
+    const data = verifyStore.get(correo);
+    if (!data) throw new Error('No hay una verificación activa para este correo');
+    if (Date.now() > data.expires) { verifyStore.delete(correo); throw new Error('El código ha expirado'); }
+    if (data.token !== token) throw new Error('Código inválido');
+    await authDAO.setEmailVerified(correo);
+    verifyStore.delete(correo);
   }
 
   /**

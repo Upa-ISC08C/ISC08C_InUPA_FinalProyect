@@ -34,6 +34,7 @@ CREATE TABLE USUARIOS (
     rol VARCHAR(20) DEFAULT 'estudiante',
     carrera VARCHAR(150),
     cuatrimestre INTEGER,
+    email_verificado BOOLEAN DEFAULT FALSE,
     activo BOOLEAN DEFAULT TRUE,
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

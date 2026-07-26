@@ -10,6 +10,7 @@ export interface User {
   carrera: string | null;
   cuatrimestre: number | null;
   activo: boolean;
+  email_verificado?: boolean;
 }
 
 export class AuthDAO {
@@ -79,6 +80,24 @@ export class AuthDAO {
 
     const result = await db.query(query, values);
     return result.rows[0];
+  }
+
+  /** Actualiza el hash de contraseña de un usuario por su correo. */
+  async updatePasswordByEmail(email: string, passwordHash: string): Promise<boolean> {
+    const result = await db.query(
+      'UPDATE USUARIOS SET password_hash = $1 WHERE correo_institucional = $2 AND activo = true',
+      [passwordHash, email]
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /** Marca el correo de un usuario como verificado. */
+  async setEmailVerified(email: string): Promise<boolean> {
+    const result = await db.query(
+      'UPDATE USUARIOS SET email_verificado = true WHERE correo_institucional = $1',
+      [email]
+    );
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

@@ -1,9 +1,12 @@
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { GraduationCap, Briefcase, Users, Sparkles, ArrowRight, Loader2, Shield } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { GraduationCap, Briefcase, Users, Sparkles, ArrowRight, Loader2, Shield, KeyRound, CheckCircle2 } from "lucide-react";
 import { useNavigate, Link } from "react-router";
 import { useState, useRef, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
+import { authService } from "../../services/auth.service";
 
 const features = [
   { icon: Briefcase, title: "Empleos exclusivos", desc: "Vacantes seleccionadas para estudiantes y recién egresados de la UPA" },
@@ -24,6 +27,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
 
   const irSegunRol = (rol?: string) => navigate(rol === "admin" ? "/admin" : "/dashboard");
@@ -187,7 +191,10 @@ export function LoginPage() {
                 className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] focus:ring-[#003366]/20 text-sm" required disabled={isLoading} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-semibold text-[#2C3E50]">Contraseña</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-semibold text-[#2C3E50]">Contraseña</Label>
+                <button type="button" onClick={() => setShowForgot(true)} className="text-xs font-semibold text-[#003366] hover:underline">¿Olvidaste tu contraseña?</button>
+              </div>
               <Input id="password" type="password" placeholder="••••••••" value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm" required disabled={isLoading} />
@@ -216,6 +223,70 @@ export function LoginPage() {
           </div>
         </div>
       </div>
+
+      {showForgot && <ForgotPasswordDialog defaultEmail={email} onClose={() => setShowForgot(false)} />}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Modal de recuperación de contraseña (pide código al correo y lo restablece).
+// ---------------------------------------------------------------------------
+function ForgotPasswordDialog({ defaultEmail, onClose }: { defaultEmail: string; onClose: () => void }) {
+  const [paso, setPaso] = useState<1 | 2 | 3>(1);
+  const [email, setEmail] = useState(defaultEmail);
+  const [token, setToken] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const inputCls = "h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm";
+
+  const enviarCodigo = async () => {
+    setError(""); setLoading(true);
+    try { await authService.forgotPassword(email.toLowerCase().trim()); setPaso(2); }
+    catch (e: any) { setError(e?.response?.data?.error || "No se pudo enviar el código."); }
+    finally { setLoading(false); }
+  };
+  const restablecer = async () => {
+    setError("");
+    if (password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
+    setLoading(true);
+    try { await authService.resetPassword(email.toLowerCase().trim(), token.trim(), password); setPaso(3); }
+    catch (e: any) { setError(e?.response?.data?.error || "No se pudo restablecer la contraseña."); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><KeyRound className="size-5 text-[#003366]" /> Recuperar contraseña</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {error && <div className="p-2.5 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>}
+
+          {paso === 1 && (<>
+            <p className="text-sm text-[#7F8C8D]">Escribe tu correo institucional y te enviaremos un código de 6 dígitos.</p>
+            <Input type="email" placeholder="nombre@alumnos.upa.edu.mx" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+            <Button onClick={enviarCodigo} disabled={loading || !email} className="w-full h-11">{loading ? <Loader2 className="size-4 animate-spin" /> : "Enviar código"}</Button>
+          </>)}
+
+          {paso === 2 && (<>
+            <p className="text-sm text-[#7F8C8D]">Ingresa el código que enviamos a <b>{email}</b> y tu nueva contraseña.</p>
+            <Input placeholder="Código de 6 dígitos" value={token} onChange={(e) => setToken(e.target.value)} className={inputCls} />
+            <Input type="password" placeholder="Nueva contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} />
+            <Button onClick={restablecer} disabled={loading || !token || !password} className="w-full h-11">{loading ? <Loader2 className="size-4 animate-spin" /> : "Restablecer contraseña"}</Button>
+            <button onClick={enviarCodigo} className="text-xs text-[#003366] hover:underline w-full text-center">Reenviar código</button>
+          </>)}
+
+          {paso === 3 && (<div className="text-center py-4 space-y-3">
+            <CheckCircle2 className="size-10 text-[#16A34A] mx-auto" />
+            <p className="text-sm text-[#2C3E50] font-semibold">¡Contraseña actualizada!</p>
+            <p className="text-xs text-[#7F8C8D]">Ya puedes iniciar sesión con tu nueva contraseña.</p>
+            <Button onClick={onClose} className="w-full h-11">Entendido</Button>
+          </div>)}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

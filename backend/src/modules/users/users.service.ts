@@ -1,5 +1,6 @@
 import { usersDAO } from '../../daos/users.dao';
 import { jobsDAO } from '../../daos/jobs.dao';
+import { authService } from '../auth/auth.service';
 import { UserProfile, UpdateUserProfileDTO } from './users.types';
 import { ValidationError, NotFoundError } from '../../shared/errors';
 
@@ -71,6 +72,16 @@ export class UsersService {
       throw new NotFoundError('Usuario no encontrado');
     }
     return user;
+  }
+
+  /** Admin dispara el flujo de restablecimiento: envía un código al correo del usuario. */
+  static async adminResetPassword(id: string) {
+    const user = await usersDAO.findById(id);
+    if (!user) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+    await authService.forgotPassword(user.correo_institucional);
+    return user.correo_institucional;
   }
 
   static async adminRemove(id: string) {

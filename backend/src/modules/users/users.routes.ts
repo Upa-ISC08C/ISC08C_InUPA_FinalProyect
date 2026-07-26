@@ -17,6 +17,7 @@ router.put('/me', asyncHandler(UsersController.updateMe));
 router.get('/dashboard/admin', requireAdmin, asyncHandler(UsersController.dashboardStats));
 router.get('/', requireAdmin, asyncHandler(UsersController.list));
 router.put('/:id', requireAdmin, asyncHandler(UsersController.adminUpdate));
+router.post('/:id/reset-password', requireAdmin, asyncHandler(UsersController.adminResetPassword));
 router.delete('/:id', requireAdmin, asyncHandler(UsersController.remove));
 
 export default router;

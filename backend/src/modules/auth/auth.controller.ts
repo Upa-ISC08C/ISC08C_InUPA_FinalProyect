@@ -108,6 +108,69 @@ export class AuthController {
   }
 
   /**
+   * Endpoint: POST /api/auth/forgot-password
+   * Body: { "email" }
+   */
+  async forgotPassword(req: Request, res: Response) {
+    try {
+      const email = req.body.correo_institucional ?? req.body.email;
+      if (!email) return res.status(400).json({ error: 'El correo es requerido' });
+      await authService.forgotPassword(email);
+      // Respuesta genérica: no revela si el correo existe.
+      return res.status(200).json({ message: 'Si el correo existe, enviamos un código para restablecer la contraseña' });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'Error en la solicitud' });
+    }
+  }
+
+  /**
+   * Endpoint: POST /api/auth/reset-password
+   * Body: { "email", "token", "password" }
+   */
+  async resetPassword(req: Request, res: Response) {
+    try {
+      const email = req.body.correo_institucional ?? req.body.email;
+      const { token, password } = req.body;
+      if (!email || !token || !password) return res.status(400).json({ error: 'Correo, código y nueva contraseña son requeridos' });
+      await authService.resetPassword(email, token, password);
+      return res.status(200).json({ message: 'Contraseña actualizada. Ya puedes iniciar sesión.' });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'No se pudo restablecer la contraseña' });
+    }
+  }
+
+  /**
+   * Endpoint: POST /api/auth/verify-email
+   * Body: { "email", "token" }
+   */
+  async verifyEmail(req: Request, res: Response) {
+    try {
+      const email = req.body.correo_institucional ?? req.body.email;
+      const { token } = req.body;
+      if (!email || !token) return res.status(400).json({ error: 'Correo y código son requeridos' });
+      await authService.verifyEmail(email, token);
+      return res.status(200).json({ message: 'Correo verificado correctamente' });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'No se pudo verificar el correo' });
+    }
+  }
+
+  /**
+   * Endpoint: POST /api/auth/resend-verification
+   * Body: { "email" }
+   */
+  async resendVerification(req: Request, res: Response) {
+    try {
+      const email = req.body.correo_institucional ?? req.body.email;
+      if (!email) return res.status(400).json({ error: 'El correo es requerido' });
+      await authService.enviarVerificacion(email);
+      return res.status(200).json({ message: 'Código de verificación enviado' });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'Error en la solicitud' });
+    }
+  }
+
+  /**
    * Endpoint: POST /api/auth/google
    * Body: { "idToken": "<ID token que devuelve Google Identity Services>" }
    */
