@@ -69,6 +69,12 @@ export class UsersController {
     return res.json({ success: true, data });
   }
 
+  /** GET /api/users/:id — perfil completo de un usuario (solo admin). */
+  static async adminGetUser(req: AuthenticatedRequest, res: Response) {
+    const user = await UsersService.adminGetUser(req.params.id);
+    return res.json({ success: true, data: user });
+  }
+
   /** PUT /api/users/:id — actualiza activo/rol/nombre de un usuario. */
   static async adminUpdate(req: AuthenticatedRequest, res: Response) {
     const { activo, rol, nombre_completo } = req.body ?? {};

@@ -67,7 +67,24 @@ export class UsersService {
     if (data.rol !== undefined && !['estudiante', 'admin'].includes(data.rol)) {
       throw new ValidationError('El rol debe ser "estudiante" o "admin"');
     }
+    // Protección: no se puede suspender ni degradar a un administrador.
+    const actual = await usersDAO.findByIdForAdmin(id);
+    if (!actual) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+    if (actual.rol === 'admin' && (data.activo === false || (data.rol !== undefined && data.rol !== 'admin'))) {
+      throw new ValidationError('No se puede suspender ni cambiar el rol de un administrador del sistema');
+    }
     const user = await usersDAO.adminUpdate(id, data);
+    if (!user) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+    return user;
+  }
+
+  /** Perfil completo de un usuario (solo admin). */
+  static async adminGetUser(id: string) {
+    const user = await usersDAO.findByIdForAdmin(id);
     if (!user) {
       throw new NotFoundError('Usuario no encontrado');
     }
@@ -85,6 +102,10 @@ export class UsersService {
   }
 
   static async adminRemove(id: string) {
+    const actual = await usersDAO.findByIdForAdmin(id);
+    if (actual?.rol === 'admin') {
+      throw new ValidationError('No se puede eliminar a un administrador del sistema');
+    }
     const ok = await usersDAO.adminSoftDelete(id);
     if (!ok) {
       throw new NotFoundError('Usuario no encontrado');

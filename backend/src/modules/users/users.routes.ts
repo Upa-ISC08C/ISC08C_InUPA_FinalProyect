@@ -16,6 +16,7 @@ router.put('/me', asyncHandler(UsersController.updateMe));
 // Nota: /me se define ANTES que /:id para que no lo capture el parametro.
 router.get('/dashboard/admin', requireAdmin, asyncHandler(UsersController.dashboardStats));
 router.get('/', requireAdmin, asyncHandler(UsersController.list));
+router.get('/:id', requireAdmin, asyncHandler(UsersController.adminGetUser));
 router.put('/:id', requireAdmin, asyncHandler(UsersController.adminUpdate));
 router.post('/:id/reset-password', requireAdmin, asyncHandler(UsersController.adminResetPassword));
 router.delete('/:id', requireAdmin, asyncHandler(UsersController.remove));

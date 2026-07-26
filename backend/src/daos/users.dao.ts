@@ -107,17 +107,37 @@ export class UsersDAO {
   // ADMINISTRACION (solo accesible por administradores)
   // =========================================================================
 
-  /** Lista todos los usuarios con datos basicos + foto de perfil. */
+  /** Lista todos los usuarios con datos basicos + foto de perfil + CV score. */
   async listAll() {
     const query = `
       SELECT u.id, u.matricula_o_rfc, u.nombre_completo, u.correo_institucional,
-             u.rol, u.carrera, u.cuatrimestre, u.activo, u.email_verificado, u.fecha_registro, p.url_foto
+             u.rol, u.carrera, u.cuatrimestre, u.activo, u.email_verificado, u.fecha_registro, p.url_foto,
+             CASE WHEN p.id IS NULL THEN 0 ELSE (
+                 (CASE WHEN p.titular_profesional IS NOT NULL AND p.titular_profesional <> '' AND p.biografia IS NOT NULL AND p.biografia <> '' THEN 1 ELSE 0 END)
+               + (CASE WHEN EXISTS (SELECT 1 FROM EDUCACION e WHERE e.perfil_id = p.id) THEN 1 ELSE 0 END)
+               + (CASE WHEN EXISTS (SELECT 1 FROM EXPERIENCIA_LABORAL x WHERE x.perfil_id = p.id) THEN 1 ELSE 0 END)
+               + (CASE WHEN EXISTS (SELECT 1 FROM PERFIL_HABILIDADES h WHERE h.perfil_id = p.id) THEN 1 ELSE 0 END)
+               + (CASE WHEN EXISTS (SELECT 1 FROM PROYECTOS_PORTAFOLIO pr WHERE pr.perfil_id = p.id) THEN 1 ELSE 0 END)
+             ) * 20 END AS cv_score
       FROM USUARIOS u
       LEFT JOIN PERFILES p ON p.usuario_id = u.id
       ORDER BY u.fecha_registro DESC
     `;
     const result = await db.query(query);
     return result.rows;
+  }
+
+  /** Perfil completo de un usuario para administracion (sin filtrar por activo). */
+  async findByIdForAdmin(usuarioId: string): Promise<UserProfile | null> {
+    const query = `
+      SELECT id, matricula_o_rfc, nombre_completo, correo_institucional, rol,
+             carrera, cuatrimestre, activo, email_verificado, fecha_registro
+      FROM USUARIOS WHERE id = $1
+    `;
+    const result = await db.query(query, [usuarioId]);
+    if (result.rows.length === 0) return null;
+    const perfil = await this.findPerfilByUsuarioId(usuarioId);
+    return { ...result.rows[0], perfil };
   }
 
   /** Actualiza campos administrables de un usuario (activo, rol, nombre). */

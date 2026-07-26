@@ -95,6 +95,7 @@ export interface AdminUser {
   cuatrimestre: number | null;
   activo: boolean;
   email_verificado?: boolean;
+  cv_score?: number;
   fecha_registro: string;
   url_foto: string | null;
 }
