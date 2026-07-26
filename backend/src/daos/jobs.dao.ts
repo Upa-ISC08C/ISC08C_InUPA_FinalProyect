@@ -7,7 +7,7 @@ export class JobsDAO {
    */
   private async enrichVacante(vacanteRow: any): Promise<VacanteWithRelations> {
     const empresaRes = await db.query(
-      `SELECT id, nombre, logo_url, sitio_web, descripcion FROM EMPRESAS WHERE id = $1`,
+      `SELECT id, nombre, logo_url, sitio_web, descripcion, correo_contacto, telefono FROM EMPRESAS WHERE id = $1`,
       [vacanteRow.empresa_id]
     );
 
@@ -30,6 +30,8 @@ export class JobsDAO {
       logo_url: null,
       sitio_web: null,
       descripcion: null,
+      correo_contacto: null,
+      telefono: null,
     };
 
     const vacante_habilidades = habilidadesRes.rows.map((row: any) => ({
@@ -59,9 +61,9 @@ export class JobsDAO {
       INSERT INTO VACANTES (
         titulo, descripcion, requisitos, url_origen, empresa_id,
         salario_min, salario_max, modalidad, tipo_contrato,
-        nivel_experiencia, ubicacion, fecha_limite, activa
+        nivel_experiencia, ubicacion, carreras, cuatrimestre, fecha_limite, activa
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true)
       RETURNING *
     `;
 
@@ -77,6 +79,8 @@ export class JobsDAO {
       data.tipo_contrato || null,
       data.nivel_experiencia || null,
       data.ubicacion || null,
+      data.carreras && data.carreras.length > 0 ? data.carreras : null,
+      data.cuatrimestre ?? null,
       data.fecha_limite || null,
     ];
 
@@ -141,6 +145,20 @@ export class JobsDAO {
       conditions.push(`(v.salario_max >= $${paramIndex} OR v.salario_min >= $${paramIndex})`);
       paramIndex++;
       values.push(filters.salario_min);
+    }
+
+    // Carrera: la vacante la incluye en su lista, o no tiene restriccion de carrera.
+    if (filters.carrera) {
+      conditions.push(`(v.carreras IS NULL OR $${paramIndex} = ANY(v.carreras))`);
+      paramIndex++;
+      values.push(filters.carrera);
+    }
+
+    // Cuatrimestre: la vacante no exige uno, o pide uno <= al del alumno.
+    if (filters.cuatrimestre !== undefined) {
+      conditions.push(`(v.cuatrimestre IS NULL OR v.cuatrimestre <= $${paramIndex})`);
+      paramIndex++;
+      values.push(filters.cuatrimestre);
     }
 
     if (filters.search) {
@@ -233,6 +251,8 @@ export class JobsDAO {
     mapField('tipo_contrato', data.tipo_contrato);
     mapField('nivel_experiencia', data.nivel_experiencia);
     mapField('ubicacion', data.ubicacion);
+    mapField('carreras', data.carreras && data.carreras.length > 0 ? data.carreras : null);
+    mapField('cuatrimestre', data.cuatrimestre);
     mapField('fecha_limite', data.fecha_limite);
     mapField('activa', data.activa);
 

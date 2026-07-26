@@ -190,6 +190,8 @@ CREATE TABLE VACANTES (
     tipo_contrato VARCHAR(100),
     nivel_experiencia VARCHAR(50),
     ubicacion VARCHAR(200),
+    carreras TEXT[],
+    cuatrimestre INTEGER,
     fecha_limite DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -403,19 +405,23 @@ INSERT INTO EMPRESAS (nombre, industria, sitio_web, descripcion, correo_contacto
 ON CONFLICT (nombre) DO NOTHING;
 
 -- Vacantes de ejemplo (empresa referenciada por nombre)
-INSERT INTO VACANTES (empresa_id, titulo, descripcion, requisitos, activa, salario_min, salario_max, modalidad, tipo_contrato, nivel_experiencia, ubicacion, fecha_limite) VALUES
+INSERT INTO VACANTES (empresa_id, titulo, descripcion, requisitos, activa, salario_min, salario_max, modalidad, tipo_contrato, nivel_experiencia, ubicacion, carreras, cuatrimestre, fecha_limite) VALUES
     ((SELECT id FROM EMPRESAS WHERE nombre = 'TechAgs Solutions'),
      'Desarrollador Frontend Jr', 'Únete al equipo de producto para construir interfaces con React y TypeScript.',
-     'React, TypeScript, HTML/CSS. Deseable experiencia con Tailwind.', TRUE, 12000, 18000, 'Híbrido', 'Tiempo completo', 'Junior', 'Aguascalientes', CURRENT_DATE + INTERVAL '30 days'),
+     'React, TypeScript, HTML/CSS. Deseable experiencia con Tailwind.', TRUE, 12000, 18000, 'Híbrido', 'Tiempo completo', 'Junior', 'Aguascalientes',
+     ARRAY['Ingeniería en Sistemas Computacionales','Ingeniería en Tecnologías de la Información'], 6, CURRENT_DATE + INTERVAL '30 days'),
     ((SELECT id FROM EMPRESAS WHERE nombre = 'Innova Software'),
      'Desarrollador Backend Node.js', 'Diseño e implementación de APIs REST con Node.js y PostgreSQL.',
-     'Node.js, Express, PostgreSQL, Git. Deseable Docker.', TRUE, 15000, 22000, 'Remoto', 'Tiempo completo', 'Junior', 'Remoto', CURRENT_DATE + INTERVAL '25 days'),
+     'Node.js, Express, PostgreSQL, Git. Deseable Docker.', TRUE, 15000, 22000, 'Remoto', 'Tiempo completo', 'Junior', 'Remoto',
+     ARRAY['Ingeniería en Sistemas Computacionales'], 7, CURRENT_DATE + INTERVAL '25 days'),
     ((SELECT id FROM EMPRESAS WHERE nombre = 'DataMX'),
      'Practicante de Ciencia de Datos', 'Apoya proyectos de analítica y modelos de datos con Python.',
-     'Python, SQL, estadística básica. Ganas de aprender.', TRUE, 8000, 10000, 'Presencial', 'Prácticas', 'Sin experiencia', 'Ciudad de México', CURRENT_DATE + INTERVAL '40 days'),
+     'Python, SQL, estadística básica. Ganas de aprender.', TRUE, 8000, 10000, 'Presencial', 'Práctica profesional', 'Sin experiencia', 'Ciudad de México',
+     ARRAY['Ingeniería en Sistemas Computacionales','Ingeniería Financiera'], 4, CURRENT_DATE + INTERVAL '40 days'),
     ((SELECT id FROM EMPRESAS WHERE nombre = 'Nube Digital'),
      'Ingeniero DevOps Jr', 'Automatización de despliegues y mantenimiento de infraestructura en la nube.',
-     'Docker, Git, Linux. Deseable CI/CD y cloud.', TRUE, 16000, 24000, 'Híbrido', 'Tiempo completo', 'Junior', 'Guadalajara', CURRENT_DATE + INTERVAL '20 days')
+     'Docker, Git, Linux. Deseable CI/CD y cloud.', TRUE, 16000, 24000, 'Híbrido', 'Tiempo completo', 'Junior', 'Guadalajara',
+     ARRAY['Ingeniería en Mecatrónica','Ingeniería en Sistemas Computacionales'], 8, CURRENT_DATE + INTERVAL '20 days')
 ON CONFLICT DO NOTHING;
 
 -- =====================================================

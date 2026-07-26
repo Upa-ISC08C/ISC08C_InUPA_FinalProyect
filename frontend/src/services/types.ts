@@ -23,6 +23,8 @@ export interface Empresa {
   logo_url: string | null;
   sitio_web: string | null;
   descripcion: string | null;
+  correo_contacto?: string | null;
+  telefono?: string | null;
 }
 
 export interface Vacante {
@@ -37,6 +39,8 @@ export interface Vacante {
   tipo_contrato: string | null;
   nivel_experiencia: string | null;
   ubicacion: string | null;
+  carreras: string[] | null;
+  cuatrimestre: number | null;
   activa: boolean;
   fecha_publicacion: string;
   fecha_limite: string | null;

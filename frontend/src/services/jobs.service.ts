@@ -8,9 +8,16 @@ export interface JobFilters {
   nivel_experiencia?: string;
   ubicacion?: string;
   salario_min?: number;
+  carrera?: string;
+  cuatrimestre?: number;
   search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface CreateVacanteDTOExtra {
+  carreras?: string[];
+  cuatrimestre?: number;
 }
 
 export interface CreateVacanteDTO {
@@ -24,6 +31,8 @@ export interface CreateVacanteDTO {
   tipo_contrato?: string;
   nivel_experiencia?: string;
   ubicacion?: string;
+  carreras?: string[];
+  cuatrimestre?: number;
   fecha_limite?: string;
 }
 
