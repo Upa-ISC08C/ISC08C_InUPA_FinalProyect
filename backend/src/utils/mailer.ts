@@ -3,18 +3,43 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Google muestra las contraseñas de aplicación en grupos de 4 ("abcd efgh ijkl mnop"),
+// pero el SMTP las rechaza si se envían con los espacios. Los quitamos siempre.
+const mailUser = (process.env.MAIL_USER || '').trim();
+const mailPass = (process.env.MAIL_PASS || '').replace(/\s+/g, '');
+
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.MAIL_PORT || '587'),
   secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
+    user: mailUser,
+    pass: mailPass,
   },
 });
 
 /** El correo es opcional: sin credenciales la app arranca igual. */
-export const mailConfigurado = Boolean(process.env.MAIL_USER && process.env.MAIL_PASS);
+export const mailConfigurado = Boolean(mailUser && mailPass);
+
+/**
+ * Comprueba las credenciales SMTP al arrancar para que un fallo de autenticación
+ * se vea en los logs y no se confunda con "el código no funciona".
+ */
+export async function verificarMailer(): Promise<boolean> {
+  if (!mailConfigurado) {
+    console.warn('[mailer] Sin MAIL_USER/MAIL_PASS: los códigos se imprimirán en consola y NO se enviarán correos.');
+    return false;
+  }
+  try {
+    await transporter.verify();
+    console.log(`[mailer] SMTP listo (${mailUser}).`);
+    return true;
+  } catch (error: any) {
+    console.error(`[mailer] SMTP NO autenticó: ${error.message?.split('\n')[0]}`);
+    console.error('[mailer] Genera una nueva contraseña de aplicación en https://myaccount.google.com/apppasswords y actualiza MAIL_PASS.');
+    return false;
+  }
+}
 
 export const sendTokenEmail = async (to: string, token: string) => {
   if (!mailConfigurado) {
@@ -30,7 +55,7 @@ export const sendTokenEmail = async (to: string, token: string) => {
   }
 
   const mailOptions = {
-    from: `"InUPA Support" <${process.env.MAIL_USER}>`,
+    from: `"InUPA Support" <${mailUser}>`,
     to,
     subject: 'Tu código de acceso a InUPA',
     html: `
@@ -63,11 +88,14 @@ async function sendHtmlEmail(to: string, subject: string, html: string, devLog?:
     return false;
   }
   try {
-    const info = await transporter.sendMail({ from: `"InUPA Support" <${process.env.MAIL_USER}>`, to, subject, html });
+    const info = await transporter.sendMail({ from: `"InUPA Support" <${mailUser}>`, to, subject, html });
     console.log('Message sent: %s', info.messageId);
     return true;
-  } catch (error) {
-    console.error('Error sending email:', error);
+  } catch (error: any) {
+    console.error(`[mailer] No se pudo enviar a ${to}: ${error.message?.split('\n')[0]}`);
+    // Si el envío falla en desarrollo seguimos mostrando el código en consola,
+    // para poder completar el flujo mientras se arreglan las credenciales.
+    if (devLog && process.env.NODE_ENV !== 'production') console.warn(devLog);
     return false;
   }
 }

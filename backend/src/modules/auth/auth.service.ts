@@ -2,17 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { sendTokenEmail, sendResetEmail, sendVerificationEmail, mailConfigurado } from '../../utils/mailer';
-import { authDAO, User } from '../../daos/auth.dao';
-
-// Almacén temporal en memoria para los OTPs. En producción usaríamos Redis.
-interface OTPData {
-  token: string;
-  expires: number;
-}
-const otpStore = new Map<string, OTPData>();
-// Stores separados para restablecer contraseña y verificar correo.
-const resetStore = new Map<string, OTPData>();
-const verifyStore = new Map<string, OTPData>();
+import { authDAO, User, CodeType } from '../../daos/auth.dao';
 
 /** Genera un código numérico de 6 dígitos. */
 const generarCodigo = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -46,13 +36,10 @@ export class AuthService {
     this.validarCorreoInstitucional(email);
 
     // Generar OTP numérico de 6 dígitos
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Guardar OTP en memoria por 10 minutos
-    otpStore.set(email, {
-      token: otp,
-      expires: Date.now() + 10 * 60 * 1000 // 10 minutos
-    });
+    const otp = generarCodigo();
+
+    // Guardar el OTP en la BD por 10 minutos (sobrevive a reinicios del backend).
+    await authDAO.saveCode(email.toLowerCase().trim(), 'otp', otp, new Date(Date.now() + 10 * 60 * 1000));
 
     // Enviar correo
     const enviado = await sendTokenEmail(email, otp);
@@ -120,55 +107,60 @@ export class AuthService {
   async forgotPassword(email: string): Promise<boolean> {
     const correo = email.toLowerCase().trim();
     const user = await authDAO.findUserByEmail(correo);
-    if (user) {
-      const codigo = generarCodigo();
-      resetStore.set(correo, { token: codigo, expires: Date.now() + 15 * 60 * 1000 });
-      await sendResetEmail(correo, codigo);
+    if (!user) return true; // No revelamos si el correo existe.
+
+    const codigo = generarCodigo();
+    await authDAO.saveCode(correo, 'reset', codigo, new Date(Date.now() + 15 * 60 * 1000));
+    return sendResetEmail(correo, codigo);
+  }
+
+  /**
+   * Comprueba que el código guardado coincida y siga vigente.
+   * Centraliza la validación para que reset y verificación se comporten igual.
+   */
+  private async validarCodigo(correo: string, tipo: CodeType, token: string, faltante: string): Promise<void> {
+    const data = await authDAO.getCode(correo, tipo);
+    if (!data) throw new Error(faltante);
+    if (Date.now() > new Date(data.expira_en).getTime()) {
+      await authDAO.deleteCode(correo, tipo);
+      throw new Error('El código ha expirado. Solicita uno nuevo.');
     }
-    return true;
+    if (data.codigo !== String(token).trim()) throw new Error('Código inválido');
   }
 
   /** Verifica si el código de restablecimiento es válido sin cambiar la contraseña aún. */
   async verifyResetToken(email: string, token: string): Promise<boolean> {
     const correo = email.toLowerCase().trim();
-    const data = resetStore.get(correo);
-    if (!data) throw new Error('No hay una solicitud de restablecimiento activa para este correo');
-    if (Date.now() > data.expires) { resetStore.delete(correo); throw new Error('El código ha expirado'); }
-    if (data.token !== token) throw new Error('Código inválido');
+    await this.validarCodigo(correo, 'reset', token, 'No hay una solicitud de restablecimiento activa para este correo');
     return true;
   }
 
   /** Verifica el código y actualiza la contraseña. */
   async resetPassword(email: string, token: string, nuevaPassword: string): Promise<void> {
     const correo = email.toLowerCase().trim();
-    const data = resetStore.get(correo);
-    if (!data) throw new Error('No hay una solicitud de restablecimiento activa para este correo');
-    if (Date.now() > data.expires) { resetStore.delete(correo); throw new Error('El código ha expirado'); }
-    if (data.token !== token) throw new Error('Código inválido');
+    await this.validarCodigo(correo, 'reset', token, 'No hay una solicitud de restablecimiento activa para este correo');
     if (!nuevaPassword || nuevaPassword.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
 
     const passwordHash = await bcrypt.hash(nuevaPassword, 10);
-    await authDAO.updatePasswordByEmail(correo, passwordHash);
-    resetStore.delete(correo);
+    const actualizada = await authDAO.updatePasswordByEmail(correo, passwordHash);
+    if (!actualizada) throw new Error('No se pudo actualizar la contraseña. La cuenta no existe o está suspendida.');
+    await authDAO.deleteCode(correo, 'reset');
   }
 
   /** Genera y envía un código de verificación de correo. */
   async enviarVerificacion(email: string): Promise<boolean> {
     const correo = email.toLowerCase().trim();
     const codigo = generarCodigo();
-    verifyStore.set(correo, { token: codigo, expires: Date.now() + 24 * 60 * 60 * 1000 });
+    await authDAO.saveCode(correo, 'verify', codigo, new Date(Date.now() + 24 * 60 * 60 * 1000));
     return sendVerificationEmail(correo, codigo);
   }
 
   /** Confirma el código de verificación y marca el correo como verificado. */
   async verifyEmail(email: string, token: string): Promise<void> {
     const correo = email.toLowerCase().trim();
-    const data = verifyStore.get(correo);
-    if (!data) throw new Error('No hay una verificación activa para este correo');
-    if (Date.now() > data.expires) { verifyStore.delete(correo); throw new Error('El código ha expirado'); }
-    if (data.token !== token) throw new Error('Código inválido');
+    await this.validarCodigo(correo, 'verify', token, 'No hay una verificación activa para este correo');
     await authDAO.setEmailVerified(correo);
-    verifyStore.delete(correo);
+    await authDAO.deleteCode(correo, 'verify');
   }
 
   /**
@@ -205,23 +197,11 @@ export class AuthService {
    * usuario. Crea el usuario si no existe.
    */
   async verifyToken(email: string, token: string): Promise<AuthResult> {
-    const otpData = otpStore.get(email);
+    const correo = email.toLowerCase().trim();
+    await this.validarCodigo(correo, 'otp', token, 'No se encontró un código OTP activo para este correo');
 
-    if (!otpData) {
-      throw new Error('No se encontró un código OTP activo para este correo');
-    }
-
-    if (Date.now() > otpData.expires) {
-      otpStore.delete(email);
-      throw new Error('El código OTP ha expirado');
-    }
-
-    if (otpData.token !== token) {
-      throw new Error('Código OTP inválido');
-    }
-
-    // Token correcto, se elimina del store
-    otpStore.delete(email);
+    // Token correcto, se consume para que no pueda reutilizarse.
+    await authDAO.deleteCode(correo, 'otp');
 
     // Buscar si el usuario existe o crearlo
     let user = await authDAO.findUserByEmail(email);

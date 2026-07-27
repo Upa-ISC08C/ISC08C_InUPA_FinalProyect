@@ -118,9 +118,19 @@ export class AuthController {
     try {
       const email = req.body.correo_institucional ?? req.body.email;
       if (!email) return res.status(400).json({ error: 'El correo es requerido' });
-      await authService.forgotPassword(email);
-      // Respuesta genérica: no revela si el correo existe.
-      return res.status(200).json({ message: 'Si el correo existe, enviamos un código para restablecer la contraseña' });
+      const enviado = await authService.forgotPassword(email);
+      // Respuesta genérica: no revela si el correo existe. Pero si el envío falló
+      // lo decimos, para no dejar al usuario esperando un correo que nunca llega.
+      if (!enviado) {
+        return res.status(200).json({
+          message: 'Generamos el código, pero el envío de correo no está disponible. Contacta al administrador.',
+          correoEnviado: false,
+        });
+      }
+      return res.status(200).json({
+        message: 'Si el correo existe, enviamos un código para restablecer la contraseña',
+        correoEnviado: true,
+      });
     } catch (error: any) {
       return res.status(400).json({ error: error.message || 'Error en la solicitud' });
     }

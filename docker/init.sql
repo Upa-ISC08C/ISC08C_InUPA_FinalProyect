@@ -44,6 +44,17 @@ CREATE TABLE USUARIOS (
 -- =====================================================
 -- TABLA: CATEGORIAS_HABILIDAD
 -- =====================================================
+-- Códigos de un solo uso (OTP de acceso, restablecer contraseña, verificar correo).
+-- Viven en la BD y no en memoria para que sobrevivan a un reinicio del backend.
+CREATE TABLE AUTH_CODIGOS (
+    correo VARCHAR(150) NOT NULL,
+    tipo VARCHAR(20) NOT NULL, -- 'otp' | 'reset' | 'verify'
+    codigo VARCHAR(10) NOT NULL,
+    expira_en TIMESTAMPTZ NOT NULL,
+    creado_en TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (correo, tipo)
+);
+
 CREATE TABLE CATEGORIAS_HABILIDAD (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(100) UNIQUE NOT NULL

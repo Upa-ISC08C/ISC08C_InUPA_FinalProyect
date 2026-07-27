@@ -14,6 +14,7 @@ import aiRoutes from './modules/ai/ai.routes';
 import { authenticateToken } from './middlewares/auth.middleware';
 import { requestLogger } from './middlewares/logger.middleware';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
+import { verificarMailer } from './utils/mailer';
 
 dotenv.config();
 
@@ -51,4 +52,7 @@ app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  // Comprobamos el SMTP al arrancar: si las credenciales fallan queda claro en
+  // los logs, en vez de descubrirlo cuando un usuario no recibe su código.
+  void verificarMailer();
 });
