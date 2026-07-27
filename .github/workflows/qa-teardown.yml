@@ -1,0 +1,46 @@
+name: QA Teardown (Runner Windows)
+
+# Apaga el entorno de QA cuando ya no se necesita: al quitarle la etiqueta 'qa'
+# al PR, o al cerrarlo. Va en un workflow aparte de qa-preview.yml porque
+# levantar y bajar nunca ocurren en el mismo evento: juntos, cada corrida
+# mostraria el otro job como "skipped".
+#
+# Solo actua si el PR realmente estaba usando QA, para no tumbarle el entorno
+# a otro PR que si lo este ocupando.
+
+on:
+  pull_request:
+    types: [unlabeled, closed]
+    branches: [develop, qa]
+
+concurrency:
+  group: qa-entorno
+  cancel-in-progress: false
+
+jobs:
+  bajar:
+    name: Bajar entorno de QA
+    if: >-
+      (github.event.action == 'closed' &&
+       contains(github.event.pull_request.labels.*.name, 'qa')) ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'qa')
+    runs-on: [self-hosted, windows]
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generar el .env (desde el archivo local del runner)
+        # compose necesita que exista el .env de la raiz aunque solo vaya a bajar.
+        run: |
+          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\.env" -Force
+      - name: Bajar entorno
+        # Con -p inupa-qa y el override: sin eso tumbaria el entorno de
+        # desarrollo local, que usa el proyecto "docker".
+        run: docker compose -p inupa-qa -f docker/docker-compose.yml -f docker/docker-compose.qa.yml down -v
+        continue-on-error: true
+      - name: Confirmar
+        run: |
+          "### Entorno de QA apagado" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "Se liberaron los puertos 5273 / 3100 / 8125 del runner." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
