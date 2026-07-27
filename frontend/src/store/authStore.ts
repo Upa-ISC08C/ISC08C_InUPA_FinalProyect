@@ -1,31 +1,75 @@
-import { create } from 'zustand';
+import { create } from "zustand";
+import { authService } from "../services/auth.service";
+import type { AppUser } from "../services/types";
 
-interface User {
-  id: string;
-  matricula_o_rfc: string;
-  nombre_completo: string;
-  correo_institucional: string;
-  rol?: string;
+const TOKEN_KEY = "inupa_token";
+const USER_KEY = "inupa_user";
+
+function loadUser(): AppUser | null {
+  try {
+    return JSON.parse(localStorage.getItem(USER_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function persist(token: string, user: AppUser) {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 interface AuthState {
+  user: AppUser | null;
+  token: string | null;
   isAuthenticated: boolean;
-  user: User | null;
-  login: (token: string, user: User) => void;
+  login: (correo: string, password: string) => Promise<AppUser>;
+  register: (data: {
+    nombre_completo: string;
+    email: string;
+    password: string;
+    matricula_o_rfc?: string;
+    carrera?: string;
+    cuatrimestre?: number;
+  }) => Promise<AppUser>;
+  loginWithGoogle: (idToken: string) => Promise<AppUser>;
+  setSession: (token: string, user: AppUser) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: !!localStorage.getItem('token'),
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  login: (token: string, user: User) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    set({ isAuthenticated: true, user });
+  user: loadUser(),
+  token: localStorage.getItem(TOKEN_KEY),
+  isAuthenticated: Boolean(localStorage.getItem(TOKEN_KEY)),
+
+  setSession: (token, user) => {
+    persist(token, user);
+    set({ token, user, isAuthenticated: true });
   },
+
+  login: async (correo, password) => {
+    const { accessToken, user } = await authService.login(correo, password);
+    persist(accessToken, user);
+    set({ token: accessToken, user, isAuthenticated: true });
+    return user;
+  },
+
+  register: async (data) => {
+    const { accessToken, user } = await authService.register(data);
+    persist(accessToken, user);
+    set({ token: accessToken, user, isAuthenticated: true });
+    return user;
+  },
+
+  loginWithGoogle: async (idToken) => {
+    const { accessToken, user } = await authService.googleLogin(idToken);
+    persist(accessToken, user);
+    set({ token: accessToken, user, isAuthenticated: true });
+    return user;
+  },
+
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    set({ isAuthenticated: false, user: null });
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    set({ token: null, user: null, isAuthenticated: false });
   },
 }));

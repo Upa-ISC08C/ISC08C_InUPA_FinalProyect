@@ -1,12 +1,24 @@
-import { LabelHTMLAttributes } from 'react';
+"use client";
 
-interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
-  children: React.ReactNode;
-  className?: string;
+import * as React from "react";
+import * as LabelPrimitive from "@radix-ui/react-label";
+
+import { cn } from "./utils";
+
+function Label({
+  className,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+  return (
+    <LabelPrimitive.Root
+      data-slot="label"
+      className={cn(
+        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
-export const Label = ({ children, className = "", ...props }: LabelProps) => (
-  <label className={`text-sm font-semibold text-[#2C3E50] ${className}`} {...props}>
-    {children}
-  </label>
-);
+export { Label };

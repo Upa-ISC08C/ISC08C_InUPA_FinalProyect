@@ -1,35 +1,66 @@
-import { ReactNode, useState } from 'react';
+"use client";
 
-export const Tabs = ({ defaultValue, children, className = "" }: { defaultValue: string; children: ReactNode; className?: string }) => {
-  const [activeTab, setActiveTab] = useState(defaultValue);
+import * as React from "react";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+
+import { cn } from "./utils";
+
+function Tabs({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Root>) {
   return (
-    <div className={className} data-active-tab={activeTab}>
-      {children}
-    </div>
+    <TabsPrimitive.Root
+      data-slot="tabs"
+      className={cn("flex flex-col gap-2", className)}
+      {...props}
+    />
   );
-};
+}
 
-export const TabsList = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
-  <div className={`flex gap-2 ${className}`}>{children}</div>
-);
-
-export const TabsTrigger = ({ value, children, className = "" }: { value: string; children: ReactNode; className?: string }) => {
-  const isActive = document.querySelector('[data-active-tab]')?.getAttribute('data-active-tab') === value;
+function TabsList({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.List>) {
   return (
-    <button
-      onClick={() => {
-        const tabsEl = document.querySelector('[data-active-tab]');
-        if (tabsEl) tabsEl.setAttribute('data-active-tab', value);
-      }}
-      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-        isActive ? "bg-white text-[#003366] shadow-sm" : "text-[#7F8C8D] hover:text-[#2C3E50]"
-      } ${className}`}
-    >
-      {children}
-    </button>
+    <TabsPrimitive.List
+      data-slot="tabs-list"
+      className={cn(
+        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-xl p-[3px] flex",
+        className,
+      )}
+      {...props}
+    />
   );
-};
+}
 
-export const TabsContent = ({ value, children, className = "" }: { value: string; children: ReactNode; className?: string }) => (
-  <div className={className}>{children}</div>
-);
+function TabsTrigger({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  return (
+    <TabsPrimitive.Trigger
+      data-slot="tabs-trigger"
+      className={cn(
+        "data-[state=active]:bg-card dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+function TabsContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  return (
+    <TabsPrimitive.Content
+      data-slot="tabs-content"
+      className={cn("flex-1 outline-none", className)}
+      {...props}
+    />
+  );
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent };

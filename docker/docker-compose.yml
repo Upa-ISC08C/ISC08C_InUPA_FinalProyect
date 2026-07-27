@@ -16,6 +16,19 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  # Servidor SMTP de pruebas: recibe los correos que manda la app y los muestra
+  # en una bandeja web. Permite ver y validar los correos sin credenciales de
+  # Gmail. No entrega a bandejas reales; para eso se configura MAIL_USER/MAIL_PASS.
+  mailpit:
+    # Se usa el espejo de GitHub: el CDN de Docker Hub corta la descarga de
+    # esta imagen desde aqui (el blob falla con EOF a medio bajar).
+    image: ghcr.io/axllent/mailpit:latest
+    container_name: inupa_mailpit
+    restart: always
+    ports:
+      - "8025:8025" # bandeja web
+      - "1025:1025" # SMTP
+
   backend:
     build:
       context: ../backend
@@ -33,6 +46,7 @@ services:
       - /app/node_modules
     depends_on:
       - db
+      - mailpit
 
   frontend:
     build:
@@ -54,3 +68,12 @@ services:
 
 volumes:
   pgdata:
+
+# En WSL2 el enlace de la VM usa MTU 1280; sin esto los contenedores heredan
+# 1500 y las conexiones HTTPS salientes (p.ej. la IA de OpenRouter) se cuelgan
+# porque los paquetes grandes del handshake TLS superan el MTU y se descartan.
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1280"

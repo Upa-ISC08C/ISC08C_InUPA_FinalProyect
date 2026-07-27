@@ -38,6 +38,8 @@ export class ProfileService {
       matricula_o_rfc: user.matricula_o_rfc,
       nombre_completo: user.nombre_completo,
       correo_institucional: user.correo_institucional,
+      carrera: (user as any).carrera ?? null,
+      cuatrimestre: (user as any).cuatrimestre ?? null,
       perfil,
       experiencia,
       educacion,

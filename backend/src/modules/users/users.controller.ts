@@ -63,11 +63,34 @@ export class UsersController {
     return res.json({ success: true, data: users });
   }
 
-  /** PUT /api/users/:id — actualiza activo/rol/nombre de un usuario. */
-  static async adminUpdate(req: AuthenticatedRequest, res: Response) {
-    const { activo, rol, nombre_completo } = req.body ?? {};
-    const user = await UsersService.adminUpdate(req.params.id, { activo, rol, nombre_completo });
+  /** GET /api/users/dashboard/admin — estadisticas del panel de administracion. */
+  static async dashboardStats(_req: AuthenticatedRequest, res: Response) {
+    const data = await UsersService.adminDashboard();
+    return res.json({ success: true, data });
+  }
+
+  /** GET /api/users/:id — perfil completo de un usuario (solo admin). */
+  static async adminGetUser(req: AuthenticatedRequest, res: Response) {
+    const user = await UsersService.adminGetUser(req.params.id);
     return res.json({ success: true, data: user });
+  }
+
+  /** PUT /api/users/:id — actualiza activo/rol/nombre/etc de un usuario. */
+  static async adminUpdate(req: AuthenticatedRequest, res: Response) {
+    const user = await UsersService.adminUpdate(req.params.id, req.body ?? {});
+    return res.json({ success: true, data: user });
+  }
+
+  /** POST /api/users — crea un nuevo usuario (admin o estudiante). */
+  static async adminCreate(req: AuthenticatedRequest, res: Response) {
+    const user = await UsersService.adminCreate(req.body ?? {});
+    return res.json({ success: true, data: user });
+  }
+
+  /** POST /api/users/:id/reset-password — envía un código de restablecimiento al correo del usuario. */
+  static async adminResetPassword(req: AuthenticatedRequest, res: Response) {
+    const correo = await UsersService.adminResetPassword(req.params.id);
+    return res.json({ success: true, message: `Se envió un código de restablecimiento a ${correo}` });
   }
 
   /** DELETE /api/users/:id — desactiva un usuario (borrado suave). */

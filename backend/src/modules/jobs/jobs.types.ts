@@ -10,7 +10,10 @@ export interface CreateVacanteDTO {
   tipo_contrato?: string;
   nivel_experiencia?: string;
   ubicacion?: string;
+  carreras?: string[];
+  cuatrimestre?: number;
   fecha_limite?: Date;
+  imagen_url?: string;
   habilidades_ids?: string[];
 }
 
@@ -25,18 +28,23 @@ export interface UpdateVacanteDTO {
   tipo_contrato?: string;
   nivel_experiencia?: string;
   ubicacion?: string;
+  carreras?: string[];
+  cuatrimestre?: number;
   fecha_limite?: Date;
+  imagen_url?: string;
   activa?: boolean;
   habilidades_ids?: string[];
 }
 
 export interface VacanteFilters {
-  activa?: boolean;
+  activa?: boolean | 'all';
   modalidad?: string;
   tipo_contrato?: string;
   nivel_experiencia?: string;
   ubicacion?: string;
   salario_min?: number;
+  carrera?: string;
+  cuatrimestre?: number;
   search?: string;
   page?: number;
   limit?: number;
@@ -55,6 +63,9 @@ export interface VacanteWithRelations {
   tipo_contrato: string | null;
   nivel_experiencia: string | null;
   ubicacion: string | null;
+  carreras: string[] | null;
+  cuatrimestre: number | null;
+  imagen_url: string | null;
   activa: boolean;
   fecha_publicacion: Date;
   fecha_limite: Date | null;
@@ -65,6 +76,8 @@ export interface VacanteWithRelations {
     logo_url: string | null;
     sitio_web: string | null;
     descripcion: string | null;
+    correo_contacto: string | null;
+    telefono: string | null;
   };
   vacante_habilidades?: Array<{
     id: string;

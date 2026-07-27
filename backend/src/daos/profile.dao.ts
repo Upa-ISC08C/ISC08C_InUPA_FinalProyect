@@ -20,7 +20,7 @@ export class ProfileDAO {
   async getExperiencias(perfilId: string) {
     const r = await db.query(
       `SELECT id, perfil_id, empresa_nombre, puesto, fecha_inicio, fecha_fin,
-              actual, descripcion, tipo_contrato, tecnologias_usadas
+              actual, descripcion, actividades, tipo_contrato, tecnologias_usadas
        FROM EXPERIENCIA_LABORAL
        WHERE perfil_id = $1
        ORDER BY actual DESC, fecha_inicio DESC`,
@@ -33,8 +33,8 @@ export class ProfileDAO {
     const r = await db.query(
       `INSERT INTO EXPERIENCIA_LABORAL
          (perfil_id, empresa_nombre, puesto, fecha_inicio, fecha_fin, actual,
-          descripcion, tipo_contrato, tecnologias_usadas)
-       VALUES ($1,$2,$3,$4,$5,COALESCE($6,false),$7,$8,$9)
+          descripcion, actividades, tipo_contrato, tecnologias_usadas)
+       VALUES ($1,$2,$3,$4,$5,COALESCE($6,false),$7,$8,$9,$10)
        RETURNING *`,
       [
         perfilId,
@@ -44,6 +44,7 @@ export class ProfileDAO {
         d.actual ? null : d.fecha_fin ?? null,
         d.actual ?? false,
         d.descripcion ?? null,
+        d.actividades ? JSON.stringify(d.actividades) : null,
         d.tipo_contrato ?? null,
         d.tecnologias_usadas ?? null,
       ]
@@ -59,6 +60,7 @@ export class ProfileDAO {
       fecha_fin: d.actual ? null : d.fecha_fin,
       actual: d.actual,
       descripcion: d.descripcion,
+      actividades: d.actividades !== undefined ? JSON.stringify(d.actividades) : undefined,
       tipo_contrato: d.tipo_contrato,
       tecnologias_usadas: d.tecnologias_usadas,
     };
