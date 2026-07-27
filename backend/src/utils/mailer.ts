@@ -5,21 +5,27 @@ dotenv.config();
 
 // Google muestra las contraseñas de aplicación en grupos de 4 ("abcd efgh ijkl mnop"),
 // pero el SMTP las rechaza si se envían con los espacios. Los quitamos siempre.
+const mailHost = (process.env.MAIL_HOST || 'smtp.gmail.com').trim();
+const mailPort = parseInt(process.env.MAIL_PORT || '587');
 const mailUser = (process.env.MAIL_USER || '').trim();
 const mailPass = (process.env.MAIL_PASS || '').replace(/\s+/g, '');
 
+// Un servidor de pruebas local (Mailpit) no pide usuario ni contraseña: en ese
+// caso se envía sin autenticar. Para Gmail y demás sí hacen falta credenciales.
+const sinAuth = process.env.MAIL_SIN_AUTH === 'true';
+const remitente = (process.env.MAIL_FROM || mailUser || 'no-reply@inupa.local').trim();
+
 const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.MAIL_PORT || '587'),
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: mailUser,
-    pass: mailPass,
-  },
+  host: mailHost,
+  port: mailPort,
+  secure: mailPort === 465,
+  ...(sinAuth ? {} : { auth: { user: mailUser, pass: mailPass } }),
+  // Mailpit corre sin TLS; no exigimos certificado válido en ese caso.
+  ...(sinAuth ? { ignoreTLS: true, tls: { rejectUnauthorized: false } } : {}),
 });
 
-/** El correo es opcional: sin credenciales la app arranca igual. */
-export const mailConfigurado = Boolean(mailUser && mailPass);
+/** El correo es opcional: sin credenciales (ni servidor local) la app arranca igual. */
+export const mailConfigurado = sinAuth || Boolean(mailUser && mailPass);
 
 /**
  * Comprueba las credenciales SMTP al arrancar para que un fallo de autenticación
@@ -27,16 +33,22 @@ export const mailConfigurado = Boolean(mailUser && mailPass);
  */
 export async function verificarMailer(): Promise<boolean> {
   if (!mailConfigurado) {
-    console.warn('[mailer] Sin MAIL_USER/MAIL_PASS: los códigos se imprimirán en consola y NO se enviarán correos.');
+    console.warn('[mailer] Sin MAIL_USER/MAIL_PASS ni servidor local: los códigos se imprimirán en consola y NO se enviarán correos.');
     return false;
   }
   try {
     await transporter.verify();
-    console.log(`[mailer] SMTP listo (${mailUser}).`);
+    console.log(
+      sinAuth
+        ? `[mailer] SMTP listo en ${mailHost}:${mailPort} (servidor local, sin autenticación).`
+        : `[mailer] SMTP listo (${mailUser}).`
+    );
     return true;
   } catch (error: any) {
-    console.error(`[mailer] SMTP NO autenticó: ${error.message?.split('\n')[0]}`);
-    console.error('[mailer] Genera una nueva contraseña de aplicación en https://myaccount.google.com/apppasswords y actualiza MAIL_PASS.');
+    console.error(`[mailer] SMTP no disponible: ${error.message?.split('\n')[0]}`);
+    if (!sinAuth) {
+      console.error('[mailer] Genera una nueva contraseña de aplicación en https://myaccount.google.com/apppasswords y actualiza MAIL_PASS.');
+    }
     return false;
   }
 }
@@ -55,7 +67,7 @@ export const sendTokenEmail = async (to: string, token: string) => {
   }
 
   const mailOptions = {
-    from: `"InUPA Support" <${mailUser}>`,
+    from: `"InUPA" <${remitente}>`,
     to,
     subject: 'Tu código de acceso a InUPA',
     html: `
@@ -88,7 +100,7 @@ async function sendHtmlEmail(to: string, subject: string, html: string, devLog?:
     return false;
   }
   try {
-    const info = await transporter.sendMail({ from: `"InUPA Support" <${mailUser}>`, to, subject, html });
+    const info = await transporter.sendMail({ from: `"InUPA" <${remitente}>`, to, subject, html });
     console.log('Message sent: %s', info.messageId);
     return true;
   } catch (error: any) {
@@ -151,21 +163,41 @@ export const sendNuevaVacanteEmail = (
 
   return sendHtmlEmail(
     to,
-    `Nueva vacante para ti: ${vacante.titulo}`,
+    `Nueva vacante en InUPA: ${vacante.titulo}`,
     shell(
-      'Una vacante nueva encaja contigo',
-      `<p>${primerNombre}, se publicó una vacante que coincide con tu carrera y cuatrimestre:</p>
-       <div style="background-color:#f4f5f7;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin:24px 0;">
-         <p style="margin:0;font-size:18px;font-weight:700;color:#003366;">${vacante.titulo}</p>
-         ${detalle ? `<p style="margin:6px 0 0;color:#4b5563;font-size:14px;">${detalle}</p>` : ''}
+      '¡Hay una oportunidad para ti!',
+      `<p>Hola ${primerNombre},</p>
+       <p>Se acaba de publicar una vacante que podría interesarte según tu perfil:</p>
+       <div style="background-color: #f4f5f7; border-left: 4px solid #003366; padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+         <h3 style="margin: 0 0 4px; color: #003366; font-size: 18px;">${vacante.titulo}</h3>
+         <p style="margin: 0; color: #4b5563; font-size: 15px; font-weight: 500;">${detalle}</p>
          ${limite}
        </div>
-       <p>Entra a InUPA para ver los detalles y los datos de contacto de la empresa.</p>
-       <p style="color:#7f8c8d;font-size:14px;">Recuerda: <b>la plataforma no te postula</b>. Tú contactas directamente a la empresa desde tu propio correo.</p>`
-    ),
-    `[mailer] (solo desarrollo) Aviso de nueva vacante para ${to}: ${vacante.titulo}`
+       <p>Ingresa a InUPA para ver los detalles, requisitos y decidir si te interesa postularte. Recuerda que la plataforma solo te avisa; el contacto con la empresa lo haces tú.</p>`
+    )
   );
 };
+
+export const sendJobApplicationEmail = (
+  to: string,
+  alumno: { nombre_completo: string; correo_institucional: string; telefono?: string },
+  vacante: { titulo: string; empresa: string | null },
+  mensaje: string
+) =>
+  sendHtmlEmail(
+    to,
+    `Interés en vacante: ${vacante.titulo}`,
+    shell(
+      'Un alumno está interesado en tu vacante',
+      `<p><strong>Candidato:</strong> ${alumno.nombre_completo}</p>
+       <p><strong>Correo:</strong> <a href="mailto:${alumno.correo_institucional}">${alumno.correo_institucional}</a></p>
+       ${alumno.telefono ? `<p><strong>Teléfono:</strong> ${alumno.telefono}</p>` : ''}
+       <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #003366; margin: 20px 0;">
+         <p style="margin: 0; white-space: pre-wrap; font-style: italic;">"${mensaje}"</p>
+       </div>
+       <p style="color: #7f8c8d; font-size: 14px;">Responde directamente a este correo para contactar al estudiante.</p>`
+    )
+  );
 
 /** Correo de verificación de cuenta (código de un solo uso). */
 export const sendVerificationEmail = (to: string, code: string) =>
