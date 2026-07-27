@@ -46,6 +46,14 @@ export function JobBoard() {
   const [applying, setApplying] = useState<string | null>(null);
   const [selected, setSelected] = useState<Vacante | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [mensaje, setMensaje] = useState("");
+  const [sendingMail, setSendingMail] = useState(false);
+
+  useEffect(() => {
+    if (selected) {
+      setMensaje(mensajeSugerido(selected));
+    }
+  }, [selected]);
 
   const [f, setF] = useState({ search: "", carrera: "", cuatrimestre: "", tipo_contrato: "", modalidad: "", salario_min: "" });
   const setFilter = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -74,14 +82,22 @@ export function JobBoard() {
     setF(nf); cargar(nf);
   };
 
-  // Registra el interés del alumno por la vacante (NO contacta a nadie; solo la
-  // guarda para su lista de interés y para las métricas del administrador).
-  const marcarInteres = async (id: string) => {
-    if (applied.includes(id)) return;
+  // Registra o quita el interés del alumno
+  const toggleInteres = async (id: string) => {
     setApplying(id);
-    try { await jobsService.apply(id); setApplied((p) => [...p, id]); }
-    catch (err: any) { if (err?.response?.status === 409) setApplied((p) => [...p, id]); }
-    finally { setApplying(null); }
+    try {
+      if (applied.includes(id)) {
+        await jobsService.unapply(id);
+        setApplied((p) => p.filter((x) => x !== id));
+      } else {
+        await jobsService.apply(id);
+        setApplied((p) => [...p, id]);
+      }
+    } catch (err: any) {
+      if (err?.response?.status === 409) setApplied((p) => [...p, id]);
+    } finally {
+      setApplying(null);
+    }
   };
 
   // Mensaje sugerido usando el perfil del alumno
@@ -97,6 +113,7 @@ Saludos cordiales,
 ${user?.nombre_completo || ""}
 ${user?.correo_institucional || ""}`;
   };
+
   const mailtoLink = (v: Vacante) =>
     `mailto:${v.empresa?.correo_contacto || ""}?subject=${encodeURIComponent(`Postulación – ${v.titulo}`)}&body=${encodeURIComponent(mensajeSugerido(v))}`;
   const waLink = (v: Vacante) => {
@@ -226,11 +243,14 @@ ${user?.correo_institucional || ""}`;
                       <p className="text-xs text-[#7F8C8D] mt-2 line-clamp-2 leading-relaxed">{job.descripcion}</p>
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#F5F7FA] gap-2 flex-wrap">
                         <span className="text-sm font-bold text-[#2C3E50]">{salaryStr(job.salario_min, job.salario_max)}</span>
-                        <div className="flex gap-2">
-                          <button onClick={() => setSelected(job)} className="text-xs px-3.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#2C3E50] font-semibold hover:bg-[#F5F7FA]">Ver y contactar</button>
-                          <button onClick={() => marcarInteres(job.id)} disabled={applied.includes(job.id) || applying === job.id}
-                            className={`text-xs px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 ${applied.includes(job.id) ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#003366] text-white hover:bg-[#002244]"}`}>
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          <button onClick={() => toggleInteres(job.id)} disabled={applying === job.id}
+                            className={`text-xs px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 ${applied.includes(job.id) ? "bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]" : "bg-[#003366] text-white hover:bg-[#002244]"}`}>
                             {applying === job.id ? <Loader2 className="size-3 animate-spin" /> : applied.includes(job.id) ? <><CheckCircle2 className="size-3" />Te interesa</> : <><Star className="size-3" />Me interesa</>}
+                          </button>
+                          <button onClick={() => setSelected(job)}
+                            className="text-xs px-3.5 py-1.5 bg-slate-100 text-[#2C3E50] rounded-lg font-semibold hover:bg-slate-200 transition-colors">
+                            Ver detalles y Contactar
                           </button>
                         </div>
                       </div>
@@ -300,7 +320,7 @@ ${user?.correo_institucional || ""}`;
               <div className="rounded-xl border-2 border-[#003366]/20 bg-[#F0F6FF] p-4 space-y-2.5">
                 <p className="text-sm font-bold text-[#003366]">Datos de contacto</p>
                 {selected.empresa?.correo_contacto && (
-                  <div className="flex items-center gap-2 text-sm text-[#2C3E50]"><Mail className="size-4 text-[#003366]" />{selected.empresa.correo_contacto}</div>
+                  <div className="flex items-center gap-2 text-sm text-[#2C3E50]"><Mail className="size-4 text-[#003366] flex-shrink-0" /><span className="break-all">{selected.empresa.correo_contacto}</span></div>
                 )}
                 {selected.empresa?.telefono && (
                   <div className="flex items-center gap-2 text-sm text-[#2C3E50]"><Phone className="size-4 text-[#003366]" />{selected.empresa.telefono}</div>
@@ -316,21 +336,17 @@ ${user?.correo_institucional || ""}`;
             </div>
 
             <div className="px-6 pb-6 flex flex-wrap gap-2 border-t border-[#E5E7EB] pt-4">
-              {selected.empresa?.correo_contacto && (
-                <a href={mailtoLink(selected)} onClick={() => marcarInteres(selected.id)}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-sm font-bold flex-1 min-w-[160px]">
-                  <Mail className="size-4" />Contactar por correo
-                </a>
-              )}
-              {selected.empresa?.telefono && (
-                <a href={waLink(selected)} onClick={() => marcarInteres(selected.id)} target="_blank" rel="noreferrer"
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1da851] text-white text-sm font-bold flex-1 min-w-[140px]">
-                  <MessageCircle className="size-4" />WhatsApp
-                </a>
-              )}
-              <button onClick={() => marcarInteres(selected.id)} disabled={applied.includes(selected.id)}
+              <a href={mailtoLink(selected)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-sm font-bold flex-1 min-w-[160px]">
+                <Mail className="size-4" />Contactar por correo
+              </a>
+              <a href={waLink(selected)} target="_blank" rel="noreferrer"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1da851] text-white text-sm font-bold flex-1 min-w-[140px]">
+                <MessageCircle className="size-4" />WhatsApp
+              </a>
+              <button onClick={() => toggleInteres(selected.id)} disabled={applying === selected.id}
                 className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border ${applied.includes(selected.id) ? "border-[#16A34A] bg-[#DCFCE7] text-[#16A34A]" : "border-[#E5E7EB] text-[#2C3E50] hover:bg-[#F5F7FA]"}`}>
-                {applied.includes(selected.id) ? <><CheckCircle2 className="size-4" />Guardada en tus intereses</> : <><Star className="size-4" />Me interesa</>}
+                {applying === selected.id ? <Loader2 className="size-4 animate-spin" /> : applied.includes(selected.id) ? <><CheckCircle2 className="size-4" />Guardada en tus intereses</> : <><Star className="size-4" />Me interesa</>}
               </button>
             </div>
           </DialogContent>
