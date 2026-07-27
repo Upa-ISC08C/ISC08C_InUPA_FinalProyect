@@ -32,9 +32,12 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v4
-      - name: Generar docker/.env (desde el archivo local del runner)
+      - name: Generar el .env (desde el archivo local del runner)
+        # OJO: docker-compose.yml declara 'env_file: ../.env', que se resuelve
+        # relativo a docker/, es decir la RAIZ del repo. Copiarlo a docker/.env
+        # hacia que compose abortara con "env file not found".
         run: |
-          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\docker\.env" -Force
+          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\.env" -Force
       - name: Bajar entorno previo (si existe)
         run: docker compose -f docker/docker-compose.yml down -v
         continue-on-error: true
@@ -51,18 +54,25 @@ jobs:
 
   bajar:
     name: Bajar entorno de QA
+    # Solo si el PR realmente estaba en QA: al cerrar uno que tenia la etiqueta,
+    # o al quitarle justamente la etiqueta 'qa'. Antes, cerrar CUALQUIER PR
+    # tumbaba el entorno de QA de otro PR que si lo estaba usando.
     if: >-
-      github.event.action == 'closed' ||
-      github.event.action == 'unlabeled'
+      (github.event.action == 'closed' &&
+       contains(github.event.pull_request.labels.*.name, 'qa')) ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'qa')
     runs-on: [self-hosted, windows]
     defaults:
       run:
         shell: powershell
     steps:
       - uses: actions/checkout@v4
-      - name: Generar docker/.env (desde el archivo local del runner)
+      - name: Generar el .env (desde el archivo local del runner)
+        # OJO: docker-compose.yml declara 'env_file: ../.env', que se resuelve
+        # relativo a docker/, es decir la RAIZ del repo. Copiarlo a docker/.env
+        # hacia que compose abortara con "env file not found".
         run: |
-          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\docker\.env" -Force
+          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\.env" -Force
       - name: Bajar entorno
         run: docker compose -f docker/docker-compose.yml down -v
         continue-on-error: true

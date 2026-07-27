@@ -5,12 +5,17 @@ name: CI Validation
 # para no bloquear el flujo mientras el proyecto esta en andamiaje.
 
 on:
+  # En los PR hacia las ramas protegidas: es el check obligatorio para poder fusionar.
   pull_request:
     branches: [main, qa, develop]
+  # Y tambien en CADA push a una rama de trabajo, aunque todavia no exista el PR.
+  # Sin esto, empujar a feature/* no disparaba nada y los cambios llegaban sin validar.
+  push:
+    branches-ignore: [main, qa, develop]
 
-# Si se sube un commit nuevo al PR, cancela la corrida anterior.
+# Si se sube un commit nuevo, cancela la corrida anterior de la misma rama/PR.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
