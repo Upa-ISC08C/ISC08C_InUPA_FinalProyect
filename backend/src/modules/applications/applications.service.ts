@@ -9,6 +9,10 @@ export class ApplicationsService {
     return applicationsDAO.createApplication(userId, vacanteId);
   }
 
+  static async deleteApplication(userId: string, vacanteId: string) {
+    return applicationsDAO.deleteApplication(userId, vacanteId);
+  }
+
   static async getApplicationById(id: string) {
     return applicationsDAO.getApplicationById(id);
   }

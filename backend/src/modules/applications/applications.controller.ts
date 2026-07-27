@@ -72,6 +72,27 @@ export class ApplicationsController {
     }
   }
 
+  static async deleteApplication(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const { id } = req.params;
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'No autorizado' });
+      }
+
+      await ApplicationsService.deleteApplication(userId, id);
+
+      res.json({
+        success: true,
+        message: 'Postulación eliminada',
+      });
+    } catch (error) {
+      console.error('Error al eliminar postulación:', error);
+      res.status(500).json({ success: false, error: 'Error al eliminar postulación' });
+    }
+  }
+
   static async getApplicationById(req: Request, res: Response) {
     try {
       const { id } = req.params;

@@ -14,6 +14,7 @@ router.get('/:id', JobsController.getVacanteById);
 // ==========================================
 // Rutas PROTEGIDAS (Requieren token válido)
 // ==========================================
+router.post('/:id/contact', authenticateToken, JobsController.contactCompany);
 router.post('/', authenticateToken, JobsController.createVacante);
 router.put('/:id', authenticateToken, JobsController.updateVacante);
 router.delete('/:id', authenticateToken, JobsController.deleteVacante);
