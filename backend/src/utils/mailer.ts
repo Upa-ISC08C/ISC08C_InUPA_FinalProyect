@@ -134,6 +134,39 @@ export const sendResetEmail = (to: string, code: string) =>
     `[mailer] (solo desarrollo) Código de reset para ${to}: ${code}`
   );
 
+/**
+ * Aviso al alumno de que se publicó una vacante que encaja con su carrera y
+ * cuatrimestre. La plataforma solo informa: el alumno decide si contacta.
+ */
+export const sendNuevaVacanteEmail = (
+  to: string,
+  nombreAlumno: string,
+  vacante: { titulo: string; empresa: string | null; ubicacion: string | null; modalidad: string | null; fecha_limite: Date | string | null }
+) => {
+  const primerNombre = (nombreAlumno || '').split(' ')[0] || 'Hola';
+  const detalle = [vacante.empresa, vacante.ubicacion, vacante.modalidad].filter(Boolean).join(' · ');
+  const limite = vacante.fecha_limite
+    ? `<p style="margin:8px 0 0;color:#b7791f;font-size:14px;"><b>Fecha límite para postularte:</b> ${new Date(vacante.fecha_limite).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`
+    : '';
+
+  return sendHtmlEmail(
+    to,
+    `Nueva vacante para ti: ${vacante.titulo}`,
+    shell(
+      'Una vacante nueva encaja contigo',
+      `<p>${primerNombre}, se publicó una vacante que coincide con tu carrera y cuatrimestre:</p>
+       <div style="background-color:#f4f5f7;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin:24px 0;">
+         <p style="margin:0;font-size:18px;font-weight:700;color:#003366;">${vacante.titulo}</p>
+         ${detalle ? `<p style="margin:6px 0 0;color:#4b5563;font-size:14px;">${detalle}</p>` : ''}
+         ${limite}
+       </div>
+       <p>Entra a InUPA para ver los detalles y los datos de contacto de la empresa.</p>
+       <p style="color:#7f8c8d;font-size:14px;">Recuerda: <b>la plataforma no te postula</b>. Tú contactas directamente a la empresa desde tu propio correo.</p>`
+    ),
+    `[mailer] (solo desarrollo) Aviso de nueva vacante para ${to}: ${vacante.titulo}`
+  );
+};
+
 /** Correo de verificación de cuenta (código de un solo uso). */
 export const sendVerificationEmail = (to: string, code: string) =>
   sendHtmlEmail(

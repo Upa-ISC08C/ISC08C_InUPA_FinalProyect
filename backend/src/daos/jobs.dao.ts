@@ -298,6 +298,34 @@ export class JobsDAO {
     const result = await db.query(query, [id]);
     return (result.rowCount ?? 0) > 0;
   }
+
+  /**
+   * Alumnos a los que les encaja una vacante recien publicada.
+   *
+   * Usa exactamente la misma regla que el filtro de "recomendadas para tu
+   * carrera" del tablero de ofertas, para que el aviso por correo coincida con
+   * lo que el alumno ve en la plataforma:
+   *   - carrera: la vacante no restringe carreras, o incluye la del alumno.
+   *   - cuatrimestre: la vacante no exige uno, o pide uno <= al del alumno.
+   */
+  async findAlumnosQueHacenMatch(
+    carreras: string[] | null,
+    cuatrimestre: number | null
+  ): Promise<{ correo_institucional: string; nombre_completo: string }[]> {
+    const query = `
+      SELECT correo_institucional, nombre_completo
+      FROM USUARIOS
+      WHERE rol = 'estudiante'
+        AND activo = true
+        AND ($1::text[] IS NULL OR carrera = ANY($1::text[]))
+        AND ($2::int IS NULL OR cuatrimestre IS NULL OR cuatrimestre >= $2::int)
+    `;
+    const result = await db.query(query, [
+      carreras && carreras.length > 0 ? carreras : null,
+      cuatrimestre ?? null,
+    ]);
+    return result.rows;
+  }
 }
 
 export const jobsDAO = new JobsDAO();

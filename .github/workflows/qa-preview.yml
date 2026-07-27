@@ -39,17 +39,18 @@ jobs:
         run: |
           Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\.env" -Force
       - name: Bajar entorno previo (si existe)
-        run: docker compose -f docker/docker-compose.yml down -v
+        run: docker compose -p inupa-qa -f docker/docker-compose.yml -f docker/docker-compose.qa.yml down -v
         continue-on-error: true
       - name: Construir y levantar
-        run: docker compose -f docker/docker-compose.yml up -d --build
+        run: docker compose -p inupa-qa -f docker/docker-compose.yml -f docker/docker-compose.qa.yml up -d --build
       - name: Publicar URLs de QA
         run: |
           "### Entorno de QA levantado en el Runner de Windows" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "- Frontend: http://localhost:5173" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "- Backend (health): http://localhost:3000/health" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Frontend: http://localhost:5273" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Backend: http://localhost:3100/api" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "Puertos propios: la preview NO toca el entorno local (5173/3000)." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           "Quita la etiqueta 'qa' o cierra el PR para bajar el entorno." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
   bajar:

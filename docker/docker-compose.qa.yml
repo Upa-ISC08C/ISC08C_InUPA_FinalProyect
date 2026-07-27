@@ -1,0 +1,32 @@
+# Sobrescritura para la preview de QA en el runner de Windows.
+#
+# Se combina con docker-compose.yml y se usa junto con un nombre de proyecto
+# propio (-p inupa-qa). Asi la preview tiene SUS volumenes y SUS puertos, y
+# nunca pisa el entorno de desarrollo local, que usa el proyecto "docker".
+#
+# Sin esto, ambos entornos compartian el volumen docker_pgdata y los puertos
+# 3000/5173: levantar QA borraba la base local y reconstruia el frontend con
+# el .env del runner (que no trae VITE_GOOGLE_CLIENT_ID, asi que desaparecia
+# el boton de "Continuar con Google").
+
+# '!override' reemplaza la lista del archivo base en vez de anadirse a ella:
+# sin esa etiqueta, compose fusiona las dos listas e intentaria publicar
+# tambien 3000/5173, que es justo el choque que queremos evitar.
+# Los container_name tambien se cambian: dos proyectos no pueden tener
+# contenedores con el mismo nombre.
+
+services:
+  db:
+    container_name: inupa_qa_db
+    ports: !override
+      - "5532:5432"
+
+  backend:
+    container_name: inupa_qa_backend
+    ports: !override
+      - "3100:3000"
+
+  frontend:
+    container_name: inupa_qa_frontend
+    ports: !override
+      - "5273:5173"
