@@ -3,6 +3,7 @@ import { jobsDAO } from '../../daos/jobs.dao';
 import { authService } from '../auth/auth.service';
 import { UserProfile, UpdateUserProfileDTO } from './users.types';
 import { ValidationError, NotFoundError } from '../../shared/errors';
+import bcrypt from 'bcryptjs';
 
 const URL_REGEX = /^https?:\/\/.+/i;
 
@@ -62,7 +63,14 @@ export class UsersService {
 
   static async adminUpdate(
     id: string,
-    data: { activo?: boolean; rol?: string; nombre_completo?: string }
+    data: {
+      activo?: boolean;
+      rol?: string;
+      nombre_completo?: string;
+      correo_institucional?: string;
+      matricula_o_rfc?: string;
+      password?: string;
+    }
   ) {
     if (data.rol !== undefined && !['estudiante', 'admin'].includes(data.rol)) {
       throw new ValidationError('El rol debe ser "estudiante" o "admin"');
@@ -75,10 +83,63 @@ export class UsersService {
     if (actual.rol === 'admin' && (data.activo === false || (data.rol !== undefined && data.rol !== 'admin'))) {
       throw new ValidationError('No se puede suspender ni cambiar el rol de un administrador del sistema');
     }
-    const user = await usersDAO.adminUpdate(id, data);
+
+    let password_hash: string | undefined;
+    if (data.password !== undefined && data.password.trim() !== '') {
+      if (data.password.length < 6) {
+        throw new ValidationError('La contraseña debe tener al menos 6 caracteres');
+      }
+      password_hash = await bcrypt.hash(data.password, 10);
+    }
+
+    const user = await usersDAO.adminUpdate(id, {
+      activo: data.activo,
+      rol: data.rol,
+      nombre_completo: data.nombre_completo,
+      correo_institucional: data.correo_institucional,
+      matricula_o_rfc: data.matricula_o_rfc,
+      password_hash,
+    });
+
     if (!user) {
       throw new NotFoundError('Usuario no encontrado');
     }
+    return user;
+  }
+
+  static async adminCreate(data: {
+    email: string;
+    nombre_completo: string;
+    password?: string;
+    matricula_o_rfc?: string;
+    rol?: string;
+  }) {
+    if (!data.email || !data.nombre_completo) {
+      throw new ValidationError('El correo y el nombre completo son obligatorios');
+    }
+    const rol = data.rol ?? 'estudiante';
+    if (!['estudiante', 'admin'].includes(rol)) {
+      throw new ValidationError('El rol debe ser "estudiante" o "admin"');
+    }
+    const correo = data.email.toLowerCase().trim();
+    const existente = await usersDAO.findByEmail(correo);
+    if (existente) {
+      throw new ValidationError('Ya existe una cuenta con este correo institucional');
+    }
+    const pass = data.password || '123456';
+    if (pass.length < 6) {
+      throw new ValidationError('La contraseña debe tener al menos 6 caracteres');
+    }
+    const passwordHash = await bcrypt.hash(pass, 10);
+    const matricula = data.matricula_o_rfc || correo.split('@')[0].toUpperCase();
+
+    const user = await usersDAO.adminCreate({
+      email: correo,
+      nombreCompleto: data.nombre_completo.trim(),
+      passwordHash,
+      rol,
+      matricula_o_rfc: matricula
+    });
     return user;
   }
 

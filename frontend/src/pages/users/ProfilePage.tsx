@@ -297,6 +297,10 @@ function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onC
 
   const subirFoto = async (file?: File | null) => {
     if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      setError("La imagen supera el límite de tamaño permitido (máximo 50MB).");
+      return;
+    }
     try { set("url_foto", await fileToThumbnail(file)); } catch { setError("No se pudo procesar la imagen."); }
   };
 
@@ -325,7 +329,7 @@ function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onC
     try {
       await userService.updateMe({ ...form, cuatrimestre: form.cuatrimestre ? Number(form.cuatrimestre) : undefined });
       onSaved();
-    } catch (e: any) { setError(e?.response?.data?.error || "No se pudo guardar."); } finally { setSaving(false); }
+    } catch (e: any) { setError("Ha ocurrido un error, por favor contacta a un administrador"); } finally { setSaving(false); }
   };
 
   return (
@@ -344,7 +348,8 @@ function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onC
               <Upload className="size-4" /> Subir foto
               <input type="file" accept="image/*" className="hidden" onChange={(e) => subirFoto(e.target.files?.[0])} />
             </label>
-            {form.url_foto && <button type="button" onClick={() => set("url_foto", "")} className="text-xs text-[#E74C3C] hover:underline">Quitar</button>}
+            <span className="text-[10px] text-muted-foreground/80">(Máx. 50MB)</span>
+            {form.url_foto && <button type="button" onClick={() => set("url_foto", "")} className="text-xs text-[#E74C3C] hover:underline ml-auto">Quitar</button>}
           </div>
 
           <Field label="Nombre completo"><Input value={form.nombre_completo} onChange={(e) => set("nombre_completo", e.target.value)} /></Field>

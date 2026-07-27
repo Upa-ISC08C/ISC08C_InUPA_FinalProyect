@@ -41,6 +41,9 @@ export const authService = {
   forgotPassword(email: string) {
     return api.post<{ message: string }>("/auth/forgot-password", { email }).then((res) => res.data);
   },
+  verifyResetToken(email: string, token: string) {
+    return api.post<{ message: string }>("/auth/verify-reset-token", { email, token }).then((res) => res.data);
+  },
   resetPassword(email: string, token: string, password: string) {
     return api.post<{ message: string }>("/auth/reset-password", { email, token, password }).then((res) => res.data);
   },

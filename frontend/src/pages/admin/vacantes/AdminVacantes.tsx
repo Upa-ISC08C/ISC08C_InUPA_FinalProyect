@@ -5,7 +5,7 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Textarea } from "../../../components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Save, Briefcase, X, ChevronsUpDown, Check, ImagePlus, Search, LayoutGrid, List } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Save, Briefcase, X, ChevronsUpDown, Check, ImagePlus, Search, LayoutGrid, List, AlertTriangle } from "lucide-react";
 import { jobsService } from "../../../services/jobs.service";
 import { companiesService, type Company } from "../../../services/companies.service";
 import { CARRERAS_UPA, CUATRIMESTRES, TIPOS_CONTRATO, MODALIDADES } from "../../../utils/catalogos";
@@ -27,17 +27,23 @@ export function AdminVacantes() {
 
   const cargar = () => {
     setLoading(true);
-    jobsService.list({ limit: 100 }).then((r) => setVacantes(r.data || [])).catch(() => setVacantes([])).finally(() => setLoading(false));
+    jobsService.list({ limit: 100, activa: "all" }).then((r) => setVacantes(r.data || [])).catch(() => setVacantes([])).finally(() => setLoading(false));
   };
   useEffect(() => { cargar(); companiesService.list().then(setEmpresas).catch(() => {}); }, []);
 
-  const eliminar = async (id: string) => { await jobsService.remove(id); cargar(); };
+  const [confirm, setConfirm] = useState<{ id: string; titulo: string; activa: boolean } | null>(null);
+  const eliminar = (id: string, titulo: string, activa: boolean) => {
+    setConfirm({ id, titulo, activa });
+  };
 
-  const filtradas = useMemo(() => vacantes.filter((v) => {
-    const t = (v.titulo + (v.empresa?.nombre || "") + (v.ubicacion || "")).toLowerCase().includes(q.toLowerCase());
-    const s = estado === "todas" || (estado === "activas" ? v.activa : !v.activa);
-    return t && s;
-  }), [vacantes, q, estado]);
+  const filtradas = useMemo(() => {
+    const list = vacantes.filter((v) => {
+      const t = (v.titulo + (v.empresa?.nombre || "") + (v.ubicacion || "")).toLowerCase().includes(q.toLowerCase());
+      const s = estado === "todas" || (estado === "activas" ? v.activa : !v.activa);
+      return t && s;
+    });
+    return list.sort((a, b) => (a.activa === b.activa ? 0 : a.activa ? -1 : 1));
+  }, [vacantes, q, estado]);
 
   const sel = "h-10 rounded-xl border border-border bg-background px-3 text-sm";
 
@@ -97,7 +103,9 @@ export function AdminVacantes() {
                 {fmtFecha(v.fecha_limite) && <p className="text-[11px] text-muted-foreground mt-2">Cierra el {fmtFecha(v.fecha_limite)}</p>}
                 <div className="flex gap-1 mt-3 pt-3 border-t border-border">
                   <button onClick={() => setEdit(v)} className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:bg-muted px-2.5 py-1.5 rounded-lg"><Pencil className="size-3.5" />Editar</button>
-                  <button onClick={() => eliminar(v.id)} className="flex items-center gap-1 text-xs font-semibold text-[#E74C3C] hover:bg-[#FEE2E2] px-2.5 py-1.5 rounded-lg"><Trash2 className="size-3.5" />Desactivar</button>
+                  <button onClick={() => eliminar(v.id, v.titulo, v.activa)} className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg ${v.activa ? "text-[#E74C3C] hover:bg-[#FEE2E2]" : "text-[#16A34A] hover:bg-[#DCFCE7]"}`}>
+                    <Trash2 className="size-3.5" />{v.activa ? "Desactivar" : "Activar"}
+                  </button>
                 </div>
               </CardContent>
             </Card>
@@ -148,7 +156,7 @@ export function AdminVacantes() {
                     <td className="px-5 py-3">
                       <div className="flex gap-1 justify-end">
                         <button onClick={() => setEdit(v)} className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-[#003366]"><Pencil className="size-4" /></button>
-                        <button onClick={() => eliminar(v.id)} className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-[#FEE2E2] hover:text-[#E74C3C]"><Trash2 className="size-4" /></button>
+                        <button onClick={() => eliminar(v.id, v.titulo, v.activa)} className={`size-8 flex items-center justify-center rounded-lg hover:text-white transition-colors ${v.activa ? "text-[#E74C3C] hover:bg-[#E74C3C]" : "text-[#16A34A] hover:bg-[#16A34A]"}`}><Trash2 className="size-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -159,7 +167,46 @@ export function AdminVacantes() {
         </CardContent></Card>
       )}
 
-      {edit && <VacanteDialog item={edit === "new" ? null : edit} empresas={empresas} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); cargar(); }} />}
+      {confirm && (
+        <Dialog open onOpenChange={() => setConfirm(null)}>
+          <DialogContent className="sm:max-w-md rounded-2xl border-0 shadow-2xl p-6 bg-background animate-in fade-in zoom-in-95 duration-200">
+            <div className={`text-white px-6 py-4 rounded-t-2xl flex items-center gap-2 -mx-6 -mt-6 border-b border-white/10 h-14 ${confirm.activa ? "bg-[#E74C3C]" : "bg-[#16A34A]"}`}>
+              <AlertTriangle className="size-5 text-white" />
+              <span className="font-extrabold text-sm uppercase tracking-wider">{confirm.activa ? "¿Desactivar Vacante?" : "¿Activar Vacante?"}</span>
+            </div>
+            <div className="space-y-4 mt-4">
+              <p className="text-sm text-foreground leading-relaxed">
+                {confirm.activa ? (
+                  <>¿Estás seguro de que deseas desactivar la vacante <strong>{confirm.titulo}</strong>? Los alumnos ya no podrán postularse a ella.</>
+                ) : (
+                  <>¿Deseas activar la vacante <strong>{confirm.titulo}</strong> para que los alumnos puedan volver a postularse?</>
+                )}
+              </p>
+              <div className="flex justify-end gap-3 pt-3 border-t border-border">
+                <Button variant="outline" onClick={() => setConfirm(null)} className="rounded-xl h-10 px-4 active:scale-95 transition-all">Cancelar</Button>
+                <Button onClick={async () => {
+                  const id = confirm.id;
+                  const nuevoEstado = !confirm.activa;
+                  setConfirm(null);
+                  // Actualización optimista inmediata
+                  setVacantes((prev) => prev.map((x) => x.id === id ? { ...x, activa: nuevoEstado } : x));
+                  try {
+                    await jobsService.update(id, { activa: nuevoEstado });
+                    cargar();
+                  } catch {
+                    // Revertir
+                    setVacantes((prev) => prev.map((x) => x.id === id ? { ...x, activa: confirm.activa } : x));
+                  }
+                }} className={`rounded-xl h-10 px-4 text-white active:scale-95 transition-all ${confirm.activa ? "bg-[#E74C3C] hover:bg-[#C0392B]" : "bg-[#16A34A] hover:bg-[#15803d]"}`}>
+                  {confirm.activa ? "Desactivar" : "Activar"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {edit && <VacanteDialog item={edit === "new" ? null : edit} empresas={empresas} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); cargar(true); }} />}
     </div>
   );
 }
@@ -176,7 +223,7 @@ function abreviaCarrera(c: string): string {
 // ---------------------------------------------------------------------------
 // Combobox de empresa con búsqueda.
 // ---------------------------------------------------------------------------
-function EmpresaCombo({ empresas, value, onChange }: { empresas: Company[]; value: string; onChange: (id: string) => void }) {
+function EmpresaCombo({ empresas, value, onChange, invalid }: { empresas: Company[]; value: string; onChange: (id: string) => void; invalid?: boolean }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -192,7 +239,7 @@ function EmpresaCombo({ empresas, value, onChange }: { empresas: Company[]; valu
   return (
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => setOpen((o) => !o)}
-        className="w-full h-10 rounded-xl border border-[#D1D5DB] px-3 text-sm bg-white flex items-center justify-between text-left">
+        className={`w-full h-10 rounded-xl border px-3 text-sm bg-white flex items-center justify-between text-left ${invalid ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" : "border-[#D1D5DB]"}`}>
         <span className={seleccionada ? "text-[#2C3E50]" : "text-[#9CA3AF]"}>{seleccionada?.nombre || "Selecciona empresa…"}</span>
         <ChevronsUpDown className="size-4 text-[#7F8C8D] shrink-0" />
       </button>
@@ -217,7 +264,9 @@ function EmpresaCombo({ empresas, value, onChange }: { empresas: Company[]; valu
   );
 }
 
-function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | null; empresas: Company[]; onClose: () => void; onSaved: () => void }) {
+export function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | null; empresas: Company[]; onClose: () => void; onSaved: () => void }) {
+  const [step, setStep] = useState(1);
+  const [noEspecificarSalario, setNoEspecificarSalario] = useState(!item?.salario_min && !item?.salario_max);
   const [form, setForm] = useState({
     titulo: item?.titulo || "", descripcion: item?.descripcion || "",
     empresa_id: item?.empresa_id || "", salario_min: item?.salario_min?.toString() || "",
@@ -229,7 +278,6 @@ function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | n
   });
   const [imagen, setImagen] = useState<string>(item?.imagen_url || "");
   const [imgError, setImgError] = useState("");
-  // Requisitos como lista de chips (se guardan como texto separado por saltos de línea).
   const [requisitos, setRequisitos] = useState<string[]>(() =>
     (item?.requisitos || "").split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
   );
@@ -237,123 +285,329 @@ function VacanteDialog({ item, empresas, onClose, onSaved }: { item: Vacante | n
   const [carreras, setCarreras] = useState<string[]>(item?.carreras || []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
+
+  const set = (k: string, v: any) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (v) {
+      setFieldErrors((errs) => {
+        const next = { ...errs };
+        delete next[k];
+        return next;
+      });
+    }
+  };
 
   const subirImagen = async (file?: File) => {
     if (!file) return;
     setImgError("");
+    if (file.size > 50 * 1024 * 1024) {
+      setImgError("La imagen supera el límite de tamaño permitido (máximo 50MB).");
+      return;
+    }
     try { setImagen(await fileToDataUrl(file, 900, 0.82)); }
     catch { setImgError("No se pudo procesar la imagen."); }
   };
-  const addReq = () => { const t = reqInput.trim(); if (t && !requisitos.includes(t)) setRequisitos((r) => [...r, t]); setReqInput(""); };
+  const addReq = () => {
+    const t = reqInput.trim();
+    if (t && !requisitos.includes(t)) {
+      setRequisitos((r) => [...r, t]);
+      setFieldErrors((errs) => {
+        const next = { ...errs };
+        delete next.requisitos;
+        return next;
+      });
+    }
+    setReqInput("");
+  };
+  const removeReq = (r: string) => {
+    setRequisitos((rs) => {
+      const next = rs.filter((x) => x !== r);
+      if (next.length === 0) {
+        setFieldErrors((errs) => ({ ...errs, requisitos: true }));
+      }
+      return next;
+    });
+  };
   const toggleCarrera = (c: string) => setCarreras((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
 
+  const aplicarUbicacionRapida = (modalidad: string, ubicacion: string) => {
+    setForm(f => ({ ...f, modalidad, ubicacion }));
+  };
+
+  const aplicarSalarioRapido = (min: number, max: number) => {
+    setForm(f => ({ ...f, salario_min: min.toString(), salario_max: max.toString() }));
+  };
+
+  const irAPaso = (p: number) => {
+    setError("");
+    
+    // Validar paso actual al intentar avanzar
+    if (p > step) {
+      const errs: Record<string, boolean> = {};
+      if (step === 1) {
+        if (!form.titulo.trim()) errs.titulo = true;
+        if (!form.empresa_id) errs.empresa_id = true;
+        if (Object.keys(errs).length > 0) {
+          setFieldErrors((prev) => ({ ...prev, ...errs }));
+          setError("Por favor completa los campos requeridos marcados en rojo.");
+          return;
+        }
+      }
+      if (step === 2) {
+        if (!form.descripcion.trim()) errs.descripcion = true;
+        if (requisitos.length === 0) errs.requisitos = true;
+        if (Object.keys(errs).length > 0) {
+          setFieldErrors((prev) => ({ ...prev, ...errs }));
+          if (errs.requisitos && !errs.descripcion) {
+            setError("Por favor agrega al menos un requisito.");
+          } else {
+            setError("Por favor completa los campos requeridos marcados en rojo.");
+          }
+          return;
+        }
+      }
+    }
+    
+    setStep(p);
+  };
+
+  const nextStep = () => {
+    setError("");
+    const errs: Record<string, boolean> = {};
+    
+    if (step === 1) {
+      if (!form.titulo.trim()) errs.titulo = true;
+      if (!form.empresa_id) errs.empresa_id = true;
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...errs }));
+        setError("Por favor completa los campos requeridos marcados en rojo.");
+        return;
+      }
+    }
+    
+    if (step === 2) {
+      if (!form.descripcion.trim()) errs.descripcion = true;
+      if (requisitos.length === 0) errs.requisitos = true;
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...errs }));
+        if (errs.requisitos && !errs.descripcion) {
+          setError("Por favor agrega al menos un requisito.");
+        } else {
+          setError("Por favor completa los campos requeridos marcados en rojo.");
+        }
+        return;
+      }
+    }
+    
+    setStep(s => s + 1);
+  };
+
   const guardar = async () => {
-    if (!form.empresa_id) { setError("Selecciona una empresa."); return; }
+    const errs: Record<string, boolean> = {};
+    if (!form.titulo.trim()) errs.titulo = true;
+    if (!form.empresa_id) errs.empresa_id = true;
+    if (!form.descripcion.trim()) errs.descripcion = true;
+    if (requisitos.length === 0) errs.requisitos = true;
+
+    setFieldErrors(errs);
+
+    if (Object.keys(errs).length > 0) {
+      if (errs.requisitos && Object.keys(errs).length === 1) {
+        setError("Por favor agrega al menos un requisito.");
+      } else {
+        setError("Por favor completa los campos requeridos marcados en rojo.");
+      }
+      if (errs.titulo || errs.empresa_id) {
+        setStep(1);
+      } else if (errs.descripcion || errs.requisitos) {
+        setStep(2);
+      }
+      return;
+    }
+
     setSaving(true); setError("");
     try {
       const payload: any = {
         titulo: form.titulo, descripcion: form.descripcion, requisitos: requisitos.join("\n"), empresa_id: form.empresa_id,
-        salario_min: form.salario_min ? Number(form.salario_min) : undefined, salario_max: form.salario_max ? Number(form.salario_max) : undefined,
+        salario_min: noEspecificarSalario ? null : (form.salario_min ? Number(form.salario_min) : undefined),
+        salario_max: noEspecificarSalario ? null : (form.salario_max ? Number(form.salario_max) : undefined),
         modalidad: form.modalidad, tipo_contrato: form.tipo_contrato, nivel_experiencia: form.nivel_experiencia, ubicacion: form.ubicacion,
-        carreras, cuatrimestre: form.cuatrimestre ? Number(form.cuatrimestre) : undefined,
-        fecha_limite: form.fecha_limite || undefined, imagen_url: imagen || undefined,
+        carreras, cuatrimestre: form.cuatrimestre ? Number(form.cuatrimestre) : null,
+        fecha_limite: form.fecha_limite || null, imagen_url: imagen || null,
       };
       if (item) await jobsService.update(item.id, { ...payload, activa: form.activa }); else await jobsService.create(payload);
       onSaved();
-    } catch (e: any) { setError(e?.response?.data?.error || "No se pudo guardar."); } finally { setSaving(false); }
+    } catch (e: any) { setError("Ha ocurrido un error, por favor contacta a un administrador"); } finally { setSaving(false); }
   };
-  const F = ({ label, children }: any) => (<div className="space-y-1"><Label className="text-xs font-semibold text-[#2C3E50]">{label}</Label>{children}</div>);
-  const sel = "w-full h-10 rounded-xl border border-[#D1D5DB] px-3 text-sm bg-white";
+
+
+  
+  const sel = "w-full h-10 rounded-xl border border-border px-3 text-sm bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003366] transition-all";
+  const nivelesExperiencia = ["Sin experiencia", "Prácticas / Estadías", "Junior"];
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{item ? "Editar vacante" : "Nueva vacante"}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          {error && <div className="p-2.5 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>}
-
-          {/* Imagen / banner de la vacante */}
-          <F label="Imagen de la vacante">
-            <div className="rounded-xl border border-dashed border-[#D1D5DB] p-3">
-              {imagen ? (
-                <div className="relative">
-                  <img src={imagen} alt="Vista previa" className="w-full h-32 object-cover rounded-lg" />
-                  <button type="button" onClick={() => setImagen("")} className="absolute top-2 right-2 size-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"><X className="size-4" /></button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center gap-1 py-4 cursor-pointer text-[#7F8C8D] hover:text-[#003366]">
-                  <ImagePlus className="size-6" />
-                  <span className="text-xs font-medium">Subir imagen (logo o banner)</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => subirImagen(e.target.files?.[0])} />
-                </label>
-              )}
-              {imgError && <p className="text-xs text-red-600 mt-1">{imgError}</p>}
-            </div>
-          </F>
-
-          <F label="Título *"><Input value={form.titulo} onChange={(e) => set("titulo", e.target.value)} /></F>
-          <F label="Empresa *"><EmpresaCombo empresas={empresas} value={form.empresa_id} onChange={(id) => set("empresa_id", id)} /></F>
-          <F label="Descripción *"><Textarea rows={3} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} /></F>
-
-          <F label="Requisitos">
-            <div className="flex gap-2">
-              <Input value={reqInput} onChange={(e) => setReqInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addReq(); } }}
-                placeholder="Escribe un requisito y presiona +" />
-              <Button type="button" variant="outline" onClick={addReq} className="shrink-0 px-3"><Plus className="size-4" /></Button>
-            </div>
-            {requisitos.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {requisitos.map((r) => (
-                  <span key={r} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-[#F5F7FA] text-[#2C3E50]">
-                    {r}
-                    <button type="button" onClick={() => setRequisitos((rs) => rs.filter((x) => x !== r))} className="text-[#9CA3AF] hover:text-[#E74C3C]"><X className="size-3" /></button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </F>
-
-          <F label="Carreras dirigidas (ninguna = todas)">
-            <div className="flex flex-wrap gap-1.5 rounded-xl border border-[#E5E7EB] p-2">
-              {CARRERAS_UPA.map((c) => {
-                const on = carreras.includes(c);
-                return (
-                  <button key={c} type="button" onClick={() => toggleCarrera(c)}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition ${on ? "bg-[#003366] text-white border-[#003366]" : "bg-white text-[#7F8C8D] border-[#E5E7EB] hover:border-[#003366]"}`}>
-                    {abreviaCarrera(c)}
-                  </button>
-                );
-              })}
-            </div>
-          </F>
-
-          <div className="grid grid-cols-2 gap-3">
-            <F label="Cuatrimestre mínimo">
-              <select className={sel} value={form.cuatrimestre} onChange={(e) => set("cuatrimestre", e.target.value)}>
-                <option value="">Cualquiera</option>
-                {CUATRIMESTRES.map((n) => <option key={n} value={n}>{n}º en adelante</option>)}
-              </select>
-            </F>
-            <F label="Fecha límite para postularse"><Input type="date" value={form.fecha_limite} onChange={(e) => set("fecha_limite", e.target.value)} /></F>
-          </div>
-          <F label="Ubicación"><Input value={form.ubicacion} onChange={(e) => set("ubicacion", e.target.value)} /></F>
-          <div className="grid grid-cols-2 gap-3">
-            <F label="Salario mín."><Input type="number" value={form.salario_min} onChange={(e) => set("salario_min", e.target.value)} /></F>
-            <F label="Salario máx."><Input type="number" value={form.salario_max} onChange={(e) => set("salario_max", e.target.value)} /></F>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <F label="Modalidad"><select className={sel} value={form.modalidad} onChange={(e) => set("modalidad", e.target.value)}>{MODALIDADES.map((m) => <option key={m}>{m}</option>)}</select></F>
-            <F label="Tipo"><select className={sel} value={form.tipo_contrato} onChange={(e) => set("tipo_contrato", e.target.value)}>{TIPOS_CONTRATO.map((t) => <option key={t}>{t}</option>)}</select></F>
-          </div>
-          <F label="Nivel"><select className={sel} value={form.nivel_experiencia} onChange={(e) => set("nivel_experiencia", e.target.value)}><option>Sin experiencia</option><option>Junior</option><option>Semi-senior</option><option>Senior</option></select></F>
-          {item && <label className="flex items-center gap-2 text-sm text-[#2C3E50] cursor-pointer"><input type="checkbox" checked={form.activa} onChange={(e) => set("activa", e.target.checked)} /> Activa</label>}
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border-0 shadow-2xl p-6 bg-background animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-[#001A33] text-white px-6 py-4 rounded-t-2xl flex items-center gap-2 -mx-6 -mt-6 border-b border-white/10 h-14">
+          <Briefcase className="size-5 text-[#00A8E8]" />
+          <span className="font-extrabold text-sm uppercase tracking-wider">{item ? "Editar Vacante" : "Nueva Vacante"}</span>
         </div>
-        <div className="flex justify-end gap-2 mt-5">
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={guardar} disabled={saving} className="flex items-center gap-1.5">{saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Guardar</Button>
+
+        <div className="flex border-b border-border -mx-6 px-6 bg-muted/10 select-none">
+          {[
+            { step: 1, label: "Datos Básicos" },
+            { step: 2, label: "Descripción y Requisitos" },
+            { step: 3, label: "Filtros y Salario" }
+          ].map((t) => {
+            const active = step === t.step;
+            return (
+              <button key={t.step} type="button" onClick={() => irAPaso(t.step)}
+                className={`py-3.5 px-4 text-xs font-bold transition-all relative border-b-2 -mb-px outline-none ${active ? "text-[#003366] border-[#FFD700]" : "text-muted-foreground hover:text-foreground border-transparent"}`}>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="space-y-5 mt-5">
+          {error && <div className="p-3 rounded-xl bg-red-50 text-red-600 text-xs font-semibold">{error}</div>}
+
+          {step === 1 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <F label="Título de la vacante *" invalid={fieldErrors.titulo}>
+                <Input value={form.titulo} onChange={(e) => set("titulo", e.target.value)} className={`rounded-xl h-10 bg-muted/20 focus-visible:ring-[#003366] ${fieldErrors.titulo ? "border-red-500 focus-visible:ring-red-500 focus-visible:ring-offset-0" : "border-border"}`} placeholder="Ej. Desarrollador Frontend React" />
+              </F>
+              <F label="Empresa convocante *" invalid={fieldErrors.empresa_id}>
+                <EmpresaCombo empresas={empresas} value={form.empresa_id} onChange={(id) => set("empresa_id", id)} invalid={fieldErrors.empresa_id} />
+              </F>
+              <div className="grid grid-cols-2 gap-4">
+                <F label="Modalidad">
+                  <div className="flex gap-2">
+                    {["Presencial", "Remoto", "Híbrido"].map((mod) => {
+                      const active = form.modalidad === mod;
+                      return (
+                        <button key={mod} type="button" onClick={() => { set("modalidad", mod); if (mod === "Remoto") { set("ubicacion", "Remoto"); } else if (form.ubicacion === "Remoto") { set("ubicacion", ""); } }}
+                          className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all active:scale-95 ${active ? "bg-[#003366] text-white border-[#003366] shadow" : "bg-background text-muted-foreground border-border hover:border-[#003366] hover:text-[#003366]"}`}>
+                          {mod}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </F>
+                <F label="Tipo de contrato">
+                  <select className={sel} value={form.tipo_contrato} onChange={(e) => set("tipo_contrato", e.target.value)}>
+                    {TIPOS_CONTRATO.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </F>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <F label="Experiencia requerida *">
+                  <div className="flex gap-2">
+                    {nivelesExperiencia.map((lvl) => {
+                      const active = form.nivel_experiencia === lvl;
+                      return (
+                        <button key={lvl} type="button" onClick={() => set("nivel_experiencia", lvl)}
+                          className={`flex-1 h-10 rounded-xl text-[10px] font-bold border transition-all active:scale-95 leading-tight p-1 ${active ? "bg-[#003366] text-white border-[#003366] shadow" : "bg-background text-muted-foreground border-border hover:border-[#003366] hover:text-[#003366]"}`}>
+                          {lvl}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </F>
+                <F label="Ubicación (Ciudad o Remoto)">
+                  <Input value={form.ubicacion} onChange={(e) => set("ubicacion", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" placeholder="Ej. Aguascalientes, Ags. o Remoto" />
+                </F>
+              </div>
+
+              <F label="Imagen o Banner de la vacante">
+                <div className="rounded-2xl border-2 border-dashed border-border p-4 bg-muted/10 transition-all hover:bg-muted/20">
+                  {imagen ? (
+                    <div className="relative rounded-xl overflow-hidden group shadow-sm">
+                      <img src={imagen} alt="Vista previa" className="w-full h-28 object-cover" />
+                      <button type="button" onClick={() => setImagen("")} className="absolute top-2 right-2 size-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors shadow"><X className="size-4" /></button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-1.5 py-4 cursor-pointer text-muted-foreground hover:text-[#003366] transition-colors select-none">
+                      <div className="size-9 rounded-full bg-muted flex items-center justify-center"><ImagePlus className="size-5 text-[#00A8E8]" /></div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider leading-none">Subir Banner de Vacante</span>
+                      <span className="text-[9px] text-muted-foreground/70 mt-0.5">Máximo 50MB (PNG, JPG)</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => subirImagen(e.target.files?.[0])} />
+                    </label>
+                  )}
+                </div>
+                {imgError && <p className="text-[11px] text-red-500 font-semibold mt-1.5">{imgError}</p>}
+              </F>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <F label="Descripción del puesto *" invalid={fieldErrors.descripcion}>
+                <Textarea rows={5} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} className={`rounded-xl bg-muted/20 focus-visible:ring-[#003366] resize-none ${fieldErrors.descripcion ? "border-red-500 focus-visible:ring-red-500 focus-visible:ring-offset-0" : "border-border"}`} placeholder="Describe el rol, responsabilidades y lo que ofrece la empresa..." />
+              </F>
+              <F label="Requisitos *" invalid={fieldErrors.requisitos}>
+                <div className="flex gap-2">
+                  <Input value={reqInput} onChange={(e) => setReqInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addReq(); } }} placeholder="Escribe un requisito y presiona Enter" className={`rounded-xl h-10 bg-muted/20 focus-visible:ring-[#003366] ${fieldErrors.requisitos ? "border-red-500 focus-visible:ring-red-500 focus-visible:ring-offset-0" : "border-border"}`} />
+                  <Button type="button" variant="outline" onClick={addReq} className="shrink-0 rounded-xl h-10 px-3"><Plus className="size-4" /></Button>
+                </div>
+                {requisitos.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{requisitos.map((r) => <span key={r} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted border border-border">{r}<button type="button" onClick={() => removeReq(r)}><X className="size-3.5 text-muted-foreground hover:text-red-500" /></button></span>)}</div>}
+              </F>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="grid grid-cols-2 gap-4">
+                <F label="Salario mínimo ($ MXN)">
+                  <Input type="number" disabled={noEspecificarSalario} value={form.salario_min} onChange={(e) => set("salario_min", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366] disabled:opacity-50" />
+                </F>
+                <F label="Salario máximo ($ MXN)">
+                  <Input type="number" disabled={noEspecificarSalario} value={form.salario_max} onChange={(e) => set("salario_max", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366] disabled:opacity-50" />
+                </F>
+              </div>
+              <label className="flex items-center gap-2.5 text-xs text-[#2C3E50] cursor-pointer font-semibold"><input type="checkbox" checked={noEspecificarSalario} onChange={(e) => setNoEspecificarSalario(e.target.checked)} className="size-4 rounded border-border text-[#003366] focus:ring-[#003366]" /> Sueldo a convenir</label>
+              <div className="grid grid-cols-2 gap-4">
+                <F label="Cuatrimestre mínimo">
+                  <select className={sel} value={form.cuatrimestre} onChange={(e) => set("cuatrimestre", e.target.value)}>
+                    <option value="">Cualquiera</option>
+                    {CUATRIMESTRES.map((n) => <option key={n} value={n}>{n}º en adelante</option>)}
+                  </select>
+                </F>
+                <F label="Fecha límite">
+                  <Input type="date" value={form.fecha_limite} onChange={(e) => set("fecha_limite", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" />
+                </F>
+              </div>
+              <F label="Carreras dirigidas">
+                <div className="flex flex-wrap gap-2 rounded-2xl border border-border p-3 bg-muted/10">
+                  {CARRERAS_UPA.map((c) => {
+                    const on = carreras.includes(c);
+                    return <button key={c} type="button" onClick={() => toggleCarrera(c)} className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all active:scale-95 ${on ? "bg-[#003366] text-white border-[#003366]" : "bg-background text-muted-foreground border-border hover:border-[#003366]"}`}>{abreviaCarrera(c)}</button>;
+                  })}
+                </div>
+              </F>
+              {item && <label className="flex items-center gap-2.5 text-sm font-medium"><input type="checkbox" checked={form.activa} onChange={(e) => set("activa", e.target.checked)} className="size-4" /> Vacante activa</label>}
+            </div>
+          )}        </div>
+
+        <div className="flex justify-between items-center gap-3 mt-6 pt-3 border-t border-border">
+          <Button variant="outline" onClick={onClose} className="rounded-xl h-10 font-bold text-xs">Cancelar</Button>
+          {step < 3 ? (
+            <Button onClick={nextStep} className="bg-[#003366] text-white rounded-xl h-10 px-5 font-bold text-xs">Siguiente</Button>
+          ) : (
+            <Button onClick={guardar} disabled={saving} className="bg-[#003366] text-white rounded-xl h-10 px-5 font-bold text-xs">{saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Guardar</Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function F({ label, children, invalid }: any) {
+  return (
+    <div className="space-y-1.5">
+      <Label className={`text-xs font-bold uppercase tracking-wider transition-colors duration-200 ${invalid ? "text-red-500 animate-pulse" : "text-muted-foreground"}`}>{label}</Label>
+      {children}
+    </div>
   );
 }

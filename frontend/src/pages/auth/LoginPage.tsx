@@ -2,8 +2,8 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { GraduationCap, Briefcase, Users, Sparkles, ArrowRight, Loader2, Shield, KeyRound, CheckCircle2 } from "lucide-react";
-import { useNavigate, Link } from "react-router";
+import { GraduationCap, Briefcase, Users, Sparkles, ArrowRight, Loader2, Shield, KeyRound, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { useNavigate, Link, useLocation } from "react-router";
 import { useState, useRef, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../services/auth.service";
@@ -22,12 +22,18 @@ const stats = [
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loginWithGoogle } = useAuthStore();
-  const [email, setEmail] = useState("");
+  
+  // Use state passed from Register page (if any)
+  const passedEmail = location.state?.email || "";
+  const openRecover = location.state?.recover === true;
+
+  const [email, setEmail] = useState(passedEmail);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showForgot, setShowForgot] = useState(false);
+  const [showForgot, setShowForgot] = useState(openRecover);
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
 
   const irSegunRol = (rol?: string) => navigate(rol === "admin" ? "/admin" : "/dashboard");
@@ -233,12 +239,16 @@ export function LoginPage() {
 // Modal de recuperación de contraseña (pide código al correo y lo restablece).
 // ---------------------------------------------------------------------------
 function ForgotPasswordDialog({ defaultEmail, onClose }: { defaultEmail: string; onClose: () => void }) {
-  const [paso, setPaso] = useState<1 | 2 | 3>(1);
+  const [paso, setPaso] = useState<1 | 2 | 3 | 4>(1);
   const [email, setEmail] = useState(defaultEmail);
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  
   const inputCls = "h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm";
 
   const enviarCodigo = async () => {
@@ -247,11 +257,20 @@ function ForgotPasswordDialog({ defaultEmail, onClose }: { defaultEmail: string;
     catch (e: any) { setError(e?.response?.data?.error || "No se pudo enviar el código."); }
     finally { setLoading(false); }
   };
+  
+  const verificarCodigo = async () => {
+    setError(""); setLoading(true);
+    try { await authService.verifyResetToken(email.toLowerCase().trim(), token.trim()); setPaso(3); }
+    catch (e: any) { setError(e?.response?.data?.error || "Código inválido."); }
+    finally { setLoading(false); }
+  };
+  
   const restablecer = async () => {
     setError("");
     if (password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
+    if (password !== confirmPassword) { setError("Las contraseñas no coinciden. Verifica que ambas sean idénticas."); return; }
     setLoading(true);
-    try { await authService.resetPassword(email.toLowerCase().trim(), token.trim(), password); setPaso(3); }
+    try { await authService.resetPassword(email.toLowerCase().trim(), token.trim(), password); setPaso(4); }
     catch (e: any) { setError(e?.response?.data?.error || "No se pudo restablecer la contraseña."); }
     finally { setLoading(false); }
   };
@@ -272,14 +291,39 @@ function ForgotPasswordDialog({ defaultEmail, onClose }: { defaultEmail: string;
           </>)}
 
           {paso === 2 && (<>
-            <p className="text-sm text-[#7F8C8D]">Ingresa el código que enviamos a <b>{email}</b> y tu nueva contraseña.</p>
-            <Input placeholder="Código de 6 dígitos" value={token} onChange={(e) => setToken(e.target.value)} className={inputCls} />
-            <Input type="password" placeholder="Nueva contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} />
-            <Button onClick={restablecer} disabled={loading || !token || !password} className="w-full h-11">{loading ? <Loader2 className="size-4 animate-spin" /> : "Restablecer contraseña"}</Button>
+            <p className="text-sm text-[#7F8C8D]">Ingresa el código que enviamos a <b>{email}</b>.</p>
+            <div className="py-2">
+              <Input 
+                placeholder="000000" 
+                value={token} 
+                onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))} 
+                className="h-14 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-center text-3xl font-mono tracking-[0.5em] font-bold" 
+                maxLength={6}
+                autoComplete="one-time-code"
+              />
+            </div>
+            <Button onClick={verificarCodigo} disabled={loading || token.length !== 6} className="w-full h-11">{loading ? <Loader2 className="size-4 animate-spin" /> : "Verificar código"}</Button>
             <button onClick={enviarCodigo} className="text-xs text-[#003366] hover:underline w-full text-center">Reenviar código</button>
           </>)}
+          
+          {paso === 3 && (<>
+            <p className="text-sm text-[#7F8C8D]">Ingresa tu nueva contraseña y confírmala.</p>
+            <div className="relative">
+              <Input type={showPassword ? "text" : "password"} placeholder="Nueva contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls + " pr-10"} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <div className="relative">
+              <Input type={showConfirm ? "text" : "password"} placeholder="Confirmar nueva contraseña" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls + " pr-10"} />
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <Button onClick={restablecer} disabled={loading || !password || !confirmPassword} className="w-full h-11">{loading ? <Loader2 className="size-4 animate-spin" /> : "Guardar contraseña"}</Button>
+          </>)}
 
-          {paso === 3 && (<div className="text-center py-4 space-y-3">
+          {paso === 4 && (<div className="text-center py-4 space-y-3">
             <CheckCircle2 className="size-10 text-[#16A34A] mx-auto" />
             <p className="text-sm text-[#2C3E50] font-semibold">¡Contraseña actualizada!</p>
             <p className="text-xs text-[#7F8C8D]">Ya puedes iniciar sesión con tu nueva contraseña.</p>

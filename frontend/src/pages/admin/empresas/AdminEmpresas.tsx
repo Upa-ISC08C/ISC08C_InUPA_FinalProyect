@@ -5,8 +5,9 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Textarea } from "../../../components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
-import { Building2, Plus, Pencil, Trash2, Globe, MapPin, Loader2, Save, Search, LayoutGrid, List } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Globe, MapPin, Loader2, Save, Search, LayoutGrid, List, X, ImagePlus, AlertTriangle } from "lucide-react";
 import { companiesService, type Company } from "../../../services/companies.service";
+import { fileToDataUrl } from "../../../utils/image";
 
 export function AdminEmpresas() {
   const [empresas, setEmpresas] = useState<Company[]>([]);
@@ -14,21 +15,39 @@ export function AdminEmpresas() {
   const [edit, setEdit] = useState<Company | "new" | null>(null);
   const [q, setQ] = useState("");
   const [estado, setEstado] = useState<"todos" | "activas" | "inactivas">("todos");
+  const [filtroIndustria, setFiltroIndustria] = useState("todas");
   const [vista, setVista] = useState<"cuadricula" | "lista">(() => (localStorage.getItem("inupa_empresas_view") as any) || "cuadricula");
 
   useEffect(() => { localStorage.setItem("inupa_empresas_view", vista); }, [vista]);
 
-  const cargar = () => { setLoading(true); companiesService.list().then(setEmpresas).catch(() => setEmpresas([])).finally(() => setLoading(false)); };
+  const cargar = (silent = false) => { if (!silent) setLoading(true); companiesService.list().then(setEmpresas).catch(() => setEmpresas([])).finally(() => { if (!silent) setLoading(false); }); };
   useEffect(() => { cargar(); }, []);
 
   const activas = empresas.filter((e) => e.activa).length;
-  const eliminar = async (id: string) => { await companiesService.remove(id); cargar(); };
+  const [confirm, setConfirm] = useState<{ id: string; nombre: string; activa: boolean } | null>(null);
+  const eliminar = (id: string, nombre: string, activa: boolean) => {
+    setConfirm({ id, nombre, activa });
+  };
 
-  const filtradas = useMemo(() => empresas.filter((e) => {
-    const t = (e.nombre + (e.industria || "") + (e.ciudad || "")).toLowerCase().includes(q.toLowerCase());
-    const s = estado === "todos" || (estado === "activas" ? e.activa : !e.activa);
-    return t && s;
-  }), [empresas, q, estado]);
+  const uniqueIndustries = useMemo(() => {
+    const inds = new Set<string>();
+    empresas.forEach((e) => {
+      if (e.industria && e.industria.trim()) {
+        inds.add(e.industria.trim());
+      }
+    });
+    return Array.from(inds).sort();
+  }, [empresas]);
+
+  const filtradas = useMemo(() => {
+    const list = empresas.filter((e) => {
+      const matchQ = (e.nombre + (e.industria || "") + (e.ciudad || "")).toLowerCase().includes(q.toLowerCase());
+      const matchEst = estado === "todos" || (estado === "activas" ? e.activa : !e.activa);
+      const matchInd = filtroIndustria === "todas" || e.industria === filtroIndustria;
+      return matchQ && matchEst && matchInd;
+    });
+    return list.sort((a, b) => (a.activa === b.activa ? 0 : a.activa ? -1 : 1));
+  }, [empresas, q, estado, filtroIndustria]);
 
   const sel = "h-10 rounded-xl border border-border bg-background px-3 text-sm";
 
@@ -49,9 +68,15 @@ export function AdminEmpresas() {
           <Input placeholder="Buscar por nombre, industria o ciudad..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-10 h-10 rounded-xl text-sm" />
         </div>
         <select className={sel} value={estado} onChange={(e) => setEstado(e.target.value as any)}>
-          <option value="todos">Todos</option>
+          <option value="todos">Todos los estados</option>
           <option value="activas">Activas</option>
           <option value="inactivas">Inactivas</option>
+        </select>
+        <select className={sel} value={filtroIndustria} onChange={(e) => setFiltroIndustria(e.target.value)}>
+          <option value="todas">Todas las industrias</option>
+          {uniqueIndustries.map((ind) => (
+            <option key={ind} value={ind}>{ind}</option>
+          ))}
         </select>
         <div className="ml-auto flex items-center rounded-xl border border-border p-0.5">
           <button onClick={() => setVista("lista")} title="Vista de lista" className={`size-8 flex items-center justify-center rounded-lg transition-colors ${vista === "lista" ? "bg-[#003366] text-white" : "text-muted-foreground hover:bg-muted"}`}><List className="size-4" /></button>
@@ -72,7 +97,13 @@ export function AdminEmpresas() {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="size-11 rounded-xl bg-[#003366] flex items-center justify-center text-white font-bold">{e.nombre.substring(0, 2).toUpperCase()}</div>
+                    <div className="size-11 rounded-xl overflow-hidden flex-none flex items-center justify-center bg-muted">
+                      {e.logo_url ? (
+                        <img src={e.logo_url} alt="" className="size-full object-cover" />
+                      ) : (
+                        <div className="size-full bg-[#003366] text-white flex items-center justify-center font-bold text-sm">{e.nombre.substring(0, 2).toUpperCase()}</div>
+                      )}
+                    </div>
                     <div>
                       <p className="font-bold text-foreground">{e.nombre}</p>
                       <p className="text-xs text-muted-foreground">{e.industria || "—"}</p>
@@ -88,7 +119,9 @@ export function AdminEmpresas() {
                 {e.sitio_web && <a href={e.sitio_web} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-[#003366] font-semibold hover:underline mt-2"><Globe className="size-3" />Sitio web</a>}
                 <div className="flex gap-2 mt-4 pt-3 border-t border-border">
                   <button onClick={() => setEdit(e)} className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:bg-muted px-2.5 py-1.5 rounded-lg"><Pencil className="size-3.5" />Editar</button>
-                  <button onClick={() => eliminar(e.id)} className="flex items-center gap-1 text-xs font-semibold text-[#E74C3C] hover:bg-[#FEE2E2] px-2.5 py-1.5 rounded-lg"><Trash2 className="size-3.5" />Desactivar</button>
+                  <button onClick={() => eliminar(e.id, e.nombre, e.activa)} className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg ${e.activa ? "text-[#E74C3C] hover:bg-[#FEE2E2]" : "text-[#16A34A] hover:bg-[#DCFCE7]"}`}>
+                    <Trash2 className="size-3.5" />{e.activa ? "Desactivar" : "Activar"}
+                  </button>
                 </div>
               </CardContent>
             </Card>
@@ -112,7 +145,13 @@ export function AdminEmpresas() {
                   <tr key={e.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="size-9 rounded-lg bg-[#003366] flex items-center justify-center text-white text-xs font-bold flex-none">{e.nombre.substring(0, 2).toUpperCase()}</div>
+                        <div className="size-9 rounded-lg overflow-hidden flex-none flex items-center justify-center bg-muted">
+                          {e.logo_url ? (
+                            <img src={e.logo_url} alt="" className="size-full object-cover" />
+                          ) : (
+                            <div className="size-full bg-[#003366] text-white flex items-center justify-center text-xs font-bold">{e.nombre.substring(0, 2).toUpperCase()}</div>
+                          )}
+                        </div>
                         <span className="font-semibold text-foreground">{e.nombre}</span>
                       </div>
                     </td>
@@ -122,7 +161,7 @@ export function AdminEmpresas() {
                     <td className="px-5 py-3">
                       <div className="flex gap-1 justify-end">
                         <button onClick={() => setEdit(e)} className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-[#003366]"><Pencil className="size-4" /></button>
-                        <button onClick={() => eliminar(e.id)} className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-[#FEE2E2] hover:text-[#E74C3C]"><Trash2 className="size-4" /></button>
+                        <button onClick={() => eliminar(e.id, e.nombre, e.activa)} className={`size-8 flex items-center justify-center rounded-lg hover:text-white transition-colors ${e.activa ? "text-[#E74C3C] hover:bg-[#E74C3C]" : "text-[#16A34A] hover:bg-[#16A34A]"}`}><Trash2 className="size-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -133,52 +172,246 @@ export function AdminEmpresas() {
         </CardContent></Card>
       )}
 
-      {edit && <EmpresaDialog item={edit === "new" ? null : edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); cargar(); }} />}
+      {confirm && (
+        <Dialog open onOpenChange={() => setConfirm(null)}>
+          <DialogContent className="sm:max-w-md rounded-2xl border-0 shadow-2xl p-6 bg-background animate-in fade-in zoom-in-95 duration-200">
+            <div className={`text-white px-6 py-4 rounded-t-2xl flex items-center gap-2 -mx-6 -mt-6 border-b border-white/10 h-14 ${confirm.activa ? "bg-[#E74C3C]" : "bg-[#16A34A]"}`}>
+              <AlertTriangle className="size-5 text-white" />
+              <span className="font-extrabold text-sm uppercase tracking-wider">{confirm.activa ? "¿Desactivar Empresa?" : "¿Activar Empresa?"}</span>
+            </div>
+            <div className="space-y-4 mt-4">
+              <p className="text-sm text-foreground leading-relaxed">
+                {confirm.activa ? (
+                  <>¿Estás seguro de que deseas desactivar la empresa <strong>{confirm.nombre}</strong>? Esto ocultará su información y afectará a sus vacantes publicadas.</>
+                ) : (
+                  <>¿Deseas activar la empresa <strong>{confirm.nombre}</strong> para que vuelva a estar visible en el sistema?</>
+                )}
+              </p>
+              <div className="flex justify-end gap-3 pt-3 border-t border-border">
+                <Button variant="outline" onClick={() => setConfirm(null)} className="rounded-xl h-10 px-4 active:scale-95 transition-all">Cancelar</Button>
+                <Button onClick={async () => {
+                  const id = confirm.id;
+                  const nuevoEstado = !confirm.activa;
+                  setConfirm(null);
+                  setEmpresas((prev) => prev.map((x) => x.id === id ? { ...x, activa: nuevoEstado } : x));
+                  try {
+                    await companiesService.update(id, { activa: nuevoEstado });
+                    cargar(true);
+                  } catch {
+                    setEmpresas((prev) => prev.map((x) => x.id === id ? { ...x, activa: confirm.activa } : x));
+                  }
+                }} className={`rounded-xl h-10 px-4 text-white active:scale-95 transition-all ${confirm.activa ? "bg-[#E74C3C] hover:bg-[#C0392B]" : "bg-[#16A34A] hover:bg-[#15803d]"}`}>
+                  {confirm.activa ? "Desactivar" : "Activar"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {edit && <EmpresaDialog item={edit === "new" ? null : edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); cargar(true); }} />}
     </div>
   );
 }
 
-function EmpresaDialog({ item, onClose, onSaved }: { item: Company | null; onClose: () => void; onSaved: () => void }) {
+const INDUSTRIAS_COMUNES = [
+  "Tecnología / Software",
+  "Consultoría",
+  "Finanzas / Banca",
+  "Salud / Farmacéutica",
+  "Educación",
+  "Logística / Transporte",
+  "Manufactura / Producción",
+  "Construcción",
+  "Marketing / Publicidad",
+  "Alimentos / Bebidas",
+  "Comercio / Retail",
+];
+
+export function EmpresaDialog({ item, onClose, onSaved }: { item: Company | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     nombre: item?.nombre || "", industria: item?.industria || "", descripcion: item?.descripcion || "",
     sitio_web: item?.sitio_web || "", correo_contacto: item?.correo_contacto || "", telefono: item?.telefono || "",
     ciudad: item?.ciudad || "", direccion: item?.direccion || "", tamano: item?.tamano || "", activa: item?.activa ?? true,
+    logo_url: item?.logo_url || "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-  const guardar = async () => {
-    setSaving(true); setError("");
-    try { if (item) await companiesService.update(item.id, form); else await companiesService.create(form); onSaved(); }
-    catch (e: any) { setError(e?.response?.data?.error || "No se pudo guardar."); } finally { setSaving(false); }
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
+
+  const set = (k: string, v: any) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (v) {
+      setFieldErrors((errs) => {
+        const next = { ...errs };
+        delete next[k];
+        return next;
+      });
+    }
   };
-  const F = ({ label, children }: any) => (<div className="space-y-1"><Label className="text-xs font-semibold text-[#2C3E50]">{label}</Label>{children}</div>);
+
+  const [selIndustria, setSelIndustria] = useState(() => {
+    if (!item?.industria) return "";
+    if (INDUSTRIAS_COMUNES.includes(item.industria)) return item.industria;
+    return "Otro";
+  });
+
+  const [otroIndustria, setOtroIndustria] = useState(item?.industria && !INDUSTRIAS_COMUNES.includes(item.industria) ? item.industria : "");
+
+  const subirLogo = async (file?: File) => {
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      setError("El logotipo supera el límite de tamaño permitido (máximo 50MB).");
+      return;
+    }
+    try {
+      const dataUrl = await fileToDataUrl(file, 400, 0.85);
+      set("logo_url", dataUrl);
+    } catch (e) {
+      setError("No se pudo procesar el logotipo.");
+    }
+  };
+
+  const sel = `w-full h-10 rounded-xl border px-3 text-sm bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003366] transition-all ${fieldErrors.industria ? "border-red-500" : "border-border"}`;
+  
+  const guardar = async () => {
+    const errs: Record<string, boolean> = {};
+    if (!form.nombre.trim()) errs.nombre = true;
+    
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      setError("Por favor completa los campos requeridos marcados en rojo.");
+      return;
+    }
+    
+    const finalIndustria = selIndustria === "Otro" ? otroIndustria.trim() : selIndustria;
+    const formData = { ...form, industria: finalIndustria || null };
+    setSaving(true); setError("");
+    try { 
+      if (item) await companiesService.update(item.id, formData); 
+      else await companiesService.create(formData); 
+      onSaved(); 
+    }
+    catch (e: any) { 
+      setError("Ha ocurrido un error, por favor contacta a un administrador"); 
+    } finally { 
+      setSaving(false); 
+    }
+  };
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{item ? "Editar empresa" : "Nueva empresa"}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          {error && <div className="p-2.5 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>}
-          <F label="Nombre *"><Input value={form.nombre} onChange={(e) => set("nombre", e.target.value)} /></F>
-          <div className="grid grid-cols-2 gap-3">
-            <F label="Industria"><Input value={form.industria} onChange={(e) => set("industria", e.target.value)} /></F>
-            <F label="Tamaño"><Input placeholder="50–200" value={form.tamano} onChange={(e) => set("tamano", e.target.value)} /></F>
-          </div>
-          <F label="Descripción"><Textarea rows={2} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} /></F>
-          <div className="grid grid-cols-2 gap-3">
-            <F label="Ciudad"><Input value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} /></F>
-            <F label="Teléfono"><Input value={form.telefono} onChange={(e) => set("telefono", e.target.value)} /></F>
-          </div>
-          <F label="Correo de contacto"><Input value={form.correo_contacto} onChange={(e) => set("correo_contacto", e.target.value)} /></F>
-          <F label="Sitio web"><Input placeholder="https://…" value={form.sitio_web} onChange={(e) => set("sitio_web", e.target.value)} /></F>
-          <F label="Dirección"><Input value={form.direccion} onChange={(e) => set("direccion", e.target.value)} /></F>
-          <label className="flex items-center gap-2 text-sm text-[#2C3E50] cursor-pointer"><input type="checkbox" checked={form.activa} onChange={(e) => set("activa", e.target.checked)} /> Activa</label>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border-0 shadow-2xl p-6 bg-background animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-[#001A33] text-white px-6 py-4 rounded-t-2xl flex items-center gap-2 -mx-6 -mt-6 border-b border-white/10 h-14">
+          <Building2 className="size-5 text-[#00A8E8]" />
+          <span className="font-extrabold text-sm uppercase tracking-wider">{item ? "Editar Empresa" : "Nueva Empresa"}</span>
         </div>
-        <div className="flex justify-end gap-2 mt-5">
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={guardar} disabled={saving} className="flex items-center gap-1.5">{saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Guardar</Button>
+        <div className="space-y-4 mt-5">
+          {error && <div className="p-3 rounded-xl bg-red-50 text-red-600 text-xs font-semibold">{error}</div>}
+          
+          <div className="grid md:grid-cols-4 gap-4 items-start">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Logotipo</Label>
+              <div className="relative size-28 rounded-2xl border-2 border-dashed border-border bg-muted/10 flex items-center justify-center overflow-hidden hover:bg-muted/20 transition-all">
+                {form.logo_url ? (
+                  <>
+                    <img src={form.logo_url} alt="Logo preview" className="size-full object-cover" />
+                    <button type="button" onClick={() => set("logo_url", "")} className="absolute top-1.5 right-1.5 size-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors shadow"><X className="size-3.5" /></button>
+                  </>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-1 py-3 cursor-pointer text-muted-foreground hover:text-[#003366] transition-colors select-none size-full text-center">
+                    <ImagePlus className="size-5 text-[#00A8E8]" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider leading-none mb-0.5">Subir Logo</span>
+                    <span className="text-[8px] text-muted-foreground/70 leading-none">Máx. 50MB</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => subirLogo(e.target.files?.[0])} />
+                  </label>
+                )}
+              </div>
+            </div>
+            <div className="md:col-span-3 space-y-4">
+              <F label="Nombre de la empresa *" error={fieldErrors.nombre}>
+                <Input value={form.nombre} onChange={(e) => set("nombre", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" placeholder="Ej. TechMéxico" />
+              </F>
+              <div className="grid grid-cols-2 gap-4 items-start">
+                <F label="Industria">
+                  <div className="space-y-2">
+                    <select className={sel} value={selIndustria} onChange={(e) => {
+                      const v = e.target.value;
+                      setSelIndustria(v);
+                      if (v !== "Otro") {
+                        set("industria", v);
+                      } else {
+                        set("industria", "");
+                      }
+                    }}>
+                      <option value="">Seleccione industria...</option>
+                      {INDUSTRIAS_COMUNES.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
+                      <option value="Otro">Otra (Escribir...)</option>
+                    </select>
+                    {selIndustria === "Otro" && (
+                      <Input value={form.industria} onChange={(e) => set("industria", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366] animate-in slide-in-from-top-1 duration-150" placeholder="Escribe la industria..." />
+                    )}
+                  </div>
+                </F>
+                <F label="Tamaño (empleados)">
+                  <Input placeholder="Ej. 50-200" value={form.tamano} onChange={(e) => set("tamano", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" />
+                </F>
+              </div>
+            </div>
+          </div>
+          
+          <F label="Descripción">
+            <Textarea rows={3} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} className="rounded-xl border-border bg-muted/20 focus-visible:ring-[#003366] resize-none" placeholder="Breve descripción de la empresa y su enfoque..." />
+          </F>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <F label="Ciudad">
+              <Input value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" placeholder="Ej. Aguascalientes" />
+            </F>
+            <F label="Teléfono">
+              <Input value={form.telefono} onChange={(e) => set("telefono", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" placeholder="Ej. 4491234567" />
+            </F>
+          </div>
+          
+          <F label="Correo de contacto">
+            <Input value={form.correo_contacto} onChange={(e) => set("correo_contacto", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" placeholder="contacto@empresa.com" />
+          </F>
+          
+          <F label="Sitio web">
+            <Input placeholder="https://www.empresa.com" value={form.sitio_web} onChange={(e) => set("sitio_web", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" />
+          </F>
+          
+          <F label="Dirección física">
+            <Input value={form.direccion} onChange={(e) => set("direccion", e.target.value)} className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]" placeholder="Calle, Colonia, C.P." />
+          </F>
+          
+          <label className="flex items-center gap-2.5 text-sm text-[#2C3E50] cursor-pointer select-none font-medium mt-2">
+            <input type="checkbox" checked={form.activa} onChange={(e) => set("activa", e.target.checked)} className="size-4 rounded border-border text-[#003366] focus:ring-[#003366] cursor-pointer" /> 
+            Empresa activa y visible
+          </label>
+        </div>
+        
+        <div className="flex justify-end gap-3 mt-6 pt-3 border-t border-border">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-xl h-10 hover:bg-muted font-semibold">
+            Cancelar
+          </Button>
+          <Button onClick={guardar} disabled={saving} className="bg-[#003366] hover:bg-[#002244] text-white rounded-xl h-10 px-5 font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} 
+            Guardar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function F({ label, children, error }: any) {
+  return (
+    <div className="space-y-1.5">
+      <Label className={`text-xs font-bold uppercase tracking-wider ${error ? 'text-red-500' : 'text-muted-foreground'}`}>{label}</Label>
+      <div className={error ? "[&_input]:border-red-500 [&_textarea]:border-red-500 [&_select]:border-red-500" : ""}>
+        {children}
+      </div>
+    </div>
   );
 }

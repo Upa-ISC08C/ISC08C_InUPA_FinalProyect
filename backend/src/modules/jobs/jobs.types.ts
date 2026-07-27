@@ -37,7 +37,7 @@ export interface UpdateVacanteDTO {
 }
 
 export interface VacanteFilters {
-  activa?: boolean;
+  activa?: boolean | 'all';
   modalidad?: string;
   tipo_contrato?: string;
   nivel_experiencia?: string;

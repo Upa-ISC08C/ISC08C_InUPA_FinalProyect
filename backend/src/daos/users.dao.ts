@@ -140,10 +140,17 @@ export class UsersDAO {
     return { ...result.rows[0], perfil };
   }
 
-  /** Actualiza campos administrables de un usuario (activo, rol, nombre). */
+  /** Actualiza campos administrables de un usuario (activo, rol, nombre, etc.). */
   async adminUpdate(
     id: string,
-    data: { activo?: boolean; rol?: string; nombre_completo?: string }
+    data: {
+      activo?: boolean;
+      rol?: string;
+      nombre_completo?: string;
+      correo_institucional?: string;
+      matricula_o_rfc?: string;
+      password_hash?: string;
+    }
   ) {
     const sets: string[] = [];
     const values: any[] = [];
@@ -160,6 +167,18 @@ export class UsersDAO {
     if (data.nombre_completo !== undefined) {
       sets.push(`nombre_completo = $${i++}`);
       values.push(data.nombre_completo);
+    }
+    if (data.correo_institucional !== undefined) {
+      sets.push(`correo_institucional = $${i++}`);
+      values.push(data.correo_institucional.toLowerCase().trim());
+    }
+    if (data.matricula_o_rfc !== undefined) {
+      sets.push(`matricula_o_rfc = $${i++}`);
+      values.push(data.matricula_o_rfc.toUpperCase().trim());
+    }
+    if (data.password_hash !== undefined) {
+      sets.push(`password_hash = $${i++}`);
+      values.push(data.password_hash);
     }
 
     if (sets.length === 0) {
@@ -179,6 +198,43 @@ export class UsersDAO {
       values
     );
     return result.rows[0] || null;
+  }
+
+  /** Busca un usuario por su correo. */
+  async findByEmail(email: string) {
+    const result = await db.query(
+      `SELECT id, matricula_o_rfc, nombre_completo, correo_institucional, rol, activo, fecha_registro
+       FROM USUARIOS WHERE correo_institucional = $1`,
+      [email.toLowerCase().trim()]
+    );
+    return result.rows[0] || null;
+  }
+
+  /** Crea un usuario desde el panel de administración. */
+  async adminCreate(data: {
+    email: string;
+    nombreCompleto: string;
+    passwordHash: string;
+    rol: string;
+    matricula_o_rfc: string;
+  }) {
+    const query = `
+      INSERT INTO USUARIOS
+        (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol, carrera, cuatrimestre, email_verificado)
+      VALUES ($1, $2, $3, $4, $5, null, null, true)
+      RETURNING id, matricula_o_rfc, nombre_completo, correo_institucional, rol, activo, fecha_registro
+    `;
+    const values = [
+      data.matricula_o_rfc.toUpperCase(),
+      data.nombreCompleto.trim(),
+      data.email,
+      data.passwordHash,
+      data.rol,
+    ];
+    const result = await db.query(query, values);
+    const user = result.rows[0];
+    await this.ensurePerfil(user.id);
+    return user;
   }
 
   /** Borrado suave: desactiva la cuenta. */
@@ -236,7 +292,7 @@ export class UsersDAO {
    * Estadisticas agregadas para el panel de administracion (graficas + resumen).
    */
   async dashboardStats() {
-    const [tot, porCarrera, postMes, regMes, cv] = await Promise.all([
+    const [tot, porCarrera, postMes, regMes, cv, empRec, ultUsu, actRec, resPlat] = await Promise.all([
       db.query(`
         SELECT
           (SELECT count(*) FROM EMPRESAS) AS empresas,
@@ -285,18 +341,65 @@ export class UsersDAO {
           COUNT(*)::int AS total
         FROM perfil_score
       `),
+      // Empresas recientes
+      db.query(`
+        SELECT id, nombre, industria, activa, created_at
+        FROM EMPRESAS
+        ORDER BY created_at DESC
+        LIMIT 3
+      `),
+      // Últimos usuarios registrados (estudiantes)
+      db.query(`
+        SELECT id, nombre_completo, carrera, cuatrimestre, fecha_registro
+        FROM USUARIOS
+        WHERE rol = 'estudiante'
+        ORDER BY fecha_registro DESC
+        LIMIT 3
+      `),
+      // Actividad reciente unificada
+      db.query(`
+        (
+          SELECT 'nueva_empresa' AS tipo, created_at AS fecha, nombre AS detalle, NULL AS subdetalle FROM EMPRESAS
+          UNION ALL
+          SELECT 'nuevo_usuario' AS tipo, fecha_registro AS fecha, nombre_completo AS detalle, NULL AS subdetalle FROM USUARIOS WHERE rol = 'estudiante'
+          UNION ALL
+          SELECT 'nueva_vacante' AS tipo, v.fecha_publicacion AS fecha, v.titulo AS detalle, e.nombre AS subdetalle FROM VACANTES v JOIN EMPRESAS e ON v.empresa_id = e.id
+          UNION ALL
+          SELECT 'postulacion_aceptada' AS tipo, p.fecha_postulacion AS fecha, u.nombre_completo AS detalle, e.nombre AS subdetalle FROM POSTULACIONES p JOIN PERFILES pf ON p.perfil_id = pf.id JOIN USUARIOS u ON pf.usuario_id = u.id JOIN VACANTES v ON p.vacante_id = v.id JOIN EMPRESAS e ON v.empresa_id = e.id WHERE p.estado = 'aceptada'
+          UNION ALL
+          SELECT 'usuario_suspendido' AS tipo, updated_at AS fecha, nombre_completo AS detalle, NULL AS subdetalle FROM USUARIOS WHERE rol = 'estudiante' AND NOT activo
+        )
+        ORDER BY fecha DESC
+        LIMIT 5
+      `),
+      // Resumen de plataforma (valores base para porcentajes)
+      db.query(`
+        SELECT
+          (SELECT COUNT(DISTINCT empresa_id)::int FROM VACANTES WHERE activa) AS empresas_con_vacantes,
+          (SELECT COUNT(DISTINCT perfil_id)::int FROM POSTULACIONES) AS usuarios_que_aplican,
+          (SELECT COUNT(*)::int FROM POSTULACIONES WHERE estado = 'aceptada') AS postulaciones_aceptadas
+      `)
     ]);
 
     const t = tot.rows[0];
     const c = cv.rows[0] || { promedio: 0, altos: 0, medios: 0, bajos: 0, total: 0 };
+    const resPlatData = resPlat.rows[0] || { empresas_con_vacantes: 0, usuarios_que_aplican: 0, postulaciones_aceptadas: 0 };
+
+    const totalEmpresas = parseInt(t.empresas, 10);
+    const totalUsuariosActivos = parseInt(t.usuarios_activos, 10);
+    const totalPostulaciones = parseInt(t.postulaciones, 10);
+
+    const tasaPostulacion = totalUsuariosActivos > 0 ? Math.round((parseInt(resPlatData.usuarios_que_aplican, 10) / totalUsuariosActivos) * 100) : 0;
+    const tasaAceptacion = totalPostulaciones > 0 ? Math.round((parseInt(resPlatData.postulaciones_aceptadas, 10) / totalPostulaciones) * 100) : 0;
+
     return {
       totales: {
-        empresas: parseInt(t.empresas, 10),
+        empresas: totalEmpresas,
         empresasActivas: parseInt(t.empresas_activas, 10),
         usuarios: parseInt(t.usuarios, 10),
-        usuariosActivos: parseInt(t.usuarios_activos, 10),
+        usuariosActivos: totalUsuariosActivos,
         vacantesActivas: parseInt(t.vacantes_activas, 10),
-        postulaciones: parseInt(t.postulaciones, 10),
+        postulaciones: totalPostulaciones,
       },
       porCarrera: porCarrera.rows,
       postulacionesPorMes: postMes.rows,
@@ -308,6 +411,15 @@ export class UsersDAO {
         bajos: c.bajos,
         total: c.total,
       },
+      empresasRecientes: empRec.rows,
+      ultimosUsuarios: ultUsu.rows,
+      actividadReciente: actRec.rows,
+      resumenPlataforma: {
+        empresasConVacantes: parseInt(resPlatData.empresas_con_vacantes, 10),
+        totalEmpresas: totalEmpresas,
+        tasaPostulacion: Math.min(100, tasaPostulacion),
+        tasaAceptacion: Math.min(100, tasaAceptacion),
+      }
     };
   }
 }

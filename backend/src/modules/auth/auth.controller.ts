@@ -30,6 +30,9 @@ export class AuthController {
         user
       });
     } catch (error: any) {
+      if (error?.message?.includes('duplicate key') || error?.code === '23505') {
+        return res.status(400).json({ error: 'La matrícula o correo ingresado ya se encuentra registrado. Por favor, inicia sesión con tu cuenta existente o recupera tu contraseña.' });
+      }
       return res.status(400).json({ error: error.message || 'No se pudo crear la cuenta' });
     }
   }
@@ -124,6 +127,22 @@ export class AuthController {
   }
 
   /**
+   * Endpoint: POST /api/auth/verify-reset-token
+   * Body: { "email", "token" }
+   */
+  async verifyResetToken(req: Request, res: Response) {
+    try {
+      const email = req.body.correo_institucional ?? req.body.email;
+      const { token } = req.body;
+      if (!email || !token) return res.status(400).json({ error: 'Correo y código son requeridos' });
+      await authService.verifyResetToken(email, token);
+      return res.status(200).json({ message: 'Código válido' });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'Código inválido' });
+    }
+  }
+
+  /**
    * Endpoint: POST /api/auth/reset-password
    * Body: { "email", "token", "password" }
    */
@@ -190,6 +209,9 @@ export class AuthController {
         user
       });
     } catch (error: any) {
+      if (error?.message?.includes('duplicate key') || error?.code === '23505') {
+        return res.status(401).json({ error: 'La cuenta de Google coincide con una matrícula ya registrada bajo otro correo. Por favor, inicia sesión con la cuenta original.' });
+      }
       return res.status(401).json({ error: error.message || 'No se pudo iniciar sesión con Google' });
     }
   }

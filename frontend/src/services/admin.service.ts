@@ -9,6 +9,10 @@ export interface AdminDashboard {
   postulacionesPorMes: { mes: string; total: number }[];
   registrosPorMes: { mes: string; total: number }[];
   cvScore: { promedio: number; altos: number; medios: number; bajos: number; total: number };
+  empresasRecientes: { id: string; nombre: string; industria: string | null; activa: boolean; created_at: string }[];
+  ultimosUsuarios: { id: string; nombre_completo: string; carrera: string | null; cuatrimestre: number | null; fecha_registro: string }[];
+  actividadReciente: { tipo: string; fecha: string; detalle: string; subdetalle: string | null }[];
+  resumenPlataforma: { empresasConVacantes: number; totalEmpresas: number; tasaPostulacion: number; tasaAceptacion: number };
 }
 
 export interface AdminUserDetail {
@@ -43,8 +47,24 @@ export const adminService = {
   getUser(id: string) {
     return api.get<{ success: boolean; data: AdminUserDetail }>(`/users/${id}`).then((res) => res.data.data);
   },
-  updateUser(id: string, data: { activo?: boolean; rol?: string; nombre_completo?: string }) {
+  updateUser(id: string, data: {
+    activo?: boolean;
+    rol?: string;
+    nombre_completo?: string;
+    correo_institucional?: string;
+    matricula_o_rfc?: string;
+    password?: string;
+  }) {
     return api.put<{ success: boolean; data: AdminUser }>(`/users/${id}`, data).then((res) => res.data.data);
+  },
+  createUser(data: {
+    email: string;
+    nombre_completo: string;
+    password?: string;
+    matricula_o_rfc?: string;
+    rol?: string;
+  }) {
+    return api.post<{ success: boolean; data: AdminUser }>("/users", data).then((res) => res.data.data);
   },
   removeUser(id: string) {
     return api.delete(`/users/${id}`).then((res) => res.data);

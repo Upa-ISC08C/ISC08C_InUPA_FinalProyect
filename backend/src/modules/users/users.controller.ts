@@ -75,10 +75,15 @@ export class UsersController {
     return res.json({ success: true, data: user });
   }
 
-  /** PUT /api/users/:id — actualiza activo/rol/nombre de un usuario. */
+  /** PUT /api/users/:id — actualiza activo/rol/nombre/etc de un usuario. */
   static async adminUpdate(req: AuthenticatedRequest, res: Response) {
-    const { activo, rol, nombre_completo } = req.body ?? {};
-    const user = await UsersService.adminUpdate(req.params.id, { activo, rol, nombre_completo });
+    const user = await UsersService.adminUpdate(req.params.id, req.body ?? {});
+    return res.json({ success: true, data: user });
+  }
+
+  /** POST /api/users — crea un nuevo usuario (admin o estudiante). */
+  static async adminCreate(req: AuthenticatedRequest, res: Response) {
+    const user = await UsersService.adminCreate(req.body ?? {});
     return res.json({ success: true, data: user });
   }
 

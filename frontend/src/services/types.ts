@@ -77,6 +77,7 @@ export interface Company {
   industria: string | null;
   descripcion: string | null;
   sitio_web: string | null;
+  logo_url: string | null;
   correo_contacto: string | null;
   telefono: string | null;
   ciudad: string | null;

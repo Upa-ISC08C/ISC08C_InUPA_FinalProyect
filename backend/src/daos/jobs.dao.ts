@@ -115,10 +115,10 @@ export class JobsDAO {
     let paramIndex = 1;
 
     // Estado activo
-    if (filters.activa !== undefined) {
+    if (filters.activa !== undefined && filters.activa !== 'all') {
       conditions.push(`v.activa = $${paramIndex++}`);
       values.push(filters.activa);
-    } else {
+    } else if (filters.activa === undefined) {
       conditions.push(`v.activa = true`);
     }
 

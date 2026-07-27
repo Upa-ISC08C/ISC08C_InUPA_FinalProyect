@@ -10,7 +10,8 @@ const navItems = [
   { name: "Panel", href: "/admin", icon: LayoutDashboard, exact: true },
   { name: "Empresas", href: "/admin/empresas", icon: Building2, exact: false },
   { name: "Vacantes", href: "/admin/vacantes", icon: Briefcase, exact: false },
-  { name: "Usuarios", href: "/admin/usuarios", icon: Users, exact: false },
+  { name: "Estudiantes", href: "/admin/usuarios", icon: Users, exact: false },
+  { name: "Administradores", href: "/admin/administradores", icon: Shield, exact: false },
 ];
 
 const THEME_KEY = "inupa_admin_theme";

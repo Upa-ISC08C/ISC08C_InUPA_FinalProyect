@@ -2,7 +2,7 @@ import { api } from "./api";
 import type { Vacante, Postulacion } from "./types";
 
 export interface JobFilters {
-  activa?: boolean;
+  activa?: boolean | "all";
   modalidad?: string;
   tipo_contrato?: string;
   nivel_experiencia?: string;

@@ -26,11 +26,15 @@ export function RegisterPage() {
     e.preventDefault();
     setError("");
     const correo = email.toLowerCase().trim();
-    if (nombre.trim().length < 3) return setError("Escribe tu nombre completo.");
-    if (!matricula.trim()) return setError("Escribe tu matrícula (UP).");
+    const matriculaLimpia = matricula.trim().toUpperCase();
+    
+    if (nombre.trim().split(' ').length < 2) return setError("Por favor, escribe tu nombre y al menos un apellido.");
+    if (!matriculaLimpia) return setError("Escribe tu matrícula (UP).");
+    if (!/^UP\d{6}$/.test(matriculaLimpia)) return setError("La matrícula debe tener el formato UP seguido de 6 números (ej. UP200123).");
     if (!carrera) return setError("Selecciona tu carrera.");
     if (!cuatrimestre) return setError("Selecciona tu cuatrimestre.");
-    if (!dominioValido(correo)) return setError("Debes usar tu correo institucional de la UPA.");
+    if (!dominioValido(correo)) return setError("Debes usar tu correo institucional de la UPA (@alumnos.upa.edu.mx o @upa.edu.mx).");
+    if (correo.split('@')[0].toUpperCase() !== matriculaLimpia) return setError("El correo institucional no coincide con la matrícula ingresada.");
     if (password.length < 6) return setError("La contraseña debe tener al menos 6 caracteres.");
     if (password !== confirm) return setError("Las contraseñas no coinciden.");
     setIsLoading(true);
@@ -94,9 +98,22 @@ export function RegisterPage() {
 
           <form onSubmit={handleRegister} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium flex items-center gap-2">
-                <span className="size-4 flex items-center justify-center rounded-full bg-red-100 font-bold">!</span>
-                {error}
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="size-5 flex items-center justify-center rounded-full bg-red-100 font-bold text-red-600 shrink-0">!</span>
+                  <span>{error}</span>
+                </div>
+                {error.toLowerCase().includes("ya existe") && (
+                  <div className="pl-7 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <Link to="/" className="text-[#003366] font-bold hover:underline">
+                      Iniciar sesión
+                    </Link>
+                    <span className="text-red-400/60">—</span>
+                    <Link to="/" state={{ recover: true, email }} className="text-[#003366] font-bold hover:underline">
+                      Recuperar cuenta
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
             <div className="space-y-1.5">

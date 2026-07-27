@@ -73,14 +73,29 @@ async function sendHtmlEmail(to: string, subject: string, html: string, devLog?:
 }
 
 const shell = (titulo: string, cuerpo: string) => `
-  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2 style="color: #2c3e50;">${titulo}</h2>
-    ${cuerpo}
-    <p style="color: #7f8c8d; font-size: 12px; margin-top: 24px;">InUPA · Universidad Politécnica de Aguascalientes</p>
+  <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #eaeaec; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.04);">
+    <div style="background-color: #003366; padding: 28px; text-align: center; border-bottom: 4px solid #FFD700;">
+      <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">InUPA</h1>
+      <p style="color: rgba(255, 215, 0, 0.8); margin: 6px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; font-weight: 600;">Plataforma Universitaria</p>
+    </div>
+    <div style="padding: 40px 32px;">
+      <h2 style="color: #111827; font-size: 20px; font-weight: 700; margin: 0 0 16px;">${titulo}</h2>
+      <div style="color: #4b5563; font-size: 15px; line-height: 1.6;">
+        ${cuerpo}
+      </div>
+    </div>
+    <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #f3f4f6;">
+      <p style="color: #9ca3af; font-size: 12px; margin: 0; font-weight: 500;">Universidad Politécnica de Aguascalientes</p>
+      <p style="color: #9ca3af; font-size: 12px; margin: 6px 0 0;">Este es un correo automático, por favor no respondas.</p>
+    </div>
   </div>`;
 
 const codeBox = (code: string) => `
-  <div style="background:#f8f9fa;padding:20px;text-align:center;font-size:24px;font-weight:bold;letter-spacing:5px;border-radius:5px;margin:20px 0;">${code}</div>`;
+  <div style="background-color: #f4f5f7; border: 1px solid #e5e7eb; padding: 24px; text-align: center; border-radius: 10px; margin: 32px 0;">
+    <div style="font-family: 'SF Mono', ui-monospace, Menlo, Monaco, Consolas, monospace; font-size: 34px; font-weight: 800; letter-spacing: 10px; color: #003366; margin-left: 10px;">
+      ${code}
+    </div>
+  </div>`;
 
 /** Correo para restablecer la contraseña (código de un solo uso). */
 export const sendResetEmail = (to: string, code: string) =>

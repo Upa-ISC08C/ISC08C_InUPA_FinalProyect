@@ -128,6 +128,16 @@ export class AuthService {
     return true;
   }
 
+  /** Verifica si el código de restablecimiento es válido sin cambiar la contraseña aún. */
+  async verifyResetToken(email: string, token: string): Promise<boolean> {
+    const correo = email.toLowerCase().trim();
+    const data = resetStore.get(correo);
+    if (!data) throw new Error('No hay una solicitud de restablecimiento activa para este correo');
+    if (Date.now() > data.expires) { resetStore.delete(correo); throw new Error('El código ha expirado'); }
+    if (data.token !== token) throw new Error('Código inválido');
+    return true;
+  }
+
   /** Verifica el código y actualiza la contraseña. */
   async resetPassword(email: string, token: string, nuevaPassword: string): Promise<void> {
     const correo = email.toLowerCase().trim();

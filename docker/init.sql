@@ -68,7 +68,7 @@ CREATE TABLE EMPRESAS (
     industria VARCHAR(150),
     sitio_web VARCHAR(200),
     descripcion TEXT,
-    logo_url VARCHAR(500),
+    logo_url TEXT,
     correo_contacto VARCHAR(200),
     telefono VARCHAR(30),
     ciudad VARCHAR(150),

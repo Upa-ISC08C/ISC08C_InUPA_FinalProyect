@@ -17,6 +17,7 @@ router.post('/verify-token', authController.verifyToken.bind(authController));
 
 // Recuperación de contraseña por código enviado al correo
 router.post('/forgot-password', authController.forgotPassword.bind(authController));
+router.post('/verify-reset-token', authController.verifyResetToken.bind(authController));
 router.post('/reset-password', authController.resetPassword.bind(authController));
 
 // Verificación de correo

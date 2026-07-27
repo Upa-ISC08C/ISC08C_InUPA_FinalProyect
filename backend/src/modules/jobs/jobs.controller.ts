@@ -33,7 +33,7 @@ export class JobsController {
   static async getVacantes(req: Request, res: Response) {
     try {
       const filters: VacanteFilters = {
-        activa: req.query.activa === 'true' ? true : req.query.activa === 'false' ? false : undefined,
+        activa: req.query.activa === 'all' ? 'all' : req.query.activa === 'true' ? true : req.query.activa === 'false' ? false : undefined,
         modalidad: typeof req.query.modalidad === 'string' ? req.query.modalidad : undefined,
         tipo_contrato: typeof req.query.tipo_contrato === 'string' ? req.query.tipo_contrato : undefined,
         nivel_experiencia: typeof req.query.nivel_experiencia === 'string' ? req.query.nivel_experiencia : undefined,

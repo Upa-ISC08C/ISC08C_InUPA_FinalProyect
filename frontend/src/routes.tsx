@@ -13,6 +13,7 @@ import { ProfilePage } from "./pages/users/ProfilePage";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { AdminEmpresas } from "./pages/admin/empresas/AdminEmpresas";
 import { AdminUsuarios } from "./pages/admin/usuarios/AdminUsuarios";
+import { AdminAdministradores } from "./pages/admin/usuarios/AdminAdministradores";
 import { AdminVacantes } from "./pages/admin/vacantes/AdminVacantes";
 
 // Solo usuarios autenticados; opcionalmente solo admins.
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
           { path: "empresas", Component: AdminEmpresas },
           { path: "vacantes", Component: AdminVacantes },
           { path: "usuarios", Component: AdminUsuarios },
+          { path: "administradores", Component: AdminAdministradores },
         ],
       },
     ],
