@@ -16,6 +16,12 @@
 # contenedores con el mismo nombre.
 
 services:
+  mailpit:
+    container_name: inupa_qa_mailpit
+    ports: !override
+      - "8125:8025"
+      - "1125:1025"
+
   db:
     container_name: inupa_qa_db
     ports: !override
