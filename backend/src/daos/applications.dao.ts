@@ -46,7 +46,11 @@ export class ApplicationsDAO {
         v.salario_max as vacante_salario_max,
         e.id as empresa_id,
         e.nombre as empresa_nombre,
-        e.logo_url as empresa_logo_url
+        e.logo_url as empresa_logo_url,
+        e.descripcion as empresa_descripcion,
+        e.sitio_web as empresa_sitio_web,
+        e.correo_contacto as empresa_correo_contacto,
+        e.telefono as empresa_telefono
       FROM POSTULACIONES p
       JOIN VACANTES v ON p.vacante_id = v.id
       LEFT JOIN EMPRESAS e ON v.empresa_id = e.id
@@ -76,6 +80,10 @@ export class ApplicationsDAO {
           id: row.empresa_id,
           nombre: row.empresa_nombre || 'Empresa',
           logo_url: row.empresa_logo_url || null,
+          descripcion: row.empresa_descripcion || null,
+          sitio_web: row.empresa_sitio_web || null,
+          correo_contacto: row.empresa_correo_contacto || null,
+          telefono: row.empresa_telefono || null,
         },
       },
     }));
@@ -108,6 +116,24 @@ export class ApplicationsDAO {
     const newPostulacion = insertRes.rows[0];
 
     return this.getApplicationById(newPostulacion.id);
+  }
+
+  /**
+   * Eliminar (desmarcar interés) de una vacante
+   */
+  async deleteApplication(userId: string, vacanteId: string) {
+    const perfil = await this.getPerfilByUserId(userId);
+    if (!perfil) {
+      throw new Error('Perfil no encontrado');
+    }
+
+    const query = `
+      DELETE FROM POSTULACIONES 
+      WHERE perfil_id = $1 AND vacante_id = $2 
+      RETURNING *
+    `;
+    const result = await db.query(query, [perfil.id, vacanteId]);
+    return result.rows[0];
   }
 
   /**

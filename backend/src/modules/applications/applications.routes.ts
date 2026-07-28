@@ -7,6 +7,7 @@ router.use(authenticateToken);
 
 router.post('/', ApplicationsController.createApplication);
 router.get('/', ApplicationsController.getMyApplications);
+router.delete('/:id', ApplicationsController.deleteApplication);
 router.get('/:id', ApplicationsController.getApplicationById);
 
 export default router;

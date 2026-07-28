@@ -67,9 +67,19 @@ export const jobsService = {
       .post<{ success: boolean; data: Postulacion }>("/applications", { vacante_id })
       .then((res) => res.data.data);
   },
+  unapply(vacante_id: string) {
+    return api
+      .delete(`/applications/${vacante_id}`)
+      .then((res) => res.data);
+  },
   myApplications() {
     return api
       .get<{ success: boolean; data: Postulacion[] }>("/applications")
       .then((res) => res.data.data);
+  },
+  contactCompany(vacante_id: string, mensaje: string) {
+    return api
+      .post(`/jobs/${vacante_id}/contact`, { mensaje })
+      .then((res) => res.data);
   },
 };

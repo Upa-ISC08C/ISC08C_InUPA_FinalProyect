@@ -55,10 +55,10 @@ const Chip = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-block bg-[#003366]/[0.06] text-[#003366] text-xs font-medium px-2.5 py-1 rounded-lg">{children}</span>
 );
 const SectionHeader = ({ title, onAdd }: { title: string; onAdd?: () => void }) => (
-  <div className="flex items-center justify-between mb-4">
-    <h3 className="text-lg font-bold text-[#2C3E50]">{title}</h3>
+  <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+    <h3 className="text-xl font-extrabold text-[#2C3E50]">{title}</h3>
     {onAdd && (
-      <button onClick={onAdd} className="flex items-center gap-1.5 text-sm font-semibold text-[#003366] hover:bg-[#003366]/[0.06] px-2.5 py-1.5 rounded-lg transition-colors">
+      <button onClick={onAdd} className="flex items-center gap-2 text-sm font-bold text-[#003366] hover:bg-[#003366]/10 px-4 py-2 rounded-xl transition-all">
         <Plus className="size-4" /> Agregar
       </button>
     )}
@@ -96,85 +96,92 @@ export function ProfilePage() {
   const p = profile.perfil;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5 pb-10">
-      {/* Encabezado */}
-      <Card className="overflow-hidden border-0 shadow-sm p-0 gap-0">
-        <div className="h-24 bg-gradient-to-r from-[#003366] to-[#00509E]" />
-        <div className="px-4 sm:px-6 pb-6">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12">
-            <div className="size-24 rounded-full ring-4 ring-white bg-[#003366] flex items-center justify-center overflow-hidden flex-shrink-0 relative z-10">
-              {p.url_foto ? <img src={p.url_foto} alt="Foto" className="size-full object-cover" /> : <span className="text-white text-2xl font-bold">{initials(profile.nombre_completo)}</span>}
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+      {/* Encabezado Premium */}
+      <Card className="overflow-hidden border border-slate-100 shadow-lg rounded-[2rem] p-0 gap-0 bg-white">
+        <div className="h-32 bg-gradient-to-r from-[#001f3f] via-[#003366] to-[#00509E] relative">
+          <div className="absolute top-0 left-0 w-full h-full bg-white/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
+        </div>
+        <div className="px-6 sm:px-8 pb-8 relative">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-16 mb-4">
+            <div className="size-32 rounded-full ring-[6px] ring-white bg-gradient-to-br from-[#003366] to-[#00A8E8] shadow-xl flex items-center justify-center overflow-hidden flex-shrink-0 relative z-10">
+              {p.url_foto ? <img src={p.url_foto} alt="Foto" className="size-full object-cover" /> : <span className="text-white text-4xl font-extrabold">{initials(profile.nombre_completo)}</span>}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+            <div className="flex-1 min-w-0 pt-2 sm:pt-0">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-2xl font-bold text-[#2C3E50] leading-tight break-words">{profile.nombre_completo}</h2>
-                  <p className="text-[#003366] font-medium">{p.titular_profesional || "Agrega tu titular profesional"}</p>
+                  <h2 className="text-3xl font-black text-[#2C3E50] leading-tight tracking-tight break-words">{profile.nombre_completo}</h2>
+                  <p className="text-[#00509E] font-bold mt-1 text-lg">{p.titular_profesional || "Agrega tu titular profesional"}</p>
                 </div>
-                <Button variant="outline" onClick={() => setBasicsOpen(true)} className="flex items-center gap-1.5 flex-shrink-0 self-start">
-                  <Pencil className="size-3.5" /> Editar
+                <Button variant="outline" onClick={() => setBasicsOpen(true)} className="flex items-center gap-2 flex-shrink-0 self-start rounded-xl font-bold hover:bg-slate-50 border-slate-200">
+                  <Pencil className="size-4" /> Editar perfil
                 </Button>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-[#7F8C8D]">
-            {profile.carrera && <span className="flex items-center gap-1"><GraduationCap className="size-4" />{profile.carrera}{profile.cuatrimestre ? ` · ${profile.cuatrimestre}° cuatri` : ""}</span>}
-            {p.ubicacion && <span className="flex items-center gap-1"><MapPin className="size-4" />{p.ubicacion}</span>}
-            <span className="flex items-center gap-1 min-w-0"><Mail className="size-4 flex-shrink-0" /><span className="truncate">{profile.correo_institucional}</span></span>
-            {p.telefono && <span className="flex items-center gap-1"><Phone className="size-4" />{p.telefono}</span>}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-sm font-medium text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+            {profile.carrera && <span className="flex items-center gap-1.5"><GraduationCap className="size-4 text-[#003366]" />{profile.carrera}{profile.cuatrimestre ? ` · ${profile.cuatrimestre}° cuatri` : ""}</span>}
+            {p.ubicacion && <span className="flex items-center gap-1.5"><MapPin className="size-4 text-[#003366]" />{p.ubicacion}</span>}
+            <span className="flex items-center gap-1.5 min-w-0"><Mail className="size-4 text-[#003366] flex-shrink-0" /><span className="truncate">{profile.correo_institucional}</span></span>
+            {p.telefono && <span className="flex items-center gap-1.5"><Phone className="size-4 text-[#003366]" />{p.telefono}</span>}
           </div>
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            {p.buscando_empleo && <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#16A34A] bg-[#DCFCE7] px-2.5 py-1 rounded-full"><BadgeCheck className="size-3.5" /> Buscando empleo</span>}
-            {p.disponibilidad && <span className="text-xs font-semibold text-[#003366] bg-[#003366]/[0.08] px-2.5 py-1 rounded-full">Disponible</span>}
-            {p.nivel_experiencia && <span className="text-xs font-semibold text-[#D97706] bg-[#FEF3C7] px-2.5 py-1 rounded-full">{p.nivel_experiencia}</span>}
-            {p.github_url && <a href={p.github_url} target="_blank" rel="noreferrer" className="text-[#7F8C8D] hover:text-[#003366]"><Code2 className="size-4" /></a>}
-            {p.linkedin_url && <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="text-[#7F8C8D] hover:text-[#003366]"><Link2 className="size-4" /></a>}
+
+          <div className="flex flex-wrap items-center gap-3 mt-5">
+            {p.buscando_empleo && <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#16A34A] bg-[#DCFCE7] border border-[#16A34A]/20 px-3 py-1.5 rounded-xl shadow-sm"><BadgeCheck className="size-4" /> Buscando empleo</span>}
+            {p.disponibilidad && <span className="text-xs font-bold text-[#003366] bg-[#003366]/10 border border-[#003366]/20 px-3 py-1.5 rounded-xl shadow-sm">Disponible</span>}
+            {p.nivel_experiencia && <span className="text-xs font-bold text-[#D97706] bg-[#FEF3C7] border border-[#D97706]/20 px-3 py-1.5 rounded-xl shadow-sm">{p.nivel_experiencia}</span>}
+            <div className="flex-1" />
+            <div className="flex gap-2">
+              {p.github_url && <a href={p.github_url} target="_blank" rel="noreferrer" className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/5 transition-colors"><Code2 className="size-5" /></a>}
+              {p.linkedin_url && <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:text-[#00A8E8] hover:bg-[#00A8E8]/5 transition-colors"><Link2 className="size-5" /></a>}
+            </div>
           </div>
         </div>
       </Card>
 
       {/* Acerca de */}
-      <Card className="border-0 shadow-sm"><CardContent>
+      <Card className="border border-slate-100 shadow-sm rounded-3xl"><CardContent className="p-8">
         <SectionHeader title="Acerca de" onAdd={() => setBasicsOpen(true)} />
-        {p.biografia ? <p className="text-sm text-[#2C3E50] whitespace-pre-line leading-relaxed">{p.biografia}</p>
-          : <p className="text-sm text-[#7F8C8D] italic">Cuéntale al mundo sobre ti: tus intereses, objetivos y fortalezas.</p>}
+        {p.biografia ? <p className="text-base text-slate-700 whitespace-pre-line leading-relaxed">{p.biografia}</p>
+          : <p className="text-sm text-slate-400 italic">Cuéntale al mundo sobre ti: tus intereses, objetivos y fortalezas.</p>}
       </CardContent></Card>
 
-      {/* Experiencia */}
-      <Card className="border-0 shadow-sm"><CardContent>
+      {/* Experiencia (Timeline) */}
+      <Card className="border border-slate-100 shadow-sm rounded-3xl"><CardContent className="p-8">
         <SectionHeader title="Experiencia" onAdd={() => setExpEdit("new")} />
-        {profile.experiencia.length === 0 ? <p className="text-sm text-[#7F8C8D] italic">Agrega tu experiencia laboral, prácticas o servicio social.</p> : (
-          <div className="space-y-5">
-            {profile.experiencia.map((e: any) => (
-              <div key={e.id} className="flex gap-3">
-                <div className="size-11 rounded-lg bg-[#F5F7FA] flex items-center justify-center flex-shrink-0"><Briefcase className="size-5 text-[#003366]" /></div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
+        {profile.experiencia.length === 0 ? <p className="text-sm text-slate-400 italic">Agrega tu experiencia laboral, prácticas o servicio social.</p> : (
+          <div className="space-y-8 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+            {profile.experiencia.map((e: any, index: number) => (
+              <div key={e.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full border-4 border-white bg-slate-50 text-[#003366] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                  <Briefcase className="size-5" />
+                </div>
+                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-6 rounded-2xl border border-slate-100 shadow-sm bg-white transition-shadow hover:shadow-md">
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                      <p className="font-semibold text-[#2C3E50]">{e.puesto}</p>
-                      <p className="text-sm text-[#2C3E50]">{e.empresa_nombre}</p>
-                      <p className="text-xs text-[#7F8C8D]">{rango(e.fecha_inicio, e.fecha_fin, e.actual)}</p>
+                      <p className="font-extrabold text-[#2C3E50] text-lg">{e.puesto}</p>
+                      <p className="font-semibold text-[#00A8E8]">{e.empresa_nombre}</p>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{rango(e.fecha_inicio, e.fecha_fin, e.actual)}</p>
                     </div>
-                    <div className="flex flex-shrink-0">
+                    <div className="flex flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <IconBtn onClick={() => setExpEdit(e)}><Pencil className="size-4" /></IconBtn>
                       <IconBtn onClick={async () => { await profileService.deleteExperience(e.id); cargar(); }}><Trash2 className="size-4" /></IconBtn>
                     </div>
                   </div>
-                  {/* Actividades realizadas: actividad en negrita + su descripción debajo */}
                   {e.actividades?.length > 0 ? (
-                    <ul className="mt-2 space-y-1.5">
+                    <ul className="mt-4 space-y-3">
                       {e.actividades.map((ac: any, i: number) => (
-                        <li key={i} className="text-sm">
-                          <span className="font-semibold text-[#2C3E50]">{ac.actividad}</span>
-                          {ac.descripcion && <span className="block text-[#7F8C8D] leading-relaxed">{ac.descripcion}</span>}
+                        <li key={i} className="text-sm bg-slate-50 p-3 rounded-xl border border-slate-100">
+                          <span className="font-bold text-[#2C3E50] block mb-1">{ac.actividad}</span>
+                          {ac.descripcion && <span className="block text-slate-600 leading-relaxed">{ac.descripcion}</span>}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    e.descripcion && <p className="text-sm text-[#2C3E50] mt-1.5 whitespace-pre-line">{e.descripcion}</p>
+                    e.descripcion && <p className="text-sm text-slate-600 mt-3 whitespace-pre-line leading-relaxed">{e.descripcion}</p>
                   )}
-                  {e.tecnologias_usadas?.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{e.tecnologias_usadas.map((t: string, i: number) => <Chip key={i}>{t}</Chip>)}</div>}
+                  {e.tecnologias_usadas?.length > 0 && <div className="flex flex-wrap gap-2 mt-4">{e.tecnologias_usadas.map((t: string, i: number) => <Chip key={i}>{t}</Chip>)}</div>}
                 </div>
               </div>
             ))}
@@ -182,22 +189,26 @@ export function ProfilePage() {
         )}
       </CardContent></Card>
 
-      {/* Educación */}
-      <Card className="border-0 shadow-sm"><CardContent>
+      {/* Educación (Timeline) */}
+      <Card className="border border-slate-100 shadow-sm rounded-3xl"><CardContent className="p-8">
         <SectionHeader title="Educación" onAdd={() => setEduEdit("new")} />
-        {profile.educacion.length === 0 ? <p className="text-sm text-[#7F8C8D] italic">Agrega tu formación académica.</p> : (
-          <div className="space-y-5">
+        {profile.educacion.length === 0 ? <p className="text-sm text-slate-400 italic">Agrega tu formación académica.</p> : (
+          <div className="space-y-8 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
             {profile.educacion.map((ed: any) => (
-              <div key={ed.id} className="flex gap-3">
-                <div className="size-11 rounded-lg bg-[#F5F7FA] flex items-center justify-center flex-shrink-0"><GraduationCap className="size-5 text-[#003366]" /></div>
-                <div className="flex-1 min-w-0">
+              <div key={ed.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full border-4 border-white bg-slate-50 text-[#CA8A04] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                  <GraduationCap className="size-5" />
+                </div>
+                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-6 rounded-2xl border border-slate-100 shadow-sm bg-white transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-semibold text-[#2C3E50]">{ed.institucion}</p>
-                      <p className="text-sm text-[#2C3E50]">{ed.carrera_o_grado}{ed.nivel_estudios ? ` · ${ed.nivel_estudios}` : ""}</p>
-                      <p className="text-xs text-[#7F8C8D]">{rango(ed.fecha_inicio, ed.fecha_fin, false)}{ed.promedio ? ` · Promedio: ${ed.promedio}` : ""}</p>
+                      <p className="font-extrabold text-[#2C3E50] text-lg">{ed.institucion}</p>
+                      <p className="font-semibold text-slate-700 mt-1">{ed.carrera_o_grado}{ed.nivel_estudios ? ` · ${ed.nivel_estudios}` : ""}</p>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-2">
+                        {rango(ed.fecha_inicio, ed.fecha_fin, false)}{ed.promedio ? ` · Promedio: ${ed.promedio}` : ""}
+                      </p>
                     </div>
-                    <div className="flex flex-shrink-0">
+                    <div className="flex flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <IconBtn onClick={() => setEduEdit(ed)}><Pencil className="size-4" /></IconBtn>
                       <IconBtn onClick={async () => { await profileService.deleteEducation(ed.id); cargar(); }}><Trash2 className="size-4" /></IconBtn>
                     </div>
@@ -210,31 +221,34 @@ export function ProfilePage() {
       </CardContent></Card>
 
       {/* Habilidades */}
-      <Card className="border-0 shadow-sm"><CardContent>
+      <Card className="border border-slate-100 shadow-sm rounded-3xl"><CardContent className="p-8">
         <SectionHeader title="Habilidades" />
         <SkillEditor skills={profile.habilidades} onChange={cargar} />
       </CardContent></Card>
 
       {/* Proyectos */}
-      <Card className="border-0 shadow-sm"><CardContent>
+      <Card className="border border-slate-100 shadow-sm rounded-3xl"><CardContent className="p-8">
         <SectionHeader title="Proyectos" onAdd={() => setProjEdit("new")} />
-        {profile.proyectos.length === 0 ? <p className="text-sm text-[#7F8C8D] italic">Muestra los proyectos que has construido.</p> : (
-          <div className="grid sm:grid-cols-2 gap-4">
+        {profile.proyectos.length === 0 ? <p className="text-sm text-slate-400 italic">Muestra los proyectos que has construido.</p> : (
+          <div className="grid md:grid-cols-2 gap-6">
             {profile.proyectos.map((pr: any) => (
-              <div key={pr.id} className="border border-[#E5E7EB] rounded-xl p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2"><FolderGit2 className="size-5 text-[#003366]" /><p className="font-semibold text-[#2C3E50]">{pr.nombre_proyecto}</p></div>
-                  <div className="flex flex-shrink-0">
+              <div key={pr.id} className="border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow bg-white relative group">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-[#003366]/5 rounded-xl text-[#003366]"><FolderGit2 className="size-5" /></div>
+                    <p className="font-extrabold text-[#2C3E50] text-lg">{pr.nombre_proyecto}</p>
+                  </div>
+                  <div className="flex flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-sm rounded-lg border border-slate-100">
                     <IconBtn onClick={() => setProjEdit(pr)}><Pencil className="size-4" /></IconBtn>
                     <IconBtn onClick={async () => { await profileService.deleteProject(pr.id); cargar(); }}><Trash2 className="size-4" /></IconBtn>
                   </div>
                 </div>
-                {pr.rol_en_proyecto && <p className="text-xs text-[#7F8C8D] mt-1">{pr.rol_en_proyecto}</p>}
-                {pr.descripcion && <p className="text-sm text-[#2C3E50] mt-2 line-clamp-3">{pr.descripcion}</p>}
-                {pr.tecnologias?.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{pr.tecnologias.map((t: string, i: number) => <Chip key={i}>{t}</Chip>)}</div>}
-                <div className="flex gap-3 mt-3">
-                  {pr.url_repositorio && <a href={pr.url_repositorio} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:underline"><Code2 className="size-3.5" /> Código</a>}
-                  {pr.url_despliegue && <a href={pr.url_despliegue} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:underline"><ExternalLink className="size-3.5" /> Demo</a>}
+                {pr.rol_en_proyecto && <p className="text-xs font-bold text-[#CA8A04] uppercase tracking-wider mb-2">{pr.rol_en_proyecto}</p>}
+                {pr.descripcion && <p className="text-sm text-slate-600 leading-relaxed line-clamp-3 mb-4">{pr.descripcion}</p>}
+                {pr.tecnologias?.length > 0 && <div className="flex flex-wrap gap-2 mb-4">{pr.tecnologias.map((t: string, i: number) => <Chip key={i}>{t}</Chip>)}</div>}
+                <div className="flex gap-4 pt-4 border-t border-slate-100">
+                  {pr.url_repositorio && <a href={pr.url_repositorio} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-[#00A8E8] hover:text-[#003366] transition-colors"><Code2 className="size-4" /> Código</a>}
+                  {pr.url_despliegue && <a href={pr.url_despliegue} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-[#00A8E8] hover:text-[#003366] transition-colors"><ExternalLink className="size-4" /> Demo</a>}
                 </div>
               </div>
             ))}
@@ -334,10 +348,10 @@ function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onC
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader><DialogTitle>Editar perfil</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          {error && <div className="p-2.5 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>}
+      <DialogContent className="sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle className="text-2xl font-black text-[#2C3E50]">Editar perfil</DialogTitle></DialogHeader>
+        <div className="space-y-5">
+          {error && <div className="p-3 rounded-xl bg-red-50 text-red-600 text-sm font-semibold">{error}</div>}
 
           {/* Foto */}
           <div className="flex items-center gap-3">
@@ -353,7 +367,7 @@ function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onC
           </div>
 
           <Field label="Nombre completo"><Input value={form.nombre_completo} onChange={(e) => set("nombre_completo", e.target.value)} /></Field>
-          <div className="grid grid-cols-[1fr_auto] gap-3">
+          <div className="grid grid-cols-[1fr_auto] gap-5">
             <Field label="Carrera">
               <select value={form.carrera} onChange={(e) => set("carrera", e.target.value)} className={selCls}>
                 <option value="">Selecciona…</option>{CARRERAS_UPA.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -368,18 +382,18 @@ function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onC
 
           <Field label="Titular profesional"><Input placeholder="Ej. Estudiante de ISC | Desarrollador Frontend" value={form.titular_profesional} onChange={(e) => set("titular_profesional", e.target.value)} /></Field>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label className="text-xs font-semibold text-[#2C3E50]">Acerca de</Label>
+          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-bold text-[#2C3E50]">Acerca de ti</Label>
               <button type="button" onClick={sugerirIA} disabled={iaLoading}
-                className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:bg-[#FEF9C3] px-2 py-1 rounded-lg">
-                {iaLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-[#CA8A04]" />} Sugerir con IA
+                className="flex items-center gap-1.5 text-xs font-bold text-[#003366] bg-[#FEF9C3] hover:bg-[#FDE047] px-3 py-1.5 rounded-xl transition-colors shadow-sm">
+                {iaLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4 text-[#CA8A04]" />} ✨ Sugerir con IA
               </button>
             </div>
-            <Textarea rows={4} placeholder="Escribe algo tuyo y pulsa 'Sugerir con IA' para redactarlo profesionalmente…" value={form.biografia} onChange={(e) => set("biografia", e.target.value)} />
+            <Textarea rows={5} placeholder="Escribe algo tuyo y pulsa 'Sugerir con IA' para redactarlo profesionalmente…" value={form.biografia} onChange={(e) => set("biografia", e.target.value)} className="bg-white" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-5">
             <Field label="Ubicación"><Input value={form.ubicacion} onChange={(e) => set("ubicacion", e.target.value)} /></Field>
             <Field label="Teléfono"><Input value={form.telefono} onChange={(e) => set("telefono", e.target.value)} /></Field>
           </div>
@@ -388,13 +402,13 @@ function BasicsDialog({ profile, onClose, onSaved }: { profile: FullProfile; onC
               <option value="">Selecciona…</option><option>Sin experiencia</option><option>Junior</option><option>Semi-senior</option><option>Senior</option>
             </select>
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-5">
             <Field label="GitHub (URL)"><Input placeholder="https://github.com/…" value={form.github_url} onChange={(e) => set("github_url", e.target.value)} /></Field>
             <Field label="LinkedIn (URL)"><Input placeholder="https://linkedin.com/in/…" value={form.linkedin_url} onChange={(e) => set("linkedin_url", e.target.value)} /></Field>
           </div>
-          <div className="flex gap-5 pt-1">
-            <label className="flex items-center gap-2 text-sm text-[#2C3E50] cursor-pointer"><input type="checkbox" checked={form.buscando_empleo} onChange={(e) => set("buscando_empleo", e.target.checked)} /> Buscando empleo</label>
-            <label className="flex items-center gap-2 text-sm text-[#2C3E50] cursor-pointer"><input type="checkbox" checked={form.disponibilidad} onChange={(e) => set("disponibilidad", e.target.checked)} /> Disponible</label>
+          <div className="flex gap-6 pt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] cursor-pointer"><input type="checkbox" checked={form.buscando_empleo} onChange={(e) => set("buscando_empleo", e.target.checked)} className="size-4 rounded text-[#003366]" /> Buscando empleo</label>
+            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] cursor-pointer"><input type="checkbox" checked={form.disponibilidad} onChange={(e) => set("disponibilidad", e.target.checked)} className="size-4 rounded text-[#003366]" /> Disponible</label>
           </div>
         </div>
         <Footer onCancel={onClose} onSave={guardar} saving={saving} />
@@ -456,41 +470,60 @@ function ExperienceDialog({ item, onClose, onSaved }: { item: any | null; onClos
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader><DialogTitle>{item ? "Editar experiencia" : "Agregar experiencia"}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          {error && <div className="p-2.5 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>}
+      <DialogContent className="sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle className="text-2xl font-black text-[#2C3E50]">{item ? "Editar experiencia" : "Agregar experiencia"}</DialogTitle></DialogHeader>
+        <div className="space-y-5 mt-2">
+          {error && <div className="p-3 rounded-xl bg-red-50 text-red-600 text-sm font-semibold">{error}</div>}
           <Field label="Puesto *"><Input value={form.puesto} onChange={(e) => set("puesto", e.target.value)} /></Field>
           <Field label="Empresa"><Input value={form.empresa_nombre} onChange={(e) => set("empresa_nombre", e.target.value)} /></Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
             <Field label="Inicio *"><Input type="date" value={form.fecha_inicio} onChange={(e) => set("fecha_inicio", e.target.value)} /></Field>
-            <Field label="Fin"><Input type="date" value={form.fecha_fin} onChange={(e) => set("fecha_fin", e.target.value)} disabled={form.actual} /></Field>
+            <Field label="Fin">
+              <Input type="date" value={form.fecha_fin} onChange={(e) => set("fecha_fin", e.target.value)} disabled={form.actual} className={form.actual ? "opacity-50" : ""} />
+            </Field>
+            <div className="col-span-2 pt-1 border-t border-slate-200 mt-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] cursor-pointer">
+                <input type="checkbox" checked={form.actual} onChange={(e) => set("actual", e.target.checked)} className="size-4 rounded text-[#003366]" /> 
+                Trabajo aquí actualmente
+              </label>
+            </div>
           </div>
-          <label className="flex items-center gap-2 text-sm text-[#2C3E50] cursor-pointer"><input type="checkbox" checked={form.actual} onChange={(e) => set("actual", e.target.checked)} /> Trabajo aquí actualmente</label>
 
           {/* Actividades realizadas */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label className="text-xs font-semibold text-[#2C3E50]">Actividades realizadas</Label>
-              <button type="button" onClick={sugerirIA} disabled={iaLoading} className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:bg-[#FEF9C3] px-2 py-1 rounded-lg">
-                {iaLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-[#CA8A04]" />} Sugerir con IA
+          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-sm font-bold text-[#2C3E50]">Actividades realizadas</Label>
+              <button type="button" onClick={sugerirIA} disabled={iaLoading} className="flex items-center gap-1.5 text-xs font-bold text-[#003366] bg-[#FEF9C3] hover:bg-[#FDE047] px-3 py-1.5 rounded-xl transition-colors shadow-sm">
+                {iaLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4 text-[#CA8A04]" />} ✨ Sugerir con IA
               </button>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-4">
               {actividades.map((a, i) => (
-                <div key={i} className="border border-[#E5E7EB] rounded-xl p-2.5 space-y-1.5">
-                  <div className="flex gap-2">
-                    <Input placeholder="Actividad (título)" value={a.actividad} onChange={(e) => setAct(i, "actividad", e.target.value)} className="font-semibold" />
-                    {actividades.length > 1 && <button type="button" onClick={() => rmAct(i)} className="size-9 flex items-center justify-center rounded-lg text-[#7F8C8D] hover:bg-[#FEE2E2] hover:text-[#E74C3C] flex-shrink-0"><X className="size-4" /></button>}
+                <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3 relative group">
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Label className="text-xs text-slate-500 mb-1 block">Título de la actividad</Label>
+                      <Input placeholder="Ej. Desarrollo Frontend" value={a.actividad} onChange={(e) => setAct(i, "actividad", e.target.value)} className="font-bold" />
+                    </div>
+                    {actividades.length > 1 && (
+                      <button type="button" onClick={() => rmAct(i)} className="size-10 mt-5 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0">
+                        <X className="size-5" />
+                      </button>
+                    )}
                   </div>
-                  <Textarea rows={2} placeholder="Descripción de la actividad" value={a.descripcion} onChange={(e) => setAct(i, "descripcion", e.target.value)} />
+                  <div>
+                    <Label className="text-xs text-slate-500 mb-1 block">Descripción (opcional)</Label>
+                    <Textarea rows={2} placeholder="Detalla qué hiciste o qué lograste..." value={a.descripcion} onChange={(e) => setAct(i, "descripcion", e.target.value)} />
+                  </div>
                 </div>
               ))}
             </div>
-            <button type="button" onClick={addAct} className="flex items-center gap-1 text-xs font-semibold text-[#003366] hover:underline mt-2"><Plus className="size-3.5" /> Agregar actividad</button>
+            <button type="button" onClick={addAct} className="flex items-center gap-1.5 text-sm font-bold text-[#003366] hover:bg-[#003366]/10 px-4 py-2 rounded-xl mt-4 transition-all">
+              <Plus className="size-4" /> Agregar otra actividad
+            </button>
           </div>
 
-          <Field label="Tecnologías (separadas por comas)"><Input value={form.tecnologias} onChange={(e) => set("tecnologias", e.target.value)} /></Field>
+          <Field label="Tecnologías (separadas por comas)"><Input placeholder="Ej. React, Node.js, AWS..." value={form.tecnologias} onChange={(e) => set("tecnologias", e.target.value)} /></Field>
         </div>
         <Footer onCancel={onClose} onSave={guardar} saving={saving} />
       </DialogContent>
@@ -517,19 +550,21 @@ function EducationDialog({ item, onClose, onSaved }: { item: any | null; onClose
   };
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{item ? "Editar educación" : "Agregar educación"}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
+      <DialogContent className="sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle className="text-2xl font-black text-[#2C3E50]">{item ? "Editar educación" : "Agregar educación"}</DialogTitle></DialogHeader>
+        <div className="space-y-5 mt-2">
           <Field label="Institución *"><Input value={form.institucion} onChange={(e) => set("institucion", e.target.value)} /></Field>
           <Field label="Carrera o grado *"><Input value={form.carrera_o_grado} onChange={(e) => set("carrera_o_grado", e.target.value)} /></Field>
           <Field label="Nivel de estudios"><Input placeholder="Licenciatura, Bachillerato…" value={form.nivel_estudios} onChange={(e) => set("nivel_estudios", e.target.value)} /></Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
             <Field label="Inicio *"><Input type="date" value={form.fecha_inicio} onChange={(e) => set("fecha_inicio", e.target.value)} /></Field>
             <Field label="Fin"><Input type="date" value={form.fecha_fin} onChange={(e) => set("fecha_fin", e.target.value)} /></Field>
           </div>
-          <div className="grid grid-cols-2 gap-3 items-end">
+          <div className="grid grid-cols-2 gap-5 items-end">
             <Field label="Promedio"><Input type="number" step="0.01" value={form.promedio} onChange={(e) => set("promedio", e.target.value)} /></Field>
-            <label className="flex items-center gap-2 text-sm text-[#2C3E50] cursor-pointer h-10"><input type="checkbox" checked={form.graduado} onChange={(e) => set("graduado", e.target.checked)} /> Graduado</label>
+            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] cursor-pointer h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <input type="checkbox" checked={form.graduado} onChange={(e) => set("graduado", e.target.checked)} className="size-4 rounded text-[#003366]" /> Graduado
+            </label>
           </div>
         </div>
         <Footer onCancel={onClose} onSave={guardar} saving={saving} />
@@ -556,15 +591,15 @@ function ProjectDialog({ item, onClose, onSaved }: { item: any | null; onClose: 
   };
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{item ? "Editar proyecto" : "Agregar proyecto"}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
+      <DialogContent className="sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle className="text-2xl font-black text-[#2C3E50]">{item ? "Editar proyecto" : "Agregar proyecto"}</DialogTitle></DialogHeader>
+        <div className="space-y-5 mt-2">
           <Field label="Nombre del proyecto *"><Input value={form.nombre_proyecto} onChange={(e) => set("nombre_proyecto", e.target.value)} /></Field>
           <Field label="Tu rol"><Input placeholder="Ej. Desarrollador full-stack" value={form.rol_en_proyecto} onChange={(e) => set("rol_en_proyecto", e.target.value)} /></Field>
-          <Field label="Descripción"><Textarea rows={3} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} /></Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Repositorio (URL)"><Input placeholder="https://github.com/…" value={form.url_repositorio} onChange={(e) => set("url_repositorio", e.target.value)} /></Field>
-            <Field label="Demo (URL)"><Input placeholder="https://…" value={form.url_despliegue} onChange={(e) => set("url_despliegue", e.target.value)} /></Field>
+          <Field label="Descripción"><Textarea rows={4} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} /></Field>
+          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+            <Field label="Repositorio (URL)"><Input placeholder="https://github.com/…" value={form.url_repositorio} onChange={(e) => set("url_repositorio", e.target.value)} className="bg-white" /></Field>
+            <Field label="Demo (URL)"><Input placeholder="https://…" value={form.url_despliegue} onChange={(e) => set("url_despliegue", e.target.value)} className="bg-white" /></Field>
           </div>
           <Field label="Tecnologías (separadas por comas)"><Input value={form.tecnologias} onChange={(e) => set("tecnologias", e.target.value)} /></Field>
         </div>

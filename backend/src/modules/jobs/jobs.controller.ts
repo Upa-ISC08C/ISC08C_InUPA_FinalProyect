@@ -30,6 +30,31 @@ export class JobsController {
     }
   }
 
+  static async contactCompany(req: any, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const { id } = req.params;
+      const { mensaje } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'No autorizado' });
+      }
+
+      await JobsService.contactCompany(userId, id, mensaje);
+      
+      res.json({
+        success: true,
+        message: 'Correo enviado a la empresa exitosamente',
+      });
+    } catch (error: any) {
+      console.error('Error al contactar empresa:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error interno del servidor',
+      });
+    }
+  }
+
   static async getVacantes(req: Request, res: Response) {
     try {
       const filters: VacanteFilters = {
