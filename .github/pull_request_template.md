@@ -27,3 +27,5 @@ Closes #
 ## Notas para el revisor
 
 <!-- ¿Algo que deba saber quien revisa? Pasos para probar, datos de prueba, etc. -->
+
+<!-- prueba temporal del flujo de CI/CD -->
