@@ -107,12 +107,14 @@ ISC08C_InUPA_FinalProyect/
 │  ├─ package.json      # scripts: dev, build, lint
 │  └─ vite.config.ts
 ├─ docker/
-│  ├─ docker-compose.yml  # db + backend + frontend
-│  └─ init.sql            # Esquema inicial de la BD
+│  ├─ docker-compose.yml     # db + backend + frontend + mailpit (correo de pruebas)
+│  ├─ docker-compose.qa.yml  # QA: nombres, volumen y puertos propios (no pisa el local)
+│  └─ init.sql               # Esquema inicial de la BD
 ├─ .github/
 │  ├─ workflows/
-│  │  ├─ ci-validation.yml   # CI: compila backend y frontend en cada PR
-│  │  └─ qa-preview.yml      # QA: levanta el entorno en el runner de Windows
+│  │  ├─ ci-validation.yml   # CI: compila backend y frontend en cada push y PR
+│  │  ├─ qa-preview.yml      # QA: levanta el entorno en el runner de Windows
+│  │  └─ qa-teardown.yml     # QA: lo apaga al quitar la etiqueta o cerrar el PR
 │  └─ pull_request_template.md
 ├─ CODEOWNERS
 ├─ CONTRIBUTING.md       # Flujo de trabajo (versión resumida)
@@ -204,7 +206,7 @@ variables nuevas).
 | Variables | ¿Obligatorias? |
 |---|---|
 | `DB_*`, `POSTGRES_*`, `PORT`, `JWT_SECRET` | ✅ Sí — las genera el script, ya funcionan |
-| `MAIL_USER`, `MAIL_PASS` | ⚪ Opcionales — solo para probar el login por OTP. Sin ellas la app arranca igual y el código OTP se imprime en los logs del backend (solo en desarrollo) |
+| `MAIL_*` | ⚪ Opcionales — ver [Correo](#-correo-códigos-y-avisos) abajo. Por defecto se usa Mailpit, que no pide credenciales |
 | `GOOGLE_CLIENT_ID`, `VITE_GOOGLE_CLIENT_ID` | ⚪ Opcionales — solo para el botón de Google (el Client ID es público) |
 
 Estas son las variables que se usan (solo los nombres, sin valores):
@@ -213,9 +215,57 @@ Estas son las variables que se usan (solo los nombres, sin valores):
   - Conexión a PostgreSQL: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
   - API: `PORT`
   - Seguridad: `JWT_SECRET`
-  - Correo (envío de OTP): `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`
+  - Correo: `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_SIN_AUTH`, `MAIL_FROM`
 - **Frontend** (`frontend/.env`):
   - URL del backend: `VITE_API_URL`
+
+---
+
+## 📧 Correo (códigos y avisos)
+
+La plataforma manda tres tipos de correo: el **código para restablecer la contraseña**, la
+**verificación de la cuenta** y el **aviso de vacante nueva** a los alumnos cuya carrera y
+cuatrimestre coinciden con la vacante.
+
+Hay dos formas de configurarlo; se elige en el `.env` de la raíz.
+
+**Opción A — Mailpit (por defecto en desarrollo).** Servidor local: los correos se envían de
+verdad y se leen en **http://localhost:8025**, sin credenciales. No salen a internet.
+
+```
+MAIL_HOST=mailpit
+MAIL_PORT=1025
+MAIL_SIN_AUTH=true
+MAIL_FROM=no-reply@inupa.upa.edu.mx
+```
+
+**Opción B — entrega real.** Con Gmail hace falta una *App Password* (la cuenta debe tener la
+verificación en 2 pasos activada); con Resend, la API key va en `MAIL_PASS` y el usuario es
+literalmente `resend`.
+
+```
+MAIL_HOST=smtp.resend.com   # o smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=resend            # o tu correo completo
+MAIL_PASS=...               # API key o App Password
+```
+
+Después de cambiarlo hay que **recrear** el contenedor (reiniciarlo no basta, las variables se
+leen al crearlo):
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --force-recreate backend
+```
+
+Para comprobar que quedó bien hay un diagnóstico que dice si el servidor acepta la
+configuración y manda un correo de prueba:
+
+```bash
+docker compose -f docker/docker-compose.yml exec backend node scripts/probar-correo.js tu-correo@ejemplo.com
+```
+
+Al arrancar, el backend también lo indica en los logs: `[mailer] SMTP listo` si todo está bien,
+o el error concreto si no.
 
 > Si corres con **Docker** (Opción A), el entorno de desarrollo local ya queda configurado y
 > no necesitas crear estos archivos a mano.
@@ -710,11 +760,14 @@ git push -u origin feature/front-components
 
 ## 🤖 ¿Qué pasa cuando abres tu PR?
 
-1. **CI (Robot Inspector):** al abrir el PR corre `ci-validation.yml`, que **compila** backend y frontend.
-   - ❌ Si falla → corrige y vuelve a hacer `git push` (el PR se revalida solo).
+1. **CI (Robot Inspector):** `ci-validation.yml` **compila** backend y frontend. Corre al abrir el
+   PR y también en **cada push a tu rama**, aunque el PR todavía no exista.
+   - ❌ Si falla → corrige y vuelve a hacer `git push` (se revalida solo).
    - ✅ Si pasa → queda listo para revisión.
-2. **QA visual:** Juan pone la etiqueta `qa` al PR y `qa-preview.yml` levanta el entorno con Docker para
-   revisar la app corriendo.
+2. **QA visual:** Juan pone la etiqueta `qa` y `qa-preview.yml` levanta el entorno en el runner:
+   - Frontend: `http://localhost:5273` · Backend: `http://localhost:3100/api` · Correos: `http://localhost:8125`
+   - Usa **puertos y volumen propios**, así que no toca el entorno de desarrollo local (5173/3000/8025).
+   - Al quitar la etiqueta o cerrar el PR, `qa-teardown.yml` lo apaga.
 3. **Revisión:** Juan revisa el código y el funcionamiento.
    - Si pide cambios (*Request changes*) → corrige y vuelve a subir.
    - Si aprueba (*Approve*) → hace **Merge** a `develop`. 🎉
