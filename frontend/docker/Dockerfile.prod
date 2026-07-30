@@ -1,0 +1,35 @@
+# Imagen de produccion del frontend: se compila con Vite y el resultado
+# estatico lo sirve Nginx, que ademas hace de proxy al API (ver nginx.conf).
+
+# --- Etapa 1: compilar ---
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+# Vite congela las variables VITE_* en el bundle al compilar, no al arrancar:
+# tienen que llegar como ARG en la construccion, no como environment del
+# contenedor.
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
+# Ruta relativa: el API queda detras del mismo Nginx, asi que el bundle sirve
+# igual sin importar el host o el puerto donde se despliegue.
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+
+RUN npm run build
+
+# --- Etapa 2: servir ---
+FROM nginx:alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

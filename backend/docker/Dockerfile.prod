@@ -1,0 +1,33 @@
+# Imagen de produccion del backend.
+#
+# Va en dos etapas a proposito: 'npm run build' es 'tsc', que vive en
+# devDependencies. Instalar solo las dependencias de produccion antes de
+# compilar (como estaba antes) hacia que la construccion fallara por falta de
+# TypeScript. Aqui se compila con todas y luego se copia unicamente dist/ a una
+# imagen limpia que solo lleva las de produccion.
+
+# --- Etapa 1: compilar ---
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# --- Etapa 2: ejecutar ---
+FROM node:20-alpine
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+COPY --from=build /app/dist ./dist
+
+EXPOSE 3000
+
+CMD ["node", "dist/index.js"]
