@@ -20,10 +20,13 @@ import {
   X,
   ChevronDown,
   CheckCheck,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { notificationsService } from "../../services/notifications.service";
+import { useTheme } from "../../hooks/useTheme";
 
 const navigation = [
   { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
@@ -49,6 +52,8 @@ export function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
+  // Mismo tema que el panel de administrador (se guarda en <html>).
+  const { dark, setDark } = useTheme();
 
   const unreadCount = notifs.filter((n) => !n.read).length;
 
@@ -84,13 +89,13 @@ export function DashboardLayout() {
     : "US";
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA]">
-      <header className="sticky top-0 z-50 w-full bg-white border-b border-[#E5E7EB]">
+    <div className="min-h-screen bg-[#F5F7FA] dark:bg-slate-950 transition-colors duration-300">
+      <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 border-b border-[#E5E7EB] dark:border-slate-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link to="/dashboard" className="flex items-center gap-2.5 flex-shrink-0">
               <div className="bg-[#003366] text-[#FFD700] rounded-xl p-2"><GraduationCap className="size-5" /></div>
-              <span className="font-bold text-xl text-[#003366] hidden sm:inline tracking-tight">InUPA</span>
+              <span className="font-bold text-xl text-[#003366] dark:text-white hidden sm:inline tracking-tight">InUPA</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
@@ -112,10 +117,20 @@ export function DashboardLayout() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Modo claro / oscuro */}
+            <button
+              onClick={() => setDark(!dark)}
+              aria-label="Cambiar tema"
+              title={dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              className="flex items-center justify-center size-9 rounded-lg text-[#7F8C8D] dark:text-slate-300 hover:text-[#2C3E50] dark:hover:text-white hover:bg-[#F5F7FA] dark:hover:bg-slate-800 transition-colors active:scale-95"
+            >
+              {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+            </button>
+
             {/* Notification bell */}
             <div className="relative">
               <button onClick={() => setNotifOpen((v) => !v)}
-                className="relative flex items-center justify-center size-9 rounded-lg text-[#7F8C8D] hover:text-[#2C3E50] hover:bg-[#F5F7FA] transition-colors">
+                className="relative flex items-center justify-center size-9 rounded-lg text-[#7F8C8D] dark:text-slate-300 hover:text-[#2C3E50] dark:hover:text-white hover:bg-[#F5F7FA] dark:hover:bg-slate-800 transition-colors">
                 <Bell className="size-5" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 size-4 bg-[#E74C3C] rounded-full flex items-center justify-center text-[9px] font-bold text-white ring-2 ring-white">

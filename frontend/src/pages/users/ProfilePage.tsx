@@ -301,7 +301,7 @@ const SectionHeader = ({
   onAdd?: () => void;
 }) => (
   <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
-    <h3 className="text-xl font-extrabold text-[#2C3E50]">{title}</h3>
+    <h3 className="text-xl font-extrabold text-[#2C3E50] dark:text-white">{title}</h3>
     {onAdd && (
       <button
         onClick={onAdd}
@@ -322,7 +322,7 @@ const IconBtn = ({
 }) => (
   <button
     onClick={onClick}
-    className="size-8 flex items-center justify-center rounded-lg text-[#7F8C8D] hover:bg-[#F5F7FA] hover:text-[#2C3E50] transition-colors"
+    className="size-8 flex items-center justify-center rounded-lg text-[#7F8C8D] dark:text-slate-400 hover:bg-[#F5F7FA] dark:bg-slate-800 hover:text-[#2C3E50] dark:text-white transition-colors"
   >
     {children}
   </button>
@@ -341,7 +341,7 @@ const Field = ({
   required?: boolean;
 }) => (
   <div className="space-y-1">
-    <Label className="text-xs font-semibold text-[#2C3E50]">
+    <Label className="text-xs font-semibold text-[#2C3E50] dark:text-white">
       {label}
       {required && <span className="text-red-500 ml-0.5">*</span>}
     </Label>
@@ -415,7 +415,7 @@ export function ProfilePage() {
     );
   if (!profile)
     return (
-      <div className="p-8 text-center text-[#7F8C8D]">
+      <div className="p-8 text-center text-[#7F8C8D] dark:text-slate-400">
         No se pudo cargar tu perfil.
       </div>
     );
@@ -434,9 +434,9 @@ export function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* Encabezado */}
-      <Card className="overflow-hidden border border-slate-100 shadow-lg rounded-[2rem] p-0 gap-0 bg-white">
+      <Card className="overflow-hidden border border-slate-100 shadow-lg rounded-[2rem] p-0 gap-0 bg-white dark:bg-slate-900">
         <div className="h-40 bg-gradient-to-r from-[#001f3f] via-[#003366] to-[#00509E] relative">
-          <div className="absolute top-0 left-0 w-full h-full bg-white/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-0 w-full h-full bg-white dark:bg-slate-900/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
         </div>
         <div className="px-6 sm:px-8 pb-8 relative">
           <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-8 mb-6">
@@ -456,7 +456,7 @@ export function ProfilePage() {
             <div className="flex-1 min-w-0 pt-2 sm:pt-0">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-3xl font-black text-[#2C3E50] leading-tight tracking-tight break-words mt-2">
+                  <h2 className="text-3xl font-black text-[#2C3E50] dark:text-white leading-tight tracking-tight break-words mt-2">
                     {profile.nombre_completo}
                   </h2>
                   <p className="text-[#00509E] font-bold mt-1 text-lg">
@@ -554,10 +554,10 @@ export function ProfilePage() {
               <Sparkles className="size-6" />
             </div>
             <div className="flex-1">
-              <p className="text-base font-bold text-[#2C3E50]">
+              <p className="text-base font-bold text-[#2C3E50] dark:text-white">
                 ¿Tu CV necesita un impulso?
               </p>
-              <p className="text-sm text-[#7F8C8D] mt-0.5">
+              <p className="text-sm text-[#7F8C8D] dark:text-slate-400 mt-0.5">
                 Usa nuestra IA para redactar tu experiencia y habilidades al
                 instante.
               </p>
@@ -571,7 +571,7 @@ export function ProfilePage() {
       </Link>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-1.5">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 p-1.5">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
           <button
             onClick={() => setActiveTab("experiencia")}
@@ -634,7 +634,7 @@ export function ProfilePage() {
                   >
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-[#2C3E50] mb-1">
+                        <h3 className="text-xl font-bold text-[#2C3E50] dark:text-white mb-1">
                           {e.puesto}
                         </h3>
                         <p className="text-[#00A8E8] font-semibold">
@@ -674,9 +674,9 @@ export function ProfilePage() {
                           {e.actividades.map((ac: any, i: number) => (
                             <li
                               key={i}
-                              className="text-sm bg-white p-3 rounded-xl border border-slate-200"
+                              className="text-sm bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200"
                             >
-                              <span className="font-bold text-[#2C3E50] block mb-1">
+                              <span className="font-bold text-[#2C3E50] dark:text-white block mb-1">
                                 {ac.actividad}
                               </span>
                               {ac.descripcion && (
@@ -733,7 +733,7 @@ export function ProfilePage() {
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-[#2C3E50] mb-1">
+                        <h3 className="text-xl font-bold text-[#2C3E50] dark:text-white mb-1">
                           {ed.institucion}
                         </h3>
                         <p className="text-slate-700 font-semibold">
@@ -805,18 +805,18 @@ export function ProfilePage() {
                 {profile.proyectos.map((pr: any) => (
                   <div
                     key={pr.id}
-                    className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow relative group"
+                    className="bg-white dark:bg-slate-900 border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow relative group"
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex items-center gap-3">
                         <div className="p-2.5 bg-[#003366]/5 rounded-xl text-[#003366]">
                           <FolderGit2 className="size-5" />
                         </div>
-                        <p className="font-extrabold text-[#2C3E50] text-lg">
+                        <p className="font-extrabold text-[#2C3E50] dark:text-white text-lg">
                           {pr.nombre_proyecto}
                         </p>
                       </div>
-                      <div className="flex flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-sm rounded-lg border border-slate-100">
+                      <div className="flex flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-900 shadow-sm rounded-lg border border-slate-100">
                         <IconBtn onClick={() => setProjEdit(pr)}>
                           <Pencil className="size-4" />
                         </IconBtn>
@@ -991,7 +991,7 @@ function SkillEditor({
         </p>
       )}
       {skills.length === 0 ? (
-        <p className="text-sm text-[#7F8C8D] italic">
+        <p className="text-sm text-[#7F8C8D] dark:text-slate-400 italic">
           Agrega tus habilidades técnicas y blandas.
         </p>
       ) : (
@@ -1050,7 +1050,7 @@ function BasicsDialog({
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const selCls =
-    "w-full h-10 rounded-xl border border-[#D1D5DB] px-3 text-sm bg-white";
+    "w-full h-10 rounded-xl border border-[#D1D5DB] px-3 text-sm bg-white dark:bg-slate-900";
 
   // Validar un campo específico
   const validate = (name: string, value: any): string => {
@@ -1186,7 +1186,7 @@ function BasicsDialog({
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-black text-[#2C3E50]">
+          <DialogTitle className="text-2xl font-black text-[#2C3E50] dark:text-white">
             Editar perfil
           </DialogTitle>
         </DialogHeader>
@@ -1300,7 +1300,7 @@ function BasicsDialog({
           {/* Biografía */}
           <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
             <div className="flex items-center justify-between mb-3">
-              <Label className="text-sm font-bold text-[#2C3E50]">
+              <Label className="text-sm font-bold text-[#2C3E50] dark:text-white">
                 Acerca de ti
               </Label>
               <button
@@ -1323,7 +1323,7 @@ function BasicsDialog({
               value={form.biografia}
               onChange={(e) => updateField("biografia", e.target.value)}
               onBlur={() => touch("biografia")}
-              className="bg-white"
+              className="bg-white dark:bg-slate-900"
             />
             {errors.biografia && (
               <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
@@ -1397,7 +1397,7 @@ function BasicsDialog({
 
           {/* Checkboxes */}
           <div className="flex gap-6 pt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2">
-            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] cursor-pointer">
+            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] dark:text-white cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.buscando_empleo}
@@ -1406,7 +1406,7 @@ function BasicsDialog({
               />{" "}
               Buscando empleo
             </label>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] cursor-pointer">
+            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] dark:text-white cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.disponibilidad}
@@ -1605,7 +1605,7 @@ function ExperienceDialog({
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-black text-[#2C3E50]">
+          <DialogTitle className="text-2xl font-black text-[#2C3E50] dark:text-white">
             {item ? "Editar experiencia" : "Agregar experiencia"}
           </DialogTitle>
         </DialogHeader>
@@ -1661,7 +1661,7 @@ function ExperienceDialog({
               />
             </Field>
             <div className="col-span-2 pt-1 border-t border-slate-200 mt-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] cursor-pointer">
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] dark:text-white cursor-pointer">
                 <input
                   type="checkbox"
                   checked={form.actual}
@@ -1679,7 +1679,7 @@ function ExperienceDialog({
           {/* Actividades */}
           <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-sm font-bold text-[#2C3E50]">
+              <Label className="text-sm font-bold text-[#2C3E50] dark:text-white">
                 Actividades realizadas
               </Label>
               <button
@@ -1700,7 +1700,7 @@ function ExperienceDialog({
               {actividades.map((a, i) => (
                 <div
                   key={i}
-                  className={`bg-white border rounded-xl p-4 shadow-sm space-y-3 ${errors.actividades?.[i] ? "border-red-300" : "border-slate-200"}`}
+                  className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm space-y-3 ${errors.actividades?.[i] ? "border-red-300" : "border-slate-200"}`}
                 >
                   <div className="flex gap-3">
                     <div className="flex-1">
@@ -1767,7 +1767,7 @@ function ExperienceDialog({
 
           {/* Tecnologías */}
           <div>
-            <Label className="text-xs font-semibold text-[#2C3E50] mb-2 block">
+            <Label className="text-xs font-semibold text-[#2C3E50] dark:text-white mb-2 block">
               Tecnologías utilizadas
             </Label>
             <div className="flex gap-2 mb-3">
@@ -1922,7 +1922,7 @@ function EducationDialog({
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-black text-[#2C3E50]">
+          <DialogTitle className="text-2xl font-black text-[#2C3E50] dark:text-white">
             {item ? "Editar educación" : "Agregar educación"}
           </DialogTitle>
         </DialogHeader>
@@ -1976,7 +1976,7 @@ function EducationDialog({
             </Field>
           </div>
           <div className="pt-2">
-            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] cursor-pointer h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl">
+            <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] dark:text-white cursor-pointer h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl">
               <input
                 type="checkbox"
                 checked={form.graduado}
@@ -2110,7 +2110,7 @@ function ProjectDialog({
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-black text-[#2C3E50]">
+          <DialogTitle className="text-2xl font-black text-[#2C3E50] dark:text-white">
             {item ? "Editar proyecto" : "Agregar proyecto"}
           </DialogTitle>
         </DialogHeader>
@@ -2151,7 +2151,7 @@ function ProjectDialog({
                 value={form.url_repositorio}
                 onChange={(e) => updateField("url_repositorio", e.target.value)}
                 onBlur={() => touch("url_repositorio")}
-                className="bg-white"
+                className="bg-white dark:bg-slate-900"
               />
             </Field>
             <Field label="Demo (URL)" error={errors.url_despliegue}>
@@ -2160,12 +2160,12 @@ function ProjectDialog({
                 value={form.url_despliegue}
                 onChange={(e) => updateField("url_despliegue", e.target.value)}
                 onBlur={() => touch("url_despliegue")}
-                className="bg-white"
+                className="bg-white dark:bg-slate-900"
               />
             </Field>
           </div>
           <div>
-            <Label className="text-xs font-semibold text-[#2C3E50] mb-2 block">
+            <Label className="text-xs font-semibold text-[#2C3E50] dark:text-white mb-2 block">
               Tecnologías utilizadas
             </Label>
             <div className="flex gap-2 mb-3">
