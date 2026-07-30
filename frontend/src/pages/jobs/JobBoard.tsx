@@ -227,7 +227,10 @@ ${user?.correo_institucional || ""}`;
     f.salario_min ||
     f.salario_max;
 
-  const FilterPanel = () => (
+  // JSX plano, NO un componente: definir un componente aquí dentro le cambia la
+  // identidad en cada render, así que React desmontaba y remontaba el panel con
+  // cada tecla y los campos perdían el foco tras un solo dígito.
+  const panelFiltros = (
     <div className="space-y-3">
       <div>
         <p className="text-xs font-bold text-[#7F8C8D] dark:text-slate-400 uppercase tracking-wide mb-1.5">
@@ -398,7 +401,7 @@ ${user?.correo_institucional || ""}`;
       {showFilters && (
         <Card className="border-0 shadow-sm dark:bg-slate-900 dark:border-slate-800 lg:hidden">
           <CardContent className="p-4">
-            <FilterPanel />
+            {panelFiltros}
           </CardContent>
         </Card>
       )}
@@ -410,7 +413,7 @@ ${user?.correo_institucional || ""}`;
               <SlidersHorizontal className="size-4" />
               Filtros
             </p>
-            <FilterPanel />
+            {panelFiltros}
           </div>
         </aside>
 

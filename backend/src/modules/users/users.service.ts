@@ -118,8 +118,10 @@ export class UsersService {
   static async adminResetPassword(id: string) {
     const user = await usersDAO.findById(id);
     if (!user) throw new NotFoundError('Usuario no encontrado');
-    await authService.forgotPassword(user.correo_institucional);
-    return { message: `Código de restablecimiento generado y enviado a ${user.correo_institucional}` };
+    // forgotPassword devuelve si el correo salio de verdad, para no decirle al
+    // administrador que se envio cuando el servidor lo rechazo.
+    const enviado = await authService.forgotPassword(user.correo_institucional);
+    return { correo: user.correo_institucional, enviado };
   }
 
   static async adminRemove(id: string) {
