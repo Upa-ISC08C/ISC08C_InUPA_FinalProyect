@@ -193,6 +193,21 @@ export function JobBoard() {
     }
   };
 
+  /**
+   * Al contactar a la empresa se guarda el interés, pero solo si aún no estaba:
+   * usar toggleInteres aquí lo quitaría justo cuando el alumno más interesado
+   * está.
+   */
+  const marcarInteresSiFalta = async (id: string) => {
+    if (applied.includes(id)) return;
+    try {
+      await jobsService.apply(id);
+      setApplied((p) => [...p, id]);
+    } catch {
+      /* si falla, el alumno igual ya abrió su correo: no lo interrumpimos */
+    }
+  };
+
   const mensajeSugerido = (v: Vacante) => {
     const carreraTxt = user?.carrera
       ? `, estudiante de ${user.carrera}${user?.cuatrimestre ? ` (${user.cuatrimestre}° cuatrimestre)` : ""} en la Universidad Politécnica de Aguascalientes`
@@ -208,8 +223,24 @@ ${user?.nombre_completo || ""}
 ${user?.correo_institucional || ""}`;
   };
 
+  const asuntoCorreo = (v: Vacante) => `Postulación – ${v.titulo}`;
+
   const mailtoLink = (v: Vacante) =>
-    `mailto:${v.empresa?.correo_contacto || ""}?subject=${encodeURIComponent(`Postulación – ${v.titulo}`)}&body=${encodeURIComponent(mensajeSugerido(v))}`;
+    `mailto:${v.empresa?.correo_contacto || ""}?subject=${encodeURIComponent(asuntoCorreo(v))}&body=${encodeURIComponent(mensajeSugerido(v))}`;
+
+  /**
+   * Redacta el correo en Gmail dentro del navegador.
+   *
+   * El enlace mailto: depende de que el sistema tenga una aplicación de correo
+   * predeterminada; en la mayoría de las computadoras de la escuela no la hay,
+   * así que al pulsar no ocurría nada y parecía que el botón estaba roto.
+   * Gmail sí abre siempre, y los correos @alumnos.upa.edu.mx son de Google.
+   */
+  const gmailLink = (v: Vacante) =>
+    `https://mail.google.com/mail/?view=cm&fs=1` +
+    `&to=${encodeURIComponent(v.empresa?.correo_contacto || "")}` +
+    `&su=${encodeURIComponent(asuntoCorreo(v))}` +
+    `&body=${encodeURIComponent(mensajeSugerido(v))}`;
 
   const waLink = (v: Vacante) => {
     let tel = (v.empresa?.telefono || "").replace(/\D/g, "");
@@ -667,7 +698,9 @@ ${user?.correo_institucional || ""}`;
 
                 {selected.empresa?.correo_contacto ? (
                   <a
-                    href={mailtoLink(selected)}
+                    href={gmailLink(selected)}
+                    target="_blank"
+                    rel="noreferrer"
                     className="flex items-start gap-3 text-sm text-[#2C3E50] dark:text-slate-200 hover:text-[#003366] dark:hover:text-[#00A8E8] hover:bg-white/60 dark:hover:bg-slate-700/50 p-2 rounded-lg transition-colors"
                   >
                     <Mail className="size-5 text-[#003366] dark:text-[#00A8E8] flex-shrink-0 mt-0.5" />
@@ -747,15 +780,29 @@ ${user?.correo_institucional || ""}`;
 
               <p className="text-xs text-[#7F8C8D] dark:text-slate-400">
                 La plataforma <b>no contacta a la empresa por ti</b>: al pulsar
-                los enlaces se abre <b>tu</b> aplicación con un{" "}
-                <b>mensaje sugerido</b> que puedes editar antes de enviarlo.
-                Recuerda adjuntar tu CV.
+                los enlaces se abre Gmail con un <b>mensaje sugerido</b> que
+                puedes editar antes de enviarlo. Recuerda adjuntar tu CV.
+                {selected.empresa?.correo_contacto && (
+                  <>
+                    {" "}¿Usas otra aplicación de correo?{" "}
+                    <a
+                      href={mailtoLink(selected)}
+                      className="text-[#003366] dark:text-[#00A8E8] font-semibold hover:underline"
+                    >
+                      Ábrelo ahí
+                    </a>
+                    .
+                  </>
+                )}
               </p>
             </div>
 
             <div className="px-6 pb-6 flex flex-wrap gap-2 border-t border-[#E5E7EB] dark:border-slate-800 pt-4">
               <a
-                href={mailtoLink(selected)}
+                href={gmailLink(selected)}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => marcarInteresSiFalta(selected.id)}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#003366] dark:bg-[#00A8E8] hover:bg-[#002244] dark:hover:bg-[#0090c7] text-white text-sm font-bold flex-1 min-w-[160px] transition-colors"
               >
                 <Mail className="size-4" />
