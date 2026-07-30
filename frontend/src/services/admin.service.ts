@@ -72,4 +72,19 @@ export const adminService = {
   resetPassword(id: string) {
     return api.post<{ success: boolean; message: string }>(`/users/${id}/reset-password`).then((res) => res.data);
   },
+  getCarreras() {
+    return api.get<{ success: boolean; data: any[] }>("/carreras").then((res) => res.data.data);
+  },
+
+  createCarrera(data: { nombre: string }) {
+    return api.post<{ success: boolean; data: any }>("/carreras", data).then((res) => res.data.data);
+  },
+
+  updateCarrera(id: string, data: { nombre: string }) {
+    return api.put<{ success: boolean; data: any }>(`/carreras/${id}`, data).then((res) => res.data.data);
+  },
+
+  removeCarrera(id: string) {
+    return api.delete(`/carreras/${id}`).then((res) => res.data);
+  },
 };

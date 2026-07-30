@@ -1,46 +1,41 @@
 import { db } from '../config/db';
 import { Company, CreateCompanyDTO, UpdateCompanyDTO } from '../modules/companies/companies.types';
 
-// Columnas que el cliente puede escribir (nunca id ni created_at).
 const CAMPOS_EDITABLES: (keyof CreateCompanyDTO)[] = [
-  'nombre',
-  'industria',
-  'descripcion',
-  'sitio_web',
-  'logo_url',
-  'correo_contacto',
-  'telefono',
-  'ciudad',
-  'direccion',
-  'tamano',
-  'activa',
+  'nombre', 'industria', 'descripcion', 'sitio_web', 'logo_url',
+  'correo_contacto', 'telefono', 'ciudad', 'direccion', 'tamano', 'activa',
 ];
 
 export class CompaniesDAO {
-  /** Lista todas las empresas, mas recientes primero. */
   async getAll(): Promise<Company[]> {
     const result = await db.query(
       `SELECT id, nombre, industria, descripcion, sitio_web, logo_url,
               correo_contacto, telefono, ciudad, direccion, tamano, activa, created_at
-       FROM EMPRESAS
-       ORDER BY created_at DESC`
+       FROM EMPRESAS ORDER BY created_at DESC`
     );
     return result.rows;
   }
 
-  /** Obtiene una empresa por id. */
   async getById(id: string): Promise<Company | null> {
     const result = await db.query(
       `SELECT id, nombre, industria, descripcion, sitio_web, logo_url,
               correo_contacto, telefono, ciudad, direccion, tamano, activa, created_at
-       FROM EMPRESAS
-       WHERE id = $1`,
-      [id]
+       FROM EMPRESAS WHERE id = $1`, [id]
     );
     return result.rows[0] || null;
   }
 
-  /** Crea una empresa. */
+  async existsByName(nombre: string, excludeId?: string) {
+    let query = 'SELECT id FROM EMPRESAS WHERE LOWER(nombre) = LOWER($1)';
+    let params: any[] = [nombre.trim()];
+    if (excludeId) {
+      query += ' AND id != $2';
+      params.push(excludeId);
+    }
+    const result = await db.query(query, params);
+    return result.rows.length > 0;
+  }
+
   async create(data: CreateCompanyDTO): Promise<Company> {
     const result = await db.query(
       `INSERT INTO EMPRESAS
@@ -50,23 +45,14 @@ export class CompaniesDAO {
        RETURNING id, nombre, industria, descripcion, sitio_web, logo_url,
                  correo_contacto, telefono, ciudad, direccion, tamano, activa, created_at`,
       [
-        data.nombre,
-        data.industria ?? null,
-        data.descripcion ?? null,
-        data.sitio_web ?? null,
-        data.logo_url ?? null,
-        data.correo_contacto ?? null,
-        data.telefono ?? null,
-        data.ciudad ?? null,
-        data.direccion ?? null,
-        data.tamano ?? null,
-        data.activa ?? null,
+        data.nombre, data.industria ?? null, data.descripcion ?? null, data.sitio_web ?? null,
+        data.logo_url ?? null, data.correo_contacto ?? null, data.telefono ?? null,
+        data.ciudad ?? null, data.direccion ?? null, data.tamano ?? null, data.activa ?? null,
       ]
     );
     return result.rows[0];
   }
 
-  /** Actualiza dinamicamente solo los campos enviados (whitelist). */
   async update(id: string, data: UpdateCompanyDTO): Promise<Company | null> {
     const sets: string[] = [];
     const values: any[] = [];
@@ -80,14 +66,11 @@ export class CompaniesDAO {
       }
     }
 
-    if (sets.length === 0) {
-      return this.getById(id);
-    }
+    if (sets.length === 0) return this.getById(id);
 
     values.push(id);
     const result = await db.query(
-      `UPDATE EMPRESAS SET ${sets.join(', ')}
-       WHERE id = $${i}
+      `UPDATE EMPRESAS SET ${sets.join(', ')} WHERE id = $${i}
        RETURNING id, nombre, industria, descripcion, sitio_web, logo_url,
                  correo_contacto, telefono, ciudad, direccion, tamano, activa, created_at`,
       values
@@ -97,10 +80,20 @@ export class CompaniesDAO {
 
   /** Borrado suave: marca la empresa como inactiva. */
   async softDelete(id: string): Promise<boolean> {
-    const result = await db.query(
-      `UPDATE EMPRESAS SET activa = FALSE WHERE id = $1`,
-      [id]
-    );
+    const result = await db.query('UPDATE EMPRESAS SET activa = FALSE WHERE id = $1', [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /** Borrado real (Hard Delete) con validación de vacantes. */
+  async hardDelete(id: string): Promise<boolean> {
+    // 1. Verificar si tiene vacantes asociadas
+    const vacantes = await db.query('SELECT id FROM VACANTES WHERE empresa_id = $1', [id]);
+    if (vacantes.rows.length > 0) {
+      throw new Error('No se puede eliminar la empresa porque tiene vacantes asociadas. Desactívala en su lugar.');
+    }
+    
+    // 2. Eliminación real
+    const result = await db.query('DELETE FROM EMPRESAS WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
   }
 }

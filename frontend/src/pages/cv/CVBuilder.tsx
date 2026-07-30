@@ -76,11 +76,13 @@ export function CVBuilder() {
   const [cvLoading, setCvLoading] = useState(false);
   const [cvNombre, setCvNombre] = useState("");
   const [cvError, setCvError] = useState("");
+  const [cvProfile, setCvProfile] = useState<FullProfile | null>(null); // <-- NUEVO ESTADO
 
   const generarMiCV = async () => {
     setCvLoading(true); setCvError(""); setCvMd("");
     try {
       const p = await profileService.getMyProfile();
+      setCvProfile(p); // <-- GUARDAMOS EL PERFIL COMPLETO
       setCvNombre(p.nombre_completo || "CV");
       const texto = perfilATexto(p);
       const md = await aiService.generarCV(texto);
@@ -91,23 +93,43 @@ export function CVBuilder() {
   };
 
   const descargarPDF = () => {
-    if (!cvMd) return;
-    const html = mdToHtml(cvMd);
+    if (!cvMd || !cvProfile) return;
+    
+    // 1. Eliminar emojis del texto generado por la IA (por si acaso)
+    const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}]/gu;
+    const cleanMd = cvMd.replace(emojiRegex, "");
+    
+    const html = mdToHtml(cleanMd);
     const w = window.open("", "_blank");
     if (!w) return;
+    
+    const pe: any = cvProfile.perfil || {};
+    
+    // 2. Bloque de información personal con líneas azules delgadas
+    const infoPersonal = `
+      <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1.5px solid #003366;">
+        <h1 style="font-size: 28px; margin: 0 0 8px; color: #003366; border: none; padding: 0;">${cvProfile.nombre_completo}</h1>
+        <p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Carrera:</strong> ${cvProfile.carrera || "No especificada"} ${cvProfile.cuatrimestre ? `(${cvProfile.cuatrimestre}° cuatrimestre)` : ""}</p>
+        <p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Correo:</strong> ${cvProfile.correo_institucional}</p>
+        ${pe.telefono ? `<p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Teléfono:</strong> ${pe.telefono}</p>` : ""}
+        ${pe.ubicacion ? `<p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Ubicación:</strong> ${pe.ubicacion}</p>` : ""}
+      </div>
+    `;
+
+    // 3. Estilos actualizados: líneas azules (#003366) y más delgadas (1.5px y 1px)
     w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CV - ${cvNombre}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         * { box-sizing: border-box; }
         body { font-family: 'Poppins', Arial, sans-serif; color: #2C3E50; max-width: 780px; margin: 0 auto; padding: 40px; line-height: 1.5; }
-        h1 { color: #003366; font-size: 26px; margin: 0 0 4px; border-bottom: 3px solid #FFD700; padding-bottom: 8px; }
-        h2 { color: #003366; font-size: 16px; margin: 22px 0 6px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px; }
+        h1 { color: #003366; font-size: 26px; margin: 0 0 4px; border-bottom: 1.5px solid #003366; padding-bottom: 8px; }
+        h2 { color: #003366; font-size: 16px; margin: 22px 0 6px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #003366; padding-bottom: 4px; }
         h3 { color: #2C3E50; font-size: 14px; margin: 12px 0 2px; }
         p { margin: 4px 0; font-size: 13px; }
         ul { margin: 4px 0 10px; padding-left: 20px; } li { font-size: 13px; margin: 2px 0; }
         strong { color: #003366; }
         @media print { body { padding: 0; } }
-      </style></head><body>${html}
+      </style></head><body>${infoPersonal}${html}
       <script>window.onload=function(){window.print();}<\/script></body></html>`);
     w.document.close();
   };

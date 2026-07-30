@@ -1,21 +1,74 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Card, CardContent } from "../../components/ui/card";
-import { 
-  Building2, Briefcase, Users, Send, Loader2, FileDown, TrendingUp, 
-  FileText, Plus, CheckCircle2, UserPlus, Ban, ArrowRight, UserX
+import {
+  Building2,
+  Briefcase,
+  Users,
+  Send,
+  Loader2,
+  FileDown,
+  TrendingUp,
+  FileText,
+  Plus,
+  CheckCircle2,
+  UserPlus,
+  Ban,
+  ArrowRight,
+  UserX,
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  LabelList,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
 } from "recharts";
-import { adminService, type AdminDashboard as Dash } from "../../services/admin.service";
-import { companiesService, type Company } from "../../services/companies.service";
+import {
+  adminService,
+  type AdminDashboard as Dash,
+} from "../../services/admin.service";
+import {
+  companiesService,
+  type Company,
+} from "../../services/companies.service";
 import { EmpresaDialog } from "./empresas/AdminEmpresas";
 import { VacanteDialog } from "./vacantes/AdminVacantes";
 
-const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-const PIE_COLORS = ["#003366", "#00A8E8", "#FFD700", "#27AE60", "#9B59B6", "#E67E22", "#E74C3C", "#1ABC9C", "#34495E", "#7F8C8D"];
+const MESES = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+];
+const PIE_COLORS = [
+  "#003366",
+  "#00A8E8",
+  "#FFD700",
+  "#27AE60",
+  "#9B59B6",
+  "#E67E22",
+  "#E74C3C",
+  "#1ABC9C",
+  "#34495E",
+  "#7F8C8D",
+];
 
 // Formato de tiempo relativo para actividad
 function formatRelativeTime(dateString: string) {
@@ -24,7 +77,7 @@ function formatRelativeTime(dateString: string) {
   const mins = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
+
   if (mins < 60) return `Hace ${mins} min${mins !== 1 ? "s" : ""}`;
   if (hours < 24) return `Hace ${hours} hora${hours !== 1 ? "s" : ""}`;
   if (days === 1) return "Ayer";
@@ -38,18 +91,24 @@ function last6Months() {
   const arr: { key: string; label: string }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    arr.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: MESES[d.getMonth()] });
+    arr.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: MESES[d.getMonth()],
+    });
   }
   return arr;
 }
-const abreviaCarrera = (c: string) => c.replace(/^Ingeniería/, "Ing.").replace(/^Licenciatura/, "Lic.");
+const abreviaCarrera = (c: string) =>
+  c.replace(/^Ingeniería/, "Ing.").replace(/^Licenciatura/, "Lic.");
 
 function CleanTooltip({ active, payload, label, unidad }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl border border-border bg-popover text-popover-foreground shadow-md px-3 py-2 text-xs">
       {label && <p className="font-semibold capitalize mb-0.5">{label}</p>}
-      <p className="text-muted-foreground">{payload[0].value} {unidad}</p>
+      <p className="text-muted-foreground">
+        {payload[0].value} {unidad}
+      </p>
     </div>
   );
 }
@@ -58,17 +117,24 @@ export function AdminDashboard() {
   const [d, setD] = useState<Dash | null>(null);
   const [loading, setLoading] = useState(true);
   const [empresas, setEmpresas] = useState<Company[]>([]);
-  
+
   // Modales
   const [showEmpresaModal, setShowEmpresaModal] = useState(false);
   const [showVacanteModal, setShowVacanteModal] = useState(false);
 
   const cargarDashboard = () => {
-    adminService.dashboard().then(setD).catch(() => {}).finally(() => setLoading(false));
+    adminService
+      .dashboard()
+      .then(setD)
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
 
   const cargarEmpresas = () => {
-    companiesService.list().then(setEmpresas).catch(() => {});
+    companiesService
+      .list()
+      .then(setEmpresas)
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -76,100 +142,285 @@ export function AdminDashboard() {
     cargarEmpresas();
   }, []);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="size-8 animate-spin text-[#003366]" /></div>;
-  if (!d) return <div className="p-8 text-center text-muted-foreground">No se pudieron cargar las estadísticas.</div>;
+  if (loading)
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="size-8 animate-spin text-[#003366]" />
+      </div>
+    );
+  if (!d)
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        No se pudieron cargar las estadísticas.
+      </div>
+    );
 
   const meses = last6Months();
-  const postData = meses.map((m) => ({ mes: m.label, total: d.postulacionesPorMes.find((x) => x.mes === m.key)?.total ?? 0 }));
-  const regData = meses.map((m) => ({ mes: m.label, total: d.registrosPorMes.find((x) => x.mes === m.key)?.total ?? 0 }));
+  const postData = meses.map((m) => ({
+    mes: m.label,
+    total: d.postulacionesPorMes.find((x) => x.mes === m.key)?.total ?? 0,
+  }));
+  const regData = meses.map((m) => ({
+    mes: m.label,
+    total: d.registrosPorMes.find((x) => x.mes === m.key)?.total ?? 0,
+  }));
   const totalCarreras = d.porCarrera.reduce((a, c) => a + c.total, 0) || 1;
   const carreraData = d.porCarrera.map((c, i) => ({
-    name: abreviaCarrera(c.carrera), full: c.carrera, total: c.total,
-    pct: Math.round((c.total / totalCarreras) * 100), color: PIE_COLORS[i % PIE_COLORS.length],
+    name: abreviaCarrera(c.carrera),
+    full: c.carrera,
+    total: c.total,
+    pct: Math.round((c.total / totalCarreras) * 100),
+    color: PIE_COLORS[i % PIE_COLORS.length],
   }));
   const cv = d.cvScore;
   let nombreAdmin = "Admin UPA";
-  try { nombreAdmin = JSON.parse(localStorage.getItem("inupa_user") || "{}").nombre_completo || "Admin UPA"; } catch { /* noop */ }
+  try {
+    nombreAdmin =
+      JSON.parse(localStorage.getItem("inupa_user") || "{}").nombre_completo ||
+      "Admin UPA";
+  } catch {
+    /* noop */
+  }
 
   const cards = [
-    { label: "Empresas registradas", value: d.totales.empresas, sub: "+ 1 esta semana", icon: Building2, color: "#003366", to: "/admin/empresas" },
-    { label: "Usuarios activos", value: d.totales.usuariosActivos, sub: `De ${d.totales.usuarios} registrados`, icon: Users, color: "#00A8E8", to: "/admin/usuarios" },
-    { label: "Vacantes activas", value: d.totales.vacantesActivas, sub: `En ${d.resumenPlataforma?.empresasConVacantes ?? 0} empresas`, icon: Briefcase, color: "#9B59B6", to: "/admin/vacantes" },
+    {
+      label: "Empresas registradas",
+      value: d.totales.empresas,
+      sub: "+ 1 esta semana",
+      icon: Building2,
+      color: "#003366",
+      to: "/admin/empresas",
+    },
+    {
+      label: "Usuarios activos",
+      value: d.totales.usuariosActivos,
+      sub: `De ${d.totales.usuarios} registrados`,
+      icon: Users,
+      color: "#00A8E8",
+      to: "/admin/usuarios",
+    },
+    {
+      label: "Vacantes activas",
+      value: d.totales.vacantesActivas,
+      sub: `En ${d.resumenPlataforma?.empresasConVacantes ?? 0} empresas`,
+      icon: Briefcase,
+      color: "#9B59B6",
+      to: "/admin/vacantes",
+    },
   ];
 
   // Informe PDF
-    // Informe PDF
-    // Informe PDF
+  // Informe PDF
+  // Informe PDF
   const imprimirInforme = () => {
     const w = window.open("", "_blank");
     if (!w) return;
     const upaLogoUrl = window.location.origin + "/logo-upa.png";
-    
+
     // Función para dibujar un gráfico de líneas SVG
-    const drawLineChart = (chartData, color) => {
-      if (chartData.length === 0) return '<p style="font-size:11px;color:#64748B;text-align:center;padding:20px;">Sin registros en el rango</p>';
+    const drawLineChart = (
+      chartData: { mes: string; total: number }[],
+      color: string,
+    ) => {
+      if (chartData.length === 0)
+        return '<p style="font-size:11px;color:#64748B;text-align:center;padding:20px;">Sin registros en el rango</p>';
       var width = 600;
       var height = 180;
       var paddingX = 40;
       var paddingY = 30;
-      var maxVal = Math.max(1, ...chartData.map(function(d) { return d.total; }));
-      
-      var points = chartData.map(function(d, i) {
-        var x = paddingX + (i * (width - paddingX * 2)) / Math.max(1, chartData.length - 1);
-        var y = height - paddingY - (d.total * (height - paddingY * 2)) / maxVal;
+      var maxVal = Math.max(
+        1,
+        ...chartData.map(function (d) {
+          return d.total;
+        }),
+      );
+
+      var points = chartData.map(function (d, i) {
+        var x =
+          paddingX +
+          (i * (width - paddingX * 2)) / Math.max(1, chartData.length - 1);
+        var y =
+          height - paddingY - (d.total * (height - paddingY * 2)) / maxVal;
         return { x: x, y: y, val: d.total, label: d.mes };
       });
-      
-      var pathD = "M " + points.map(function(p) { return p.x + "," + p.y; }).join(" L ");
-      var dots = points.map(function(p) { 
-        return '<circle cx="' + p.x + '" cy="' + p.y + '" r="4.5" fill="' + color + '" stroke="#ffffff" stroke-width="2" />'; 
-      }).join('');
-      var labels = points.map(function(p) { 
-        return '<text x="' + p.x + '" y="' + (p.y - 10) + '" font-size="10" font-weight="850" fill="#2C3E50" text-anchor="middle">' + p.val + '</text>' +
-               '<text x="' + p.x + '" y="' + (height - 8) + '" font-size="9" font-weight="700" fill="#7F8C8D" text-anchor="middle">' + p.label + '</text>';
-      }).join('');
-      
-      var gridLines = [0, 0.5, 1].map(function(pct) {
-        var y = paddingY + pct * (height - paddingY * 2);
-        return '<line x1="' + paddingX + '" y1="' + y + '" x2="' + (width - paddingX) + '" y2="' + y + '" stroke="#E2E8F0" stroke-width="0.75" stroke-dasharray="3 3" />';
-      }).join('');
 
-      return '<svg viewBox="0 0 ' + width + ' ' + height + '" style="width:100%;height:auto;margin-top:10px;">' +
+      var pathD =
+        "M " +
+        points
+          .map(function (p) {
+            return p.x + "," + p.y;
+          })
+          .join(" L ");
+      var dots = points
+        .map(function (p) {
+          return (
+            '<circle cx="' +
+            p.x +
+            '" cy="' +
+            p.y +
+            '" r="4.5" fill="' +
+            color +
+            '" stroke="#ffffff" stroke-width="2" />'
+          );
+        })
+        .join("");
+      var labels = points
+        .map(function (p) {
+          return (
+            '<text x="' +
+            p.x +
+            '" y="' +
+            (p.y - 10) +
+            '" font-size="10" font-weight="850" fill="#2C3E50" text-anchor="middle">' +
+            p.val +
+            "</text>" +
+            '<text x="' +
+            p.x +
+            '" y="' +
+            (height - 8) +
+            '" font-size="9" font-weight="700" fill="#7F8C8D" text-anchor="middle">' +
+            p.label +
+            "</text>"
+          );
+        })
+        .join("");
+
+      var gridLines = [0, 0.5, 1]
+        .map(function (pct) {
+          var y = paddingY + pct * (height - paddingY * 2);
+          return (
+            '<line x1="' +
+            paddingX +
+            '" y1="' +
+            y +
+            '" x2="' +
+            (width - paddingX) +
+            '" y2="' +
+            y +
+            '" stroke="#E2E8F0" stroke-width="0.75" stroke-dasharray="3 3" />'
+          );
+        })
+        .join("");
+
+      return (
+        '<svg viewBox="0 0 ' +
+        width +
+        " " +
+        height +
+        '" style="width:100%;height:auto;margin-top:10px;">' +
         gridLines +
-        '<path d="' + pathD + '" fill="none" stroke="' + color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />' +
-        dots + labels +
-        '<line x1="' + paddingX + '" y1="' + (height - paddingY) + '" x2="' + (width - paddingX) + '" y2="' + (height - paddingY) + '" stroke="#CBD5E1" stroke-width="1.5" />' +
-        '</svg>';
+        '<path d="' +
+        pathD +
+        '" fill="none" stroke="' +
+        color +
+        '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />' +
+        dots +
+        labels +
+        '<line x1="' +
+        paddingX +
+        '" y1="' +
+        (height - paddingY) +
+        '" x2="' +
+        (width - paddingX) +
+        '" y2="' +
+        (height - paddingY) +
+        '" stroke="#CBD5E1" stroke-width="1.5" />' +
+        "</svg>"
+      );
     };
 
     // Función para dibujar un gráfico de barras SVG
-    const drawBarChart = (chartData, color) => {
-      if (chartData.length === 0) return '<p style="font-size:11px;color:#64748B;text-align:center;padding:20px;">Sin postulaciones en el rango</p>';
+    const drawBarChart = (
+      chartData: { mes: string; total: number }[],
+      color: string,
+    ) => {
+      if (chartData.length === 0)
+        return '<p style="font-size:11px;color:#64748B;text-align:center;padding:20px;">Sin postulaciones en el rango</p>';
       var width = 600;
       var height = 180;
       var paddingX = 40;
       var paddingY = 30;
-      var maxVal = Math.max(1, ...chartData.map(function(d) { return d.total; }));
-      var barWidth = ((width - paddingX * 2) / Math.max(1, chartData.length)) - 20;
-      
-      var bars = chartData.map(function(d, i) {
-        var x = paddingX + i * ((width - paddingX * 2) / chartData.length) + 10;
-        var barHeight = (d.total * (height - paddingY * 2)) / maxVal;
-        var y = height - paddingY - barHeight;
-        return '<rect x="' + x + '" y="' + y + '" width="' + barWidth + '" height="' + barHeight + '" fill="' + color + '" rx="4" />' +
-          '<text x="' + (x + barWidth / 2) + '" y="' + (y - 8) + '" font-size="10" font-weight="850" fill="#2C3E50" text-anchor="middle">' + d.total + '</text>' +
-          '<text x="' + (x + barWidth / 2) + '" y="' + (height - 8) + '" font-size="9" font-weight="700" fill="#7F8C8D" text-anchor="middle">' + d.mes + '</text>';
-      }).join('');
+      var maxVal = Math.max(
+        1,
+        ...chartData.map(function (d) {
+          return d.total;
+        }),
+      );
+      var barWidth =
+        (width - paddingX * 2) / Math.max(1, chartData.length) - 20;
 
-      var gridLines = [0, 0.5, 1].map(function(pct) {
-        var y = paddingY + pct * (height - paddingY * 2);
-        return '<line x1="' + paddingX + '" y1="' + y + '" x2="' + (width - paddingX) + '" y2="' + y + '" stroke="#E2E8F0" stroke-width="0.75" stroke-dasharray="3 3" />';
-      }).join('');
+      var bars = chartData
+        .map(function (d, i) {
+          var x =
+            paddingX + i * ((width - paddingX * 2) / chartData.length) + 10;
+          var barHeight = (d.total * (height - paddingY * 2)) / maxVal;
+          var y = height - paddingY - barHeight;
+          return (
+            '<rect x="' +
+            x +
+            '" y="' +
+            y +
+            '" width="' +
+            barWidth +
+            '" height="' +
+            barHeight +
+            '" fill="' +
+            color +
+            '" rx="4" />' +
+            '<text x="' +
+            (x + barWidth / 2) +
+            '" y="' +
+            (y - 8) +
+            '" font-size="10" font-weight="850" fill="#2C3E50" text-anchor="middle">' +
+            d.total +
+            "</text>" +
+            '<text x="' +
+            (x + barWidth / 2) +
+            '" y="' +
+            (height - 8) +
+            '" font-size="9" font-weight="700" fill="#7F8C8D" text-anchor="middle">' +
+            d.mes +
+            "</text>"
+          );
+        })
+        .join("");
 
-      return '<svg viewBox="0 0 ' + width + ' ' + height + '" style="width:100%;height:auto;margin-top:10px;">' +
-        gridLines + bars +
-        '<line x1="' + paddingX + '" y1="' + (height - paddingY) + '" x2="' + (width - paddingX) + '" y2="' + (height - paddingY) + '" stroke="#CBD5E1" stroke-width="1.5" />' +
-        '</svg>';
+      var gridLines = [0, 0.5, 1]
+        .map(function (pct) {
+          var y = paddingY + pct * (height - paddingY * 2);
+          return (
+            '<line x1="' +
+            paddingX +
+            '" y1="' +
+            y +
+            '" x2="' +
+            (width - paddingX) +
+            '" y2="' +
+            y +
+            '" stroke="#E2E8F0" stroke-width="0.75" stroke-dasharray="3 3" />'
+          );
+        })
+        .join("");
+
+      return (
+        '<svg viewBox="0 0 ' +
+        width +
+        " " +
+        height +
+        '" style="width:100%;height:auto;margin-top:10px;">' +
+        gridLines +
+        bars +
+        '<line x1="' +
+        paddingX +
+        '" y1="' +
+        (height - paddingY) +
+        '" x2="' +
+        (width - paddingX) +
+        '" y2="' +
+        (height - paddingY) +
+        '" stroke="#CBD5E1" stroke-width="1.5" />' +
+        "</svg>"
+      );
     };
 
     const rawData = {
@@ -180,7 +431,7 @@ export function AdminDashboard() {
       regData: regData,
       actividades: d.actividadReciente || [],
       empresas: d.empresasRecientes || [],
-      usuarios: d.ultimosUsuarios || []
+      usuarios: d.ultimosUsuarios || [],
     };
 
     w.document.write(`<!doctype html>
@@ -391,8 +642,8 @@ export function AdminDashboard() {
     </div>
     <div class="filter-actions">
       <button class="btn btn-secondary" onclick="window.close()" style="background:#ffffff; border:1px solid #CBD5E1; color:#475569; hover:background:#F1F5F9;">← Volver al Panel</button>
-      <button class="btn btn-primary" onclick="filtrarReporte()">🔍 Filtrar Rango</button>
-      <button class="btn btn-accent" onclick="window.print()">🖨️ Imprimir Reporte</button>
+      <button class="btn btn-primary" onclick="filtrarReporte()">Filtrar Rango</button>
+      <button class="btn btn-accent" onclick="window.print()">Imprimir Reporte</button>
     </div>
   </div>
 
@@ -658,12 +909,18 @@ export function AdminDashboard() {
 
   const getActividadBg = (tipo: string) => {
     switch (tipo) {
-      case "nueva_empresa": return "bg-[#003366]/10";
-      case "nuevo_usuario": return "bg-[#27AE60]/10";
-      case "nueva_vacante": return "bg-[#9B59B6]/10";
-      case "postulacion_aceptada": return "bg-[#00A8E8]/10";
-      case "usuario_suspendido": return "bg-[#E74C3C]/10";
-      default: return "bg-muted";
+      case "nueva_empresa":
+        return "bg-[#003366]/10";
+      case "nuevo_usuario":
+        return "bg-[#27AE60]/10";
+      case "nueva_vacante":
+        return "bg-[#9B59B6]/10";
+      case "postulacion_aceptada":
+        return "bg-[#00A8E8]/10";
+      case "usuario_suspendido":
+        return "bg-[#E74C3C]/10";
+      default:
+        return "bg-muted";
     }
   };
 
@@ -689,23 +946,44 @@ export function AdminDashboard() {
       {/* Encabezado */}
       <div className="rounded-2xl bg-gradient-to-r from-[#001A33] to-[#003366] p-6 text-white flex flex-wrap items-center justify-between gap-4 shadow-xl border border-[#003366]/10 transition-all duration-300">
         <div>
-          <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold">Panel de administración · InUPA</p>
-          <h1 className="text-2xl font-extrabold mt-1 text-white tracking-tight">Bienvenido, {nombreAdmin}</h1>
+          <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold">
+            Panel de administración · InUPA
+          </p>
+          <h1 className="text-2xl font-extrabold mt-1 text-white tracking-tight">
+            Bienvenido, {nombreAdmin}
+          </h1>
           <p className="text-white/60 text-xs mt-1 font-medium">
-            Hoy es {new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · Todo en orden
+            Hoy es{" "}
+            {new Date().toLocaleDateString("es-MX", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}{" "}
+            · Todo en orden
           </p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => setShowEmpresaModal(true)} className="flex items-center gap-1.5 bg-[#FFD700] text-[#003366] font-bold text-xs px-4.5 py-2.5 rounded-xl hover:bg-[#e6c200] transition-all active:scale-95 shadow-md">
+          <button
+            onClick={() => setShowEmpresaModal(true)}
+            className="flex items-center gap-1.5 bg-[#FFD700] text-[#003366] font-bold text-xs px-4.5 py-2.5 rounded-xl hover:bg-[#e6c200] transition-all active:scale-95 shadow-md"
+          >
             <Plus className="size-4" /> Nuevo empresa
           </button>
-          
-          <button onClick={() => setShowVacanteModal(true)} className="flex items-center gap-1.5 bg-transparent border border-white/20 text-white font-bold text-xs px-4.5 py-2.5 rounded-xl hover:bg-white/10 transition-all active:scale-95">
+
+          <button
+            onClick={() => setShowVacanteModal(true)}
+            className="flex items-center gap-1.5 bg-transparent border border-white/20 text-white font-bold text-xs px-4.5 py-2.5 rounded-xl hover:bg-white/10 transition-all active:scale-95"
+          >
             <Plus className="size-4" /> Nueva vacante
           </button>
-          
-          <button onClick={imprimirInforme} title="Imprimir informe PDF" className="size-10 rounded-xl bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-95">
+
+          <button
+            onClick={imprimirInforme}
+            title="Imprimir informe PDF"
+            className="size-10 rounded-xl bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-95"
+          >
             <FileDown className="size-4" />
           </button>
         </div>
@@ -716,18 +994,27 @@ export function AdminDashboard() {
         {cards.map((c, i) => {
           const Icon = c.icon;
           const isPositive = c.sub.startsWith("+");
-          
+
           const cardContent = (
-            <Card className={`border-0 shadow-sm transition-all duration-300 rounded-2xl group overflow-hidden ${c.to ? "hover:shadow-xl hover:-translate-y-1" : ""}`}>
+            <Card
+              className={`border-0 shadow-sm transition-all duration-300 rounded-2xl group overflow-hidden ${c.to ? "hover:shadow-xl hover:-translate-y-1" : ""}`}
+            >
               <CardContent className="p-5 relative">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">{c.label}</p>
-                  <div className="size-9 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: `${c.color}15` }}>
+                  <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
+                    {c.label}
+                  </p>
+                  <div
+                    className="size-9 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                    style={{ backgroundColor: `${c.color}15` }}
+                  >
                     <Icon className="size-5" style={{ color: c.color }} />
                   </div>
                 </div>
-                <p className="text-3xl font-extrabold text-foreground mt-2.5 tracking-tight">{c.value}</p>
-                
+                <p className="text-3xl font-extrabold text-foreground mt-2.5 tracking-tight">
+                  {c.value}
+                </p>
+
                 <p className="text-[11px] mt-2 flex items-center gap-1 font-semibold text-muted-foreground">
                   {isPositive ? (
                     <>
@@ -744,14 +1031,29 @@ export function AdminDashboard() {
 
           if (c.to) {
             return (
-              <Link key={c.label} to={c.to} className="animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}>
+              <Link
+                key={c.label}
+                to={c.to}
+                className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+                style={{
+                  animationDelay: `${i * 60}ms`,
+                  animationFillMode: "backwards",
+                }}
+              >
                 {cardContent}
               </Link>
             );
           }
 
           return (
-            <div key={c.label} className="animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}>
+            <div
+              key={c.label}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+              style={{
+                animationDelay: `${i * 60}ms`,
+                animationFillMode: "backwards",
+              }}
+            >
               {cardContent}
             </div>
           );
@@ -761,223 +1063,347 @@ export function AdminDashboard() {
       {/* Primera Fila de Gráficos */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Nuevos registros (línea) */}
-        <Card className="border-0 shadow-sm lg:col-span-2 rounded-2xl overflow-hidden"><CardContent className="p-5">
-          <h2 className="text-base font-bold text-foreground">Nuevos registros</h2>
-          <p className="text-[11px] text-muted-foreground mb-4">Usuarios por mes</p>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={regData} margin={{ top: 15, right: 15, left: -25, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CleanTooltip unidad="registros" />} />
-              <Line type="monotone" dataKey="total" stroke="#00A8E8" strokeWidth={2.5} dot={{ r: 4, fill: "#00A8E8" }} animationDuration={900}>
-                <LabelList dataKey="total" position="top" style={{ fontSize: 11, fontWeight: 700, fill: "var(--foreground)" }} />
-              </Line>
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent></Card>
+        <Card className="border-0 shadow-sm lg:col-span-2 rounded-2xl overflow-hidden">
+          <CardContent className="p-5">
+            <h2 className="text-base font-bold text-foreground">
+              Nuevos registros
+            </h2>
+            <p className="text-[11px] text-muted-foreground mb-4">
+              Usuarios por mes
+            </p>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart
+                data={regData}
+                margin={{ top: 15, right: 15, left: -25, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="var(--border)"
+                />
+                <XAxis
+                  dataKey="mes"
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip content={<CleanTooltip unidad="registros" />} />
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  stroke="#00A8E8"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: "#00A8E8" }}
+                  animationDuration={900}
+                >
+                  <LabelList
+                    dataKey="total"
+                    position="top"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      fill: "var(--foreground)",
+                    }}
+                  />
+                </Line>
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Usuarios por carrera */}
-        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden"><CardContent className="p-5">
-          <h2 className="text-base font-bold text-foreground">Usuarios por carrera</h2>
-          <p className="text-[11px] text-muted-foreground mb-3">{totalCarreras} estudiantes registrados</p>
-          {carreraData.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-16">Sin datos de carrera.</p>
-          ) : (
-            <div className="flex flex-col items-center">
-              <div className="relative">
-                <ResponsiveContainer width={180} height={180}>
-                  <PieChart>
-                    <Pie data={carreraData} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={58} outerRadius={84} paddingAngle={2.5} stroke="none" animationDuration={800}>
-                      {carreraData.map((c, i) => <Cell key={i} fill={c.color} />)}
-                    </Pie>
-                    <Tooltip content={<CleanTooltip unidad="estudiantes" />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-2xl font-black text-foreground">{totalCarreras}</span>
-                  <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">total</span>
+        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-bold text-foreground">
+                  Usuarios por carrera
+                </h2>
+                <p className="text-[11px] text-muted-foreground">
+                  {totalCarreras} estudiantes registrados
+                </p>
+              </div>
+              <Link
+                to="/admin/carreras"
+                className="text-xs text-[#003366] font-bold hover:underline flex items-center gap-1 group"
+              >
+                Gestionar
+                <ArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </Link>
+            </div>
+
+            {carreraData.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-16">
+                Sin datos de carrera.
+              </p>
+            ) : (
+              <div className="flex flex-col items-center">
+                <div className="relative">
+                  <ResponsiveContainer width={180} height={180}>
+                    <PieChart>
+                      <Pie
+                        data={carreraData}
+                        dataKey="total"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={58}
+                        outerRadius={84}
+                        paddingAngle={2.5}
+                        stroke="none"
+                        animationDuration={800}
+                      >
+                        {carreraData.map((c, i) => (
+                          <Cell key={i} fill={c.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={<CleanTooltip unidad="estudiantes" />}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-2xl font-black text-foreground">
+                      {totalCarreras}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">
+                      total
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full mt-4 space-y-1.5 max-h-[105px] overflow-y-auto pr-1">
+                  {carreraData.map((c) => (
+                    <div
+                      key={c.full}
+                      className="flex items-center gap-2 text-[11px]"
+                    >
+                      <span
+                        className="size-2 rounded-full flex-none"
+                        style={{ background: c.color }}
+                      />
+                      <span
+                        className="text-foreground font-medium truncate flex-1"
+                        title={c.full}
+                      >
+                        {c.name}
+                      </span>
+                      <span className="text-muted-foreground tabular-nums font-bold">
+                        {c.total}
+                      </span>
+                      <span className="text-muted-foreground/70 tabular-nums w-8 text-right font-medium">
+                        {c.pct}%
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="w-full mt-4 space-y-1.5 max-h-[105px] overflow-y-auto pr-1">
-                {carreraData.map((c) => (
-                  <div key={c.full} className="flex items-center gap-2 text-[11px]">
-                    <span className="size-2 rounded-full flex-none" style={{ background: c.color }} />
-                    <span className="text-foreground font-medium truncate flex-1" title={c.full}>{c.name}</span>
-                    <span className="text-muted-foreground tabular-nums font-bold">{c.total}</span>
-                    <span className="text-muted-foreground/70 tabular-nums w-8 text-right font-medium">{c.pct}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent></Card>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Segunda Fila de Gráficos y Listas */}
       <div className="grid lg:grid-cols-2 gap-6">
-
         {/* Empresas recientes */}
-        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden flex flex-col"><CardContent className="p-5 flex-1 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-base font-bold text-foreground">Empresas recientes</h2>
-              <p className="text-[11px] text-muted-foreground">Últimos registros agregados</p>
-            </div>
-            <Link to="/admin/empresas" className="text-xs text-[#003366] font-bold hover:underline flex items-center gap-1 group">
-              Ver todas <ArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-          
-          <div className="space-y-3.5 flex-1">
-            {d.empresasRecientes?.map((emp) => (
-              <div key={emp.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/10 border border-border/20 hover:bg-muted/20 transition-all duration-200">
-                <div className="flex items-center gap-3">
-                  <div className="size-9 rounded-xl bg-[#003366] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                    {emp.nombre.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate max-w-[130px]">{emp.nombre}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{emp.industria || "Tecnología"}</p>
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${emp.activa ? "bg-green-50 text-[#27AE60] border border-green-200/50" : "bg-red-50 text-[#E74C3C] border border-red-200/50"}`}>
-                    {emp.activa ? "Activa" : "Inactiva"}
-                  </span>
-                  <p className="text-[9px] text-muted-foreground/80 mt-1">{formatRelativeTime(emp.created_at)}</p>
-                </div>
+        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden flex flex-col">
+          <CardContent className="p-5 flex-1 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-bold text-foreground">
+                  Empresas recientes
+                </h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Últimos registros agregados
+                </p>
               </div>
-            ))}
-            {(!d.empresasRecientes || d.empresasRecientes.length === 0) && (
-              <p className="text-xs text-muted-foreground text-center py-10">Sin empresas recientes.</p>
-            )}
-          </div>
-        </CardContent></Card>
+              <Link
+                to="/admin/empresas"
+                className="text-xs text-[#003366] font-bold hover:underline flex items-center gap-1 group"
+              >
+                Ver todas{" "}
+                <ArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </Link>
+            </div>
+
+            <div className="space-y-3.5 flex-1">
+              {d.empresasRecientes?.map((emp) => (
+                <div
+                  key={emp.id}
+                  className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/10 border border-border/20 hover:bg-muted/20 transition-all duration-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-9 rounded-xl bg-[#003366] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                      {emp.nombre.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate max-w-[130px]">
+                        {emp.nombre}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {emp.industria || "Tecnología"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span
+                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${emp.activa ? "bg-green-50 text-[#27AE60] border border-green-200/50" : "bg-red-50 text-[#E74C3C] border border-red-200/50"}`}
+                    >
+                      {emp.activa ? "Activa" : "Inactiva"}
+                    </span>
+                    <p className="text-[9px] text-muted-foreground/80 mt-1">
+                      {formatRelativeTime(emp.created_at)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {(!d.empresasRecientes || d.empresasRecientes.length === 0) && (
+                <p className="text-xs text-muted-foreground text-center py-10">
+                  Sin empresas recientes.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Actividad reciente timeline */}
-        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden flex flex-col"><CardContent className="p-5 flex-1 flex flex-col">
-          <h2 className="text-base font-bold text-foreground">Actividad reciente</h2>
-          <p className="text-[11px] text-muted-foreground mb-4">Línea de tiempo de eventos</p>
-          
-          <div className="relative flex-1 pl-4 space-y-4 before:absolute before:left-2 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-border/60">
-            {d.actividadReciente?.map((act, idx) => (
-              <div key={idx} className="relative flex items-start gap-3 text-xs text-[#2C3E50] leading-snug">
-                <span className={`absolute -left-4.5 size-6 rounded-full border-2 border-background flex items-center justify-center shadow-sm ${getActividadBg(act.tipo)}`}>
-                  {getActividadIcon(act.tipo)}
-                </span>
-                
-                <div className="pl-4">
-                  <p className="text-xs font-medium text-foreground leading-snug">{getActividadTexto(act)}</p>
-                  <p className="text-[9px] text-muted-foreground/80 mt-0.5">{formatRelativeTime(act.fecha)}</p>
+        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden flex flex-col">
+          <CardContent className="p-5 flex-1 flex flex-col">
+            <h2 className="text-base font-bold text-foreground">
+              Actividad reciente
+            </h2>
+            <p className="text-[11px] text-muted-foreground mb-4">
+              Línea de tiempo de eventos
+            </p>
+
+            <div className="relative flex-1 pl-4 space-y-4 before:absolute before:left-2 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-border/60">
+              {d.actividadReciente?.map((act, idx) => (
+                <div
+                  key={idx}
+                  className="relative flex items-start gap-3 text-xs text-[#2C3E50] leading-snug"
+                >
+                  <span
+                    className={`absolute -left-4.5 size-6 rounded-full border-2 border-background flex items-center justify-center shadow-sm ${getActividadBg(act.tipo)}`}
+                  >
+                    {getActividadIcon(act.tipo)}
+                  </span>
+
+                  <div className="pl-4">
+                    <p className="text-xs font-medium text-foreground leading-snug">
+                      {getActividadTexto(act)}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground/80 mt-0.5">
+                      {formatRelativeTime(act.fecha)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {(!d.actividadReciente || d.actividadReciente.length === 0) && (
-              <p className="text-xs text-muted-foreground text-center py-10">Sin actividades registradas.</p>
-            )}
-          </div>
-        </CardContent></Card>
+              ))}
+              {(!d.actividadReciente || d.actividadReciente.length === 0) && (
+                <p className="text-xs text-muted-foreground text-center py-10">
+                  Sin actividades registradas.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tercera Fila - Últimos Usuarios y Resumen */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Últimos usuarios */}
-        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden flex flex-col"><CardContent className="p-5 flex-1 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-base font-bold text-foreground">Últimos usuarios registrados</h2>
-              <p className="text-[11px] text-muted-foreground">Estudiantes agregados recientemente</p>
+        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden flex flex-col">
+          <CardContent className="p-5 flex-1 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-bold text-foreground">
+                  Últimos usuarios registrados
+                </h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Estudiantes agregados recientemente
+                </p>
+              </div>
+              <Link
+                to="/admin/usuarios"
+                className="text-xs text-[#003366] font-bold hover:underline flex items-center gap-1 group"
+              >
+                Ver todos{" "}
+                <ArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </Link>
             </div>
-            <Link to="/admin/usuarios" className="text-xs text-[#003366] font-bold hover:underline flex items-center gap-1 group">
-              Ver todos <ArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </Link>
-          </div>
 
-          <div className="space-y-3.5 flex-1">
-            {d.ultimosUsuarios?.map((user) => (
-              <div key={user.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/10 border border-border/20 hover:bg-muted/20 transition-all duration-200">
-                <div className="flex items-center gap-3">
-                  <div className="size-9 rounded-full bg-[#00A8E8]/10 text-[#00A8E8] flex items-center justify-center font-bold text-xs border border-[#00A8E8]/20">
-                    {user.nombre_completo.substring(0, 2).toUpperCase()}
+            <div className="space-y-3.5 flex-1">
+              {d.ultimosUsuarios?.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/10 border border-border/20 hover:bg-muted/20 transition-all duration-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-9 rounded-full bg-[#00A8E8]/10 text-[#00A8E8] flex items-center justify-center font-bold text-xs border border-[#00A8E8]/20">
+                      {user.nombre_completo.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate max-w-[130px]">
+                        {user.nombre_completo}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground truncate">
+                        {user.carrera
+                          ? abreviaCarrera(user.carrera)
+                          : "Estudiante"}{" "}
+                        {user.cuatrimestre
+                          ? `· ${user.cuatrimestre}º sem.`
+                          : ""}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate max-w-[130px]">{user.nombre_completo}</p>
-                    <p className="text-[9px] text-muted-foreground truncate">
-                      {user.carrera ? abreviaCarrera(user.carrera) : "Estudiante"} {user.cuatrimestre ? `· ${user.cuatrimestre}º sem.` : ""}
+
+                  <div className="text-right">
+                    <span className="text-[9px] bg-[#003366]/5 text-[#003366] border border-[#003366]/10 px-2 py-0.5 rounded-full font-bold">
+                      Estudiante
+                    </span>
+                    <p className="text-[9px] text-muted-foreground/80 mt-1">
+                      {formatRelativeTime(user.fecha_registro)}
                     </p>
                   </div>
                 </div>
-
-                <div className="text-right">
-                  <span className="text-[9px] bg-[#003366]/5 text-[#003366] border border-[#003366]/10 px-2 py-0.5 rounded-full font-bold">
-                    Estudiante
-                  </span>
-                  <p className="text-[9px] text-muted-foreground/80 mt-1">{formatRelativeTime(user.fecha_registro)}</p>
-                </div>
-              </div>
-            ))}
-            {(!d.ultimosUsuarios || d.ultimosUsuarios.length === 0) && (
-              <p className="text-xs text-muted-foreground text-center py-10">Sin usuarios recientes.</p>
-            )}
-          </div>
-        </CardContent></Card>
-
-        {/* Resumen de la plataforma */}
-        <Card className="border-0 shadow-lg lg:col-span-2 rounded-2xl overflow-hidden bg-gradient-to-br from-[#001A33] to-[#002b54] text-white flex flex-col justify-between"><CardContent className="p-5 flex-1 flex flex-col justify-between">
-          <div>
-            <h2 className="text-base font-bold text-white tracking-tight">Resumen de la plataforma</h2>
-            <p className="text-[10px] text-white/55">Métricas acumuladas de rendimiento</p>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-4 my-4 flex-1">
-            {/* KPI 1 */}
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all duration-200 flex flex-col justify-center">
-              <span className="text-xs font-bold text-white/50 uppercase tracking-wider">CV Score General</span>
-              <p className="text-2xl font-black text-[#FFD700] mt-1 tracking-tight">{cv.promedio}<span className="text-xs font-medium text-white/40"> / 100</span></p>
-              <p className="text-[9px] text-white/40 mt-1 font-semibold">Promedio de completitud de CV</p>
+              ))}
+              {(!d.ultimosUsuarios || d.ultimosUsuarios.length === 0) && (
+                <p className="text-xs text-muted-foreground text-center py-10">
+                  Sin usuarios recientes.
+                </p>
+              )}
             </div>
-            
-            {/* KPI 2 */}
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all duration-200 flex flex-col justify-center">
-              <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Empresas Activas</span>
-              <p className="text-2xl font-black text-[#FFD700] mt-1 tracking-tight">
-                {d.resumenPlataforma?.empresasConVacantes}<span className="text-xs font-medium text-white/40"> / {d.resumenPlataforma?.totalEmpresas}</span>
-              </p>
-              <p className="text-[9px] text-white/40 mt-1 font-semibold">Con vacantes abiertas</p>
-            </div>
-          </div>
-
-          <div className="border-t border-white/[0.07] pt-2 flex items-center justify-between text-[10px] text-white/40 font-semibold">
-            <span>InUPA Dashboard</span>
-            <span>Datos actualizados al {new Date().toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}</span>
-          </div>
-        </CardContent></Card>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Diálogos / Modales */}
       {showEmpresaModal && (
-        <EmpresaDialog 
-          item={null} 
-          onClose={() => setShowEmpresaModal(false)} 
+        <EmpresaDialog
+          item={null}
+          onClose={() => setShowEmpresaModal(false)}
           onSaved={() => {
             setShowEmpresaModal(false);
             cargarDashboard();
             cargarEmpresas();
-          }} 
+          }}
         />
       )}
 
       {showVacanteModal && (
-        <VacanteDialog 
-          item={null} 
-          empresas={empresas} 
-          onClose={() => setShowVacanteModal(false)} 
+        <VacanteDialog
+          item={null}
+          empresas={empresas}
+          onClose={() => setShowVacanteModal(false)}
           onSaved={() => {
             setShowVacanteModal(false);
             cargarDashboard();
-          }} 
+          }}
         />
       )}
     </div>

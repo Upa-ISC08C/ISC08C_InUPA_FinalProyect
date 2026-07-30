@@ -1,14 +1,41 @@
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { GraduationCap, ArrowRight, Loader2 } from "lucide-react";
+import { GraduationCap, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router";
 import { useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { CARRERAS_UPA, CUATRIMESTRES } from "../../utils/catalogos";
 
+// --- FUNCIONES DE VALIDACIÓN ---
+
+// 1. Matrícula: Fuerza mayúsculas y solo permite "UP" seguido de máximo 6 números
+const formatMatricula = (val: string) => {
+  const upper = val.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const clean = upper.startsWith("UP") ? upper : "UP" + upper.replace("UP", "");
+  const match = clean.match(/^UP(\d{0,6})/);
+  return match ? "UP" + match[1] : "UP";
+};
+
+// 2. Correo: Fuerza minúsculas (esto no afecta acentos, así que es seguro)
+const formatEmail = (val: string) => val.toLowerCase();
+
+// 3. Validador de dominio UPA
+const esCorreoUPA = (email: string) => {
+  return email.endsWith("@alumnos.upa.edu.mx") || email.endsWith("@upa.edu.mx");
+};
+
+// 4. Formateo final del nombre (SOLO al enviar, no mientras se escribe)
+const capitalizarNombre = (val: string) => {
+  return val
+    .trim()
+    .replace(/\s+/g, " ") // Elimina espacios dobles
+    .replace(/\b\w/g, (l) => l.toUpperCase()); // Capitaliza primera letra de cada palabra
+};
+
 export function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuthStore();
+  
   const [nombre, setNombre] = useState("");
   const [matricula, setMatricula] = useState("");
   const [carrera, setCarrera] = useState("");
@@ -19,31 +46,39 @@ export function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const dominioValido = (c: string) => c.endsWith("@alumnos.upa.edu.mx") || c.endsWith("@upa.edu.mx");
   const selCls = "w-full h-11 rounded-xl border border-[#D1D5DB] focus:border-[#003366] px-3 text-sm bg-white";
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const correo = email.toLowerCase().trim();
-    const matriculaLimpia = matricula.trim().toUpperCase();
     
-    if (nombre.trim().split(' ').length < 2) return setError("Por favor, escribe tu nombre y al menos un apellido.");
-    if (!matriculaLimpia) return setError("Escribe tu matrícula (UP).");
-    if (!/^UP\d{6}$/.test(matriculaLimpia)) return setError("La matrícula debe tener el formato UP seguido de 6 números (ej. UP200123).");
+    const correoLimpio = email.toLowerCase().trim();
+    const matriculaLimpia = matricula.trim().toUpperCase();
+    const nombreLimpio = capitalizarNombre(nombre); // ✅ Formateamos solo al enviar
+
+    // Validaciones finales de seguridad
+    if (nombreLimpio.split(" ").length < 2) return setError("Por favor, escribe tu nombre y al menos un apellido.");
+    if (!/^UP\d{6}$/.test(matriculaLimpia)) return setError("La matrícula debe ser exacta: UP seguido de 6 números (ej. UP230188).");
     if (!carrera) return setError("Selecciona tu carrera.");
     if (!cuatrimestre) return setError("Selecciona tu cuatrimestre.");
-    if (!dominioValido(correo)) return setError("Debes usar tu correo institucional de la UPA (@alumnos.upa.edu.mx o @upa.edu.mx).");
-    if (correo.split('@')[0].toUpperCase() !== matriculaLimpia) return setError("El correo institucional no coincide con la matrícula ingresada.");
+    if (!esCorreoUPA(correoLimpio)) return setError("El correo debe terminar en @alumnos.upa.edu.mx o @upa.edu.mx");
+    
+    // Validación extra: El inicio del correo debe coincidir con la matrícula (para alumnos)
+    const prefijoCorreo = correoLimpio.split("@")[0].toUpperCase();
+    if (correoLimpio.includes("@alumnos.upa.edu.mx") && prefijoCorreo !== matriculaLimpia) {
+      return setError("El inicio del correo debe coincidir exactamente con tu matrícula (ej. UP230188).");
+    }
+
     if (password.length < 6) return setError("La contraseña debe tener al menos 6 caracteres.");
     if (password !== confirm) return setError("Las contraseñas no coinciden.");
+
     setIsLoading(true);
     try {
       const user = await register({
-        nombre_completo: nombre.trim(),
-        email: correo,
+        nombre_completo: nombreLimpio, // ✅ Enviamos el nombre ya formateado
+        email: correoLimpio,
         password,
-        matricula_o_rfc: matricula.trim().toUpperCase(),
+        matricula_o_rfc: matriculaLimpia,
         carrera,
         cuatrimestre: Number(cuatrimestre),
       });
@@ -93,39 +128,45 @@ export function RegisterPage() {
 
           <div>
             <h2 className="text-3xl font-bold text-[#2C3E50] tracking-tight">Crear cuenta</h2>
-            <p className="text-[#7F8C8D] text-sm mt-1.5">Solo para correos <span className="font-semibold text-[#003366]">@alumnos.upa.edu.mx</span></p>
+            <p className="text-[#7F8C8D] text-sm mt-1.5">Solo para correos <span className="font-semibold text-[#003366]">@alumnos.upa.edu.mx</span> o <span className="font-semibold text-[#003366]">@upa.edu.mx</span></p>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-4">
             {error && (
               <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="size-5 flex items-center justify-center rounded-full bg-red-100 font-bold text-red-600 shrink-0">!</span>
+                  <AlertCircle className="size-5 text-red-600 shrink-0" />
                   <span>{error}</span>
                 </div>
-                {error.toLowerCase().includes("ya existe") && (
-                  <div className="pl-7 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    <Link to="/" className="text-[#003366] font-bold hover:underline">
-                      Iniciar sesión
-                    </Link>
-                    <span className="text-red-400/60">—</span>
-                    <Link to="/" state={{ recover: true, email }} className="text-[#003366] font-bold hover:underline">
-                      Recuperar cuenta
-                    </Link>
-                  </div>
-                )}
               </div>
             )}
+            
             <div className="space-y-1.5">
               <Label htmlFor="nombre" className="text-sm font-semibold text-[#2C3E50]">Nombre completo</Label>
-              <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre completo"
-                className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm" required disabled={isLoading} />
+              <Input 
+                id="nombre" 
+                value={nombre} 
+                onChange={(e) => setNombre(e.target.value)} // ✅ SIN FORMATO EN TIEMPO REAL
+                placeholder="Andrea Mariana"
+                className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm capitalize" // ✅ CSS 'capitalize' para que se vea bien
+                required 
+                disabled={isLoading} 
+              />
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="matricula" className="text-sm font-semibold text-[#2C3E50]">Matrícula (UP)</Label>
-                <Input id="matricula" value={matricula} onChange={(e) => setMatricula(e.target.value)} placeholder="UP230188"
-                  className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm" required disabled={isLoading} />
+                <Label htmlFor="matricula" className="text-sm font-semibold text-[#2C3E50]">Matrícula</Label>
+                <Input 
+                  id="matricula" 
+                  value={matricula} 
+                  onChange={(e) => setMatricula(formatMatricula(e.target.value))} 
+                  placeholder="UP230188"
+                  maxLength={8}
+                  className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm uppercase" 
+                  required 
+                  disabled={isLoading} 
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="cuatri" className="text-sm font-semibold text-[#2C3E50]">Cuatrimestre</Label>
@@ -135,6 +176,7 @@ export function RegisterPage() {
                 </select>
               </div>
             </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="carrera" className="text-sm font-semibold text-[#2C3E50]">Carrera</Label>
               <select id="carrera" value={carrera} onChange={(e) => setCarrera(e.target.value)} className={selCls} required disabled={isLoading}>
@@ -142,21 +184,36 @@ export function RegisterPage() {
                 {CARRERAS_UPA.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-semibold text-[#2C3E50]">Correo institucional</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="up230188@alumnos.upa.edu.mx"
-                className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm" required disabled={isLoading} />
+              <Input 
+                id="email" 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(formatEmail(e.target.value))} 
+                placeholder="up230188@alumnos.upa.edu.mx"
+                className={`h-11 rounded-xl border focus:border-[#003366] text-sm ${!esCorreoUPA(email) && email.length > 5 ? "border-red-300 bg-red-50" : "border-[#D1D5DB]"}`} 
+                required 
+                disabled={isLoading} 
+              />
+              {email.length > 5 && !esCorreoUPA(email) && (
+                <p className="text-xs text-red-500 mt-1">Debe terminar en @alumnos.upa.edu.mx o @upa.edu.mx</p>
+              )}
             </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="password" className="text-sm font-semibold text-[#2C3E50]">Contraseña</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres"
                 className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm" required disabled={isLoading} />
             </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="confirm" className="text-sm font-semibold text-[#2C3E50]">Confirmar contraseña</Label>
               <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repite tu contraseña"
                 className="h-11 rounded-xl border-[#D1D5DB] focus:border-[#003366] text-sm" required disabled={isLoading} />
             </div>
+
             <button type="submit" disabled={isLoading}
               className="w-full h-11 bg-[#003366] hover:bg-[#002244] disabled:bg-[#003366]/70 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors mt-2">
               {isLoading ? (<><Loader2 className="size-4 animate-spin" />Creando cuenta...</>) : (<>Crear cuenta<ArrowRight className="size-4" /></>)}

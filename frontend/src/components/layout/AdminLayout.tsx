@@ -11,6 +11,7 @@ const navItems = [
   { name: "Empresas", href: "/admin/empresas", icon: Building2, exact: false },
   { name: "Vacantes", href: "/admin/vacantes", icon: Briefcase, exact: false },
   { name: "Estudiantes", href: "/admin/usuarios", icon: Users, exact: false },
+  { name: "Carreras", href: "/admin/carreras", icon: GraduationCap, exact: false },
   { name: "Administradores", href: "/admin/administradores", icon: Shield, exact: false },
 ];
 

@@ -8,6 +8,7 @@ export interface JobFilters {
   nivel_experiencia?: string;
   ubicacion?: string;
   salario_min?: number;
+  salario_max?:number;
   carrera?: string;
   cuatrimestre?: number;
   search?: string;

@@ -64,6 +64,7 @@ export class JobsController {
         nivel_experiencia: typeof req.query.nivel_experiencia === 'string' ? req.query.nivel_experiencia : undefined,
         ubicacion: typeof req.query.ubicacion === 'string' ? req.query.ubicacion : undefined,
         salario_min: typeof req.query.salario_min === 'string' ? parseFloat(req.query.salario_min) : undefined,
+        salario_max: typeof req.query.salario_max === 'string' ? parseFloat(req.query.salario_max) : undefined,
         carrera: typeof req.query.carrera === 'string' ? req.query.carrera : undefined,
         cuatrimestre: typeof req.query.cuatrimestre === 'string' ? parseInt(req.query.cuatrimestre) : undefined,
         search: typeof req.query.search === 'string' ? req.query.search : undefined,

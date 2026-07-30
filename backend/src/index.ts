@@ -15,6 +15,8 @@ import { authenticateToken } from './middlewares/auth.middleware';
 import { requestLogger } from './middlewares/logger.middleware';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import { verificarMailer } from './utils/mailer';
+import carrerasRoutes from './modules/carreras/carreras.routes';
+
 
 dotenv.config();
 
@@ -38,6 +40,7 @@ app.use('/api/connections', connectionsRoutes);
 app.use('/api/companies', companiesRoutes);
 // Modulo de IA (OpenRouter): optimizacion de CV. Requiere sesion iniciada.
 app.use('/api/ai', authenticateToken, aiRoutes);
+app.use('/api/carreras', carrerasRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
