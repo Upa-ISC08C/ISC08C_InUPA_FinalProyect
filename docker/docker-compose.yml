@@ -1,73 +1,26 @@
-version: '3.8'
+# Punto de entrada del entorno de desarrollo. Sigue funcionando igual que antes:
+#
+#   docker compose -f docker/docker-compose.yml up -d
+#
+# La diferencia es que cada servicio vive en su propio archivo y aqui solo se
+# combinan. Asi se puede leer (o levantar) un servicio por separado sin tener
+# que entender el resto:
+#
+#   compose.db.yml        base de datos + servidor de correo de pruebas
+#   compose.backend.yml   API de Node/Express
+#   compose.frontend.yml  interfaz de React
+#
+# Ejemplos de uso parcial:
+#   docker compose -f docker/compose.db.yml up -d                 (solo la BD)
+#   docker compose -f docker/compose.db.yml -f docker/compose.backend.yml up -d
+#
+# Los valores sensibles NO van aqui: viven en el .env de la raiz (no versionado).
+# Ejecuta 'node scripts/setup-env.js' para generarlo desde docker/.env.example.
 
-# Los valores sensibles NO van aqui: viven en el archivo .env de la raiz (no versionado).
-# Ejecuta 'node scripts/setup-env.js' para generarlo a partir de docker/.env.example.
-
-services:
-  db:
-    image: postgres:15
-    container_name: inupa_db
-    restart: always
-    env_file:
-      - ../.env
-    ports:
-      - "${HOST_DB_PORT:-5432}:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-
-  # Servidor SMTP de pruebas: recibe los correos que manda la app y los muestra
-  # en una bandeja web. Permite ver y validar los correos sin credenciales de
-  # Gmail. No entrega a bandejas reales; para eso se configura MAIL_USER/MAIL_PASS.
-  mailpit:
-    # Se usa el espejo de GitHub: el CDN de Docker Hub corta la descarga de
-    # esta imagen desde aqui (el blob falla con EOF a medio bajar).
-    image: ghcr.io/axllent/mailpit:latest
-    container_name: inupa_mailpit
-    restart: always
-    ports:
-      - "8025:8025" # bandeja web
-      - "1025:1025" # SMTP
-
-  backend:
-    build:
-      context: ../backend
-      dockerfile: docker/Dockerfile.dev
-    container_name: inupa_backend
-    restart: always
-    env_file:
-      - ../.env
-    environment:
-      - DB_HOST=db # Sobrescribe localhost para usar el contenedor de la BD
-    ports:
-      - "3000:3000"
-    volumes:
-      - ../backend:/app
-      - /app/node_modules
-    depends_on:
-      - db
-      - mailpit
-
-  frontend:
-    build:
-      context: ../frontend
-      dockerfile: docker/Dockerfile.dev
-    container_name: inupa_frontend
-    restart: always
-    environment:
-      - NODE_ENV=development
-      # Carga el ID de Google desde el .env de la raiz (leido por compose)
-      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
-    ports:
-      - "5173:5173"
-    volumes:
-      - ../frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-
-volumes:
-  pgdata:
+include:
+  - compose.db.yml
+  - compose.backend.yml
+  - compose.frontend.yml
 
 # En WSL2 el enlace de la VM usa MTU 1280; sin esto los contenedores heredan
 # 1500 y las conexiones HTTPS salientes (p.ej. la IA de OpenRouter) se cuelgan

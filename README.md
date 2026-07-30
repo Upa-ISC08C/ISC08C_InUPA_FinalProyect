@@ -107,8 +107,12 @@ ISC08C_InUPA_FinalProyect/
 │  ├─ package.json      # scripts: dev, build, lint
 │  └─ vite.config.ts
 ├─ docker/
-│  ├─ docker-compose.yml  # db + backend + frontend
-│  └─ init.sql            # Esquema inicial de la BD
+│  ├─ docker-compose.yml     # Punto de entrada: combina los 3 de abajo
+│  ├─ compose.db.yml         #   PostgreSQL + Mailpit (correo de pruebas)
+│  ├─ compose.backend.yml    #   API de Node/Express
+│  ├─ compose.frontend.yml   #   Interfaz de React (Vite)
+│  ├─ docker-compose.qa.yml  # QA: puertos y volumen propios (no pisa el local)
+│  └─ init.sql               # Esquema inicial de la BD
 ├─ .github/
 │  ├─ workflows/
 │  │  ├─ ci-validation.yml   # CI: compila backend y frontend en cada PR
@@ -167,6 +171,27 @@ Para apagarlo: `Ctrl + C` y luego:
 ```bash
 docker compose -f docker/docker-compose.yml down
 ```
+
+#### Levantar solo una parte
+
+Cada servicio tiene su propio archivo en `docker/`, y `docker-compose.yml` solo los
+combina. Si necesitas trabajar contra un pedazo del sistema, puedes levantarlo suelto:
+
+```bash
+docker compose -f docker/compose.db.yml up -d
+```
+
+Eso arranca únicamente **PostgreSQL y Mailpit** — útil si vas a correr el backend a mano
+con `npm run dev` y solo necesitas la base de datos. Para la base más la API, sin la
+interfaz:
+
+```bash
+docker compose -f docker/compose.db.yml -f docker/compose.backend.yml up -d
+```
+
+> ⚠️ **No mezcles los dos modos.** Si dejas el backend en Docker y además corres
+> `npm run dev` en `backend/`, los dos pelean por el puerto 3000 y aparecen fallos
+> difíciles de explicar (correos que no salen, cambios que no se reflejan).
 
 ### Opción B — Manual (sin Docker)
 

@@ -1,0 +1,35 @@
+# Datos y correo de pruebas.
+#
+# Se combina con los demas compose.*.yml a traves de docker-compose.yml, que los
+# incluye. Tambien se puede levantar solo esta parte:
+#   docker compose -f docker/compose.db.yml up -d
+
+services:
+  db:
+    image: postgres:15
+    container_name: inupa_db
+    restart: always
+    env_file:
+      - ../.env
+    ports:
+      - "${HOST_DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # El esquema y el seed solo se aplican cuando el volumen esta vacio.
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Servidor SMTP de pruebas: recibe los correos que manda la app y los muestra
+  # en una bandeja web. Permite ver y validar los correos sin credenciales de
+  # Gmail. No entrega a bandejas reales; para eso se configura MAIL_USER/MAIL_PASS.
+  mailpit:
+    # Se usa el espejo de GitHub: el CDN de Docker Hub corta la descarga de
+    # esta imagen desde aqui (el blob falla con EOF a medio bajar).
+    image: ghcr.io/axllent/mailpit:latest
+    container_name: inupa_mailpit
+    restart: always
+    ports:
+      - "8025:8025" # bandeja web
+      - "1025:1025" # SMTP
+
+volumes:
+  pgdata:

@@ -1,0 +1,23 @@
+# Interfaz de React (servidor de desarrollo de Vite).
+#
+# Se combina con los demas a traves de docker-compose.yml, que los incluye.
+
+services:
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: docker/Dockerfile.dev
+    container_name: inupa_frontend
+    restart: always
+    environment:
+      - NODE_ENV=development
+      # Vite solo expone al navegador las variables con prefijo VITE_.
+      # Se lee del .env de la raiz, que compose carga automaticamente.
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
