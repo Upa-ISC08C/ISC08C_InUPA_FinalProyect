@@ -1,0 +1,50 @@
+# Plantilla de Nginx: al arrancar el contenedor se sustituyen ${BACKEND_URL} y
+# ${BACKEND_HOST} por sus variables de entorno y el resultado se escribe en
+# /etc/nginx/conf.d/default.conf (lo hace la propia imagen de Nginx).
+#
+# En Docker Compose el backend se llama "backend"; en Azure Container Apps cada
+# servicio recibe su propio nombre interno, por eso no puede ir fijo en el
+# archivo.
+#
+# BACKEND_HOST importa aparte de BACKEND_URL: el proxy interno de Azure
+# Container Apps enruta las peticiones internas por el encabezado Host, y
+# reenviar el Host original (el dominio publico del frontend) hacia el backend
+# hace que ese proxy no encuentre ninguna app con ese nombre y responda
+# "Container App is stopped or does not exist". Hay que anunciar el propio
+# nombre del backend en el Host de la peticion interna.
+
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Los CV con foto y las imagenes de vacantes viajan como data URI y pueden
+    # pesar bastante; el limite por defecto (1 MB) los rechazaria.
+    client_max_body_size 25m;
+
+    # El API se sirve por el mismo origen: asi el navegador no necesita CORS y el
+    # bundle no depende de en que host o puerto quedo el backend. Se construye
+    # con VITE_API_URL=/api para que apunte aqui.
+    location /api/ {
+        proxy_pass ${BACKEND_URL}/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host ${BACKEND_HOST};
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Las peticiones a la IA pueden tardar; el limite por defecto (60s) las cortaba.
+        proxy_read_timeout 120s;
+    }
+
+    # Soporte para React Router (SPA)
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache para assets estaticos
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
