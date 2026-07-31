@@ -1,0 +1,74 @@
+name: QA Teardown (Runner Windows)
+
+# Apaga el entorno de QA cuando ya no se necesita: al quitarle la etiqueta 'qa'
+# al PR, o al cerrarlo. Va en un workflow aparte de qa-preview.yml porque
+# levantar y bajar nunca ocurren en el mismo evento: juntos, cada corrida
+# mostraria el otro job como "skipped".
+#
+# El job corre SIEMPRE y decide por dentro si hay algo que bajar. Si se pusiera
+# la condicion a nivel del job, los PR que nunca usaron QA lo mostrarian como
+# "skipped" en la lista de checks; asi en cambio queda en verde y se entiende
+# que se reviso y no habia nada pendiente.
+
+on:
+  pull_request:
+    types: [unlabeled, closed]
+    branches: [develop, qa]
+
+concurrency:
+  group: qa-entorno
+  cancel-in-progress: false
+
+jobs:
+  bajar:
+    name: Bajar entorno de QA
+    runs-on: [self-hosted, windows]
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Ver si este PR estaba usando QA
+        id: revisar
+        env:
+          # Se pasan por entorno para que un titulo o etiqueta con comillas no
+          # pueda romper (ni inyectar nada en) el script.
+          ACCION: ${{ github.event.action }}
+          ETIQUETA_QUITADA: ${{ github.event.label.name }}
+          TENIA_QA: ${{ contains(github.event.pull_request.labels.*.name, 'qa') }}
+        run: |
+          $usaba = ($env:ACCION -eq 'closed' -and $env:TENIA_QA -eq 'true') -or `
+                   ($env:ACCION -eq 'unlabeled' -and $env:ETIQUETA_QUITADA -eq 'qa')
+          "usaba=$($usaba.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          if ($usaba) {
+            Write-Host "Este PR tenia la etiqueta 'qa': se baja el entorno."
+          } else {
+            Write-Host "Este PR no estaba usando QA: no hay nada que bajar."
+          }
+
+      - uses: actions/checkout@v4
+        if: steps.revisar.outputs.usaba == 'true'
+
+      - name: Generar el .env (desde el archivo local del runner)
+        # compose necesita que exista el .env de la raiz aunque solo vaya a bajar.
+        if: steps.revisar.outputs.usaba == 'true'
+        run: |
+          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\.env" -Force
+
+      - name: Bajar entorno
+        # Con -p inupa-qa y el override: sin eso tumbaria el entorno de
+        # desarrollo local, que usa el proyecto "docker".
+        if: steps.revisar.outputs.usaba == 'true'
+        run: docker compose -p inupa-qa -f docker/docker-compose.yml -f docker/docker-compose.qa.yml down -v
+        continue-on-error: true
+
+      - name: Resumen
+        run: |
+          if ("${{ steps.revisar.outputs.usaba }}" -eq "true") {
+            "### Entorno de QA apagado" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "Se liberaron los puertos 5273 / 3100 / 8125 del runner." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          } else {
+            "### Sin entorno de QA que apagar" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "Este PR nunca llevo la etiqueta 'qa', asi que no habia entorno levantado." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }

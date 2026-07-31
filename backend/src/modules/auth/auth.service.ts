@@ -1,17 +1,31 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
-import { sendTokenEmail } from '../../utils/mailer';
-import { authDAO, User } from '../../daos/auth.dao';
+import { sendTokenEmail, sendResetEmail, sendVerificationEmail, mailConfigurado } from '../../utils/mailer';
+import { authDAO, User, CodeType } from '../../daos/auth.dao';
 
-// Almacén temporal en memoria para los OTPs. En producción usaríamos Redis.
-interface OTPData {
-  token: string;
-  expires: number;
-}
-const otpStore = new Map<string, OTPData>();
+/** Genera un código numérico de 6 dígitos. */
+const generarCodigo = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // Cliente para verificar los ID token que emite Google
 const googleClient = new OAuth2Client();
+
+/** Datos publicos del usuario que se envian al frontend (sin password_hash). */
+export interface PublicUser {
+  id: string;
+  matricula_o_rfc: string;
+  nombre_completo: string;
+  correo_institucional: string;
+  rol: string;
+  carrera: string | null;
+  cuatrimestre: number | null;
+}
+
+/** Resultado de un login exitoso: token de sesion + datos del usuario. */
+export interface AuthResult {
+  token: string;
+  user: PublicUser;
+}
 
 export class AuthService {
   /**
@@ -22,40 +36,172 @@ export class AuthService {
     this.validarCorreoInstitucional(email);
 
     // Generar OTP numérico de 6 dígitos
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Guardar OTP en memoria por 10 minutos
-    otpStore.set(email, {
-      token: otp,
-      expires: Date.now() + 10 * 60 * 1000 // 10 minutos
-    });
+    const otp = generarCodigo();
+
+    // Guardar el OTP en la BD por 10 minutos (sobrevive a reinicios del backend).
+    await authDAO.saveCode(email.toLowerCase().trim(), 'otp', otp, new Date(Date.now() + 10 * 60 * 1000));
 
     // Enviar correo
-    const success = await sendTokenEmail(email, otp);
-    return success;
+    const enviado = await sendTokenEmail(email, otp);
+
+    // Si el correo NO esta configurado (caso tipico al clonar el repo), en
+    // desarrollo damos la operacion por buena: el OTP queda impreso en los logs
+    // del backend para poder completar el login sin credenciales de correo.
+    if (!enviado && !mailConfigurado && process.env.NODE_ENV !== 'production') {
+      return true;
+    }
+
+    return enviado;
   }
 
   /**
-   * Verifica el OTP. Si es válido, retorna un JWT de sesión. Crea el usuario si no existe.
+   * Registro clásico: crea un usuario con correo institucional y contraseña.
+   * Devuelve el JWT de sesión + los datos del usuario (auto-login).
    */
-  async verifyToken(email: string, token: string): Promise<string> {
-    const otpData = otpStore.get(email);
+  async register(data: {
+    nombre: string;
+    email: string;
+    password: string;
+    matricula?: string;
+    carrera?: string;
+    cuatrimestre?: number;
+  }): Promise<AuthResult> {
+    const correo = data.email.toLowerCase().trim();
 
-    if (!otpData) {
-      throw new Error('No se encontró un código OTP activo para este correo');
+    if (!data.nombre || data.nombre.trim().length < 3) {
+      throw new Error('El nombre completo debe tener al menos 3 caracteres');
+    }
+    this.validarCorreoInstitucional(correo);
+    if (!data.password || data.password.length < 6) {
+      throw new Error('La contraseña debe tener al menos 6 caracteres');
     }
 
-    if (Date.now() > otpData.expires) {
-      otpStore.delete(email);
-      throw new Error('El código OTP ha expirado');
+    const existente = await authDAO.findUserByEmail(correo);
+    if (existente) {
+      throw new Error('Ya existe una cuenta con este correo institucional');
     }
 
-    if (otpData.token !== token) {
-      throw new Error('Código OTP inválido');
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const user = await authDAO.createUserWithPassword({
+      email: correo,
+      nombreCompleto: data.nombre.trim(),
+      passwordHash,
+      matricula: data.matricula,
+      carrera: data.carrera,
+      cuatrimestre: data.cuatrimestre,
+    });
+
+    // Enviamos el correo de verificación (no bloquea el registro/auto-login).
+    void this.enviarVerificacion(correo);
+
+    return {
+      token: this.generarAccessToken(user),
+      user: this.toPublicUser(user),
+    };
+  }
+
+  /**
+   * Genera y envía un código de restablecimiento de contraseña.
+   * Por seguridad devuelve siempre true (no revela si el correo existe).
+   */
+  async forgotPassword(email: string): Promise<boolean> {
+    const correo = email.toLowerCase().trim();
+    const user = await authDAO.findUserByEmail(correo);
+    if (!user) return true; // No revelamos si el correo existe.
+
+    const codigo = generarCodigo();
+    await authDAO.saveCode(correo, 'reset', codigo, new Date(Date.now() + 15 * 60 * 1000));
+    return sendResetEmail(correo, codigo);
+  }
+
+  /**
+   * Comprueba que el código guardado coincida y siga vigente.
+   * Centraliza la validación para que reset y verificación se comporten igual.
+   */
+  private async validarCodigo(correo: string, tipo: CodeType, token: string, faltante: string): Promise<void> {
+    const data = await authDAO.getCode(correo, tipo);
+    if (!data) throw new Error(faltante);
+    if (Date.now() > new Date(data.expira_en).getTime()) {
+      await authDAO.deleteCode(correo, tipo);
+      throw new Error('El código ha expirado. Solicita uno nuevo.');
+    }
+    if (data.codigo !== String(token).trim()) throw new Error('Código inválido');
+  }
+
+  /** Verifica si el código de restablecimiento es válido sin cambiar la contraseña aún. */
+  async verifyResetToken(email: string, token: string): Promise<boolean> {
+    const correo = email.toLowerCase().trim();
+    await this.validarCodigo(correo, 'reset', token, 'No hay una solicitud de restablecimiento activa para este correo');
+    return true;
+  }
+
+  /** Verifica el código y actualiza la contraseña. */
+  async resetPassword(email: string, token: string, nuevaPassword: string): Promise<void> {
+    const correo = email.toLowerCase().trim();
+    await this.validarCodigo(correo, 'reset', token, 'No hay una solicitud de restablecimiento activa para este correo');
+    if (!nuevaPassword || nuevaPassword.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
+
+    const passwordHash = await bcrypt.hash(nuevaPassword, 10);
+    const actualizada = await authDAO.updatePasswordByEmail(correo, passwordHash);
+    if (!actualizada) throw new Error('No se pudo actualizar la contraseña. La cuenta no existe o está suspendida.');
+    await authDAO.deleteCode(correo, 'reset');
+  }
+
+  /** Genera y envía un código de verificación de correo. */
+  async enviarVerificacion(email: string): Promise<boolean> {
+    const correo = email.toLowerCase().trim();
+    const codigo = generarCodigo();
+    await authDAO.saveCode(correo, 'verify', codigo, new Date(Date.now() + 24 * 60 * 60 * 1000));
+    return sendVerificationEmail(correo, codigo);
+  }
+
+  /** Confirma el código de verificación y marca el correo como verificado. */
+  async verifyEmail(email: string, token: string): Promise<void> {
+    const correo = email.toLowerCase().trim();
+    await this.validarCodigo(correo, 'verify', token, 'No hay una verificación activa para este correo');
+    await authDAO.setEmailVerified(correo);
+    await authDAO.deleteCode(correo, 'verify');
+  }
+
+  /**
+   * Inicio de sesión clásico con correo institucional + contraseña.
+   */
+  async loginWithPassword(email: string, password: string): Promise<AuthResult> {
+    const correo = email.toLowerCase().trim();
+
+    if (!correo || !password) {
+      throw new Error('Correo y contraseña son requeridos');
     }
 
-    // Token correcto, se elimina del store
-    otpStore.delete(email);
+    const user = await authDAO.findUserByEmail(correo);
+    // Mensaje genérico para no revelar si el correo existe.
+    const credencialesInvalidas = new Error('Correo o contraseña incorrectos');
+
+    if (!user) {
+      throw credencialesInvalidas;
+    }
+
+    const coincide = await bcrypt.compare(password, user.password_hash);
+    if (!coincide) {
+      throw credencialesInvalidas;
+    }
+
+    return {
+      token: this.generarAccessToken(user),
+      user: this.toPublicUser(user),
+    };
+  }
+
+  /**
+   * Verifica el OTP. Si es válido, retorna el JWT de sesión y los datos del
+   * usuario. Crea el usuario si no existe.
+   */
+  async verifyToken(email: string, token: string): Promise<AuthResult> {
+    const correo = email.toLowerCase().trim();
+    await this.validarCodigo(correo, 'otp', token, 'No se encontró un código OTP activo para este correo');
+
+    // Token correcto, se consume para que no pueda reutilizarse.
+    await authDAO.deleteCode(correo, 'otp');
 
     // Buscar si el usuario existe o crearlo
     let user = await authDAO.findUserByEmail(email);
@@ -63,15 +209,18 @@ export class AuthService {
       user = await authDAO.createUserFromEmail(email);
     }
 
-    // Generar JWT
-    return this.generarAccessToken(user);
+    // Generar JWT + datos del usuario
+    return {
+      token: this.generarAccessToken(user),
+      user: this.toPublicUser(user),
+    };
   }
 
   /**
    * Inicia sesión con Google: verifica el ID token emitido por Google,
    * valida que el correo sea institucional y crea el usuario si no existe.
    */
-  async loginWithGoogle(idToken: string): Promise<string> {
+  async loginWithGoogle(idToken: string): Promise<AuthResult> {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
       throw new Error('GOOGLE_CLIENT_ID no está configurado en las variables de entorno');
@@ -96,7 +245,10 @@ export class AuthService {
       user = await authDAO.createUserFromEmail(email, payload.name);
     }
 
-    return this.generarAccessToken(user);
+    return {
+      token: this.generarAccessToken(user),
+      user: this.toPublicUser(user),
+    };
   }
 
   /**
@@ -120,11 +272,27 @@ export class AuthService {
       {
         id: user.id,
         email: user.correo_institucional,
-        matricula: user.matricula_o_rfc
+        matricula: user.matricula_o_rfc,
+        rol: user.rol
       },
       jwtSecret,
       { expiresIn: '24h' }
     );
+  }
+
+  /**
+   * Devuelve los datos publicos del usuario (sin password_hash) para el frontend.
+   */
+  private toPublicUser(user: User): PublicUser {
+    return {
+      id: user.id,
+      matricula_o_rfc: user.matricula_o_rfc,
+      nombre_completo: user.nombre_completo,
+      correo_institucional: user.correo_institucional,
+      rol: user.rol,
+      carrera: user.carrera ?? null,
+      cuatrimestre: user.cuatrimestre ?? null,
+    };
   }
 }
 

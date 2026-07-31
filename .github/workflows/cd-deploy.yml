@@ -1,0 +1,44 @@
+﻿name: CD Deploy (Runner Windows)
+
+# Este flujo se encarga de hacer el Despliegue Continuo (Continuous Deployment).
+# Se activa EXCLUSIVAMENTE cuando los cambios ya fueron aprobados y fusionados
+# (merge) hacia la rama "develop" (o "main").
+# Su trabajo es descargar la ultima version del codigo y actualizar tu Docker principal.
+
+on:
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: cd-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Actualizar Docker Principal
+    runs-on: [self-hosted, windows]
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generar el .env (desde el archivo local del runner)
+        run: |
+          Copy-Item "C:\actions-runner\inupa.env" "$env:GITHUB_WORKSPACE\.env" -Force
+
+      - name: Detener contenedores actuales
+        run: docker compose -f docker/docker-compose.yml down
+        continue-on-error: true
+
+      - name: Reconstruir y levantar con los nuevos cambios
+        run: docker compose -f docker/docker-compose.yml up -d --build
+
+      - name: Publicar URL
+        run: |
+          "### Entorno Principal Actualizado Correctamente" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "Los contenedores de tu Docker Desktop han sido reconstruidos con los ultimos cambios aprobados." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Frontend: http://localhost:5173" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Backend: http://localhost:3000/api" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+

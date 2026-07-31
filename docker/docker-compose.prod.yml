@@ -1,0 +1,34 @@
+# Punto de entrada del entorno de PRODUCCION.
+#
+#   docker compose -p inupa-prod -f docker/docker-compose.prod.yml up -d --build
+#
+# Toda la app queda detras de un solo puerto (80 por defecto):
+#   http://localhost        la interfaz
+#   http://localhost/api    el API, por proxy de Nginx
+#
+# Diferencias frente al entorno de desarrollo:
+#   - El frontend se compila y lo sirve Nginx, no el servidor de Vite.
+#   - El backend corre el dist/ compilado, sin recarga en caliente.
+#   - Ni PostgreSQL ni el backend publican puertos al host: solo entra por Nginx.
+#   - No hay Mailpit: el correo sale por el SMTP real de las variables MAIL_*.
+#
+# Se usa -p inupa-prod para que tenga su propio volumen y no toque la base de
+# datos de desarrollo (proyecto "docker").
+#
+# Cada servicio esta en su archivo, igual que en desarrollo:
+#   compose.prod.db.yml        PostgreSQL (sin puerto publicado)
+#   compose.prod.backend.yml   API compilada
+#   compose.prod.frontend.yml  Nginx sirviendo la interfaz + proxy a /api
+
+include:
+  - compose.prod.db.yml
+  - compose.prod.backend.yml
+  - compose.prod.frontend.yml
+
+# Mismo ajuste de MTU que en desarrollo: en WSL2 sin esto los handshakes TLS
+# salientes (p.ej. la IA o el SMTP) se cuelgan.
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1280"

@@ -11,8 +11,13 @@ Construida con **React + Node.js + PostgreSQL** e infraestructura **Docker** on-
 
 ## ⚡ Inicio rápido — encender el motor
 
-> Necesitas **Docker Desktop** instalado. La primera vez, crea tu `docker/.env` a partir de `docker/.env.example` (pide los valores al líder).
+> Necesitas **Docker Desktop** y **Node.js** instalados. Funciona igual en Windows, Mac o Linux.
 
+0. **Solo la primera vez** — genera tus variables de entorno:
+   ```bash
+   node scripts/setup-env.js
+   ```
+   Crea tu `docker/.env` con un `JWT_SECRET` aleatorio propio de tu máquina. **No pidas el `.env` a nadie ni lo subas al repo.**
 1. **Enciende Docker Desktop** y espera a *"running"* — es el "motor" que corre los contenedores.
 2. **Levanta la app** (base de datos + backend + frontend):
    ```bash
@@ -102,12 +107,21 @@ ISC08C_InUPA_FinalProyect/
 │  ├─ package.json      # scripts: dev, build, lint
 │  └─ vite.config.ts
 ├─ docker/
-│  ├─ docker-compose.yml  # db + backend + frontend
-│  └─ init.sql            # Esquema inicial de la BD
+│  ├─ docker-compose.yml     # Punto de entrada: combina los 3 de abajo
+│  ├─ compose.db.yml         #   PostgreSQL + Mailpit (correo de pruebas)
+│  ├─ compose.backend.yml    #   API de Node/Express
+│  ├─ compose.frontend.yml   #   Interfaz de React (Vite)
+│  ├─ docker-compose.prod.yml  # Produccion: combina los 3 de abajo
+│  ├─ compose.prod.db.yml      #   PostgreSQL (sin puerto al host)
+│  ├─ compose.prod.backend.yml #   API compilada (dist/)
+│  ├─ compose.prod.frontend.yml#   Nginx: estaticos + proxy a /api
+│  ├─ docker-compose.qa.yml  # QA: puertos y volumen propios (no pisa el local)
+│  └─ init.sql               # Esquema inicial de la BD
 ├─ .github/
 │  ├─ workflows/
-│  │  ├─ ci-validation.yml   # CI: compila backend y frontend en cada PR
-│  │  └─ qa-preview.yml      # QA: levanta el entorno en el runner de Windows
+│  │  ├─ ci-validation.yml   # CI: compila backend y frontend en cada push y PR
+│  │  ├─ qa-preview.yml      # QA: levanta el entorno en el runner de Windows
+│  │  └─ qa-teardown.yml     # QA: lo apaga al quitar la etiqueta o cerrar el PR
 │  └─ pull_request_template.md
 ├─ CODEOWNERS
 ├─ CONTRIBUTING.md       # Flujo de trabajo (versión resumida)
@@ -163,6 +177,59 @@ Para apagarlo: `Ctrl + C` y luego:
 docker compose -f docker/docker-compose.yml down
 ```
 
+#### Levantar solo una parte
+
+Cada servicio tiene su propio archivo en `docker/`, y `docker-compose.yml` solo los
+combina. Si necesitas trabajar contra un pedazo del sistema, puedes levantarlo suelto:
+
+```bash
+docker compose -f docker/compose.db.yml up -d
+```
+
+Eso arranca únicamente **PostgreSQL y Mailpit** — útil si vas a correr el backend a mano
+con `npm run dev` y solo necesitas la base de datos. Para la base más la API, sin la
+interfaz:
+
+```bash
+docker compose -f docker/compose.db.yml -f docker/compose.backend.yml up -d
+```
+
+> ⚠️ **No mezcles los dos modos.** Si dejas el backend en Docker y además corres
+> `npm run dev` en `backend/`, los dos pelean por el puerto 3000 y aparecen fallos
+> difíciles de explicar (correos que no salen, cambios que no se reflejan).
+
+#### Modo producción
+
+Compila la app de verdad: el frontend se construye y lo sirve **Nginx**, y el backend
+corre el `dist/` compilado (sin recarga en caliente).
+
+```bash
+docker compose -p inupa-prod -f docker/docker-compose.prod.yml up -d --build
+```
+
+Todo queda detrás de **un solo puerto**, así que no hace falta CORS:
+
+- `http://localhost` → la interfaz
+- `http://localhost/api` → el API, por proxy de Nginx
+
+Si el 80 está ocupado, cambia el puerto: `HOST_WEB_PORT=8080 docker compose ...`
+
+Diferencias frente a desarrollo:
+
+| | Desarrollo | Producción |
+|---|---|---|
+| Frontend | Servidor de Vite (5173) | Nginx sirviendo estáticos (80) |
+| Backend | `ts-node-dev` (3000, expuesto) | `dist/index.js` (interno) |
+| PostgreSQL | Expuesto en 5432 | Interno, sin puerto al host |
+| Correo | Mailpit (`localhost:8025`) | SMTP real de las variables `MAIL_*` |
+
+Usa `-p inupa-prod` para que tenga su propio volumen y **no toque la base de datos de
+desarrollo**. Para apagarlo:
+
+```bash
+docker compose -p inupa-prod -f docker/docker-compose.prod.yml down
+```
+
 ### Opción B — Manual (sin Docker)
 
 Necesitas un PostgreSQL corriendo en tu máquina. En **dos terminales**:
@@ -186,17 +253,79 @@ npm run dev        # arranca en http://localhost:5173
 > ⚠️ **Nunca subas archivos `.env`, contraseñas, secretos ni tokens al repositorio.**
 > Los `.env` ya están en `.gitignore`. Guarda los valores reales **solo en tu `.env` local**.
 
-Cada quien crea sus propios archivos de entorno en local. Pide al **líder del proyecto** los
-valores reales (o usa una plantilla `.env.example` **sin secretos**). Estas son las variables
-que se usan (solo los nombres, sin valores):
+**No copies ni pidas el `.env` de nadie.** Cada quien genera el suyo con:
+```bash
+node scripts/setup-env.js
+```
+El script crea `docker/.env` desde `docker/.env.example` con un **`JWT_SECRET` aleatorio** único
+de tu máquina. Es idempotente: si ya tienes `.env`, no lo sobrescribe (solo avisa si faltan
+variables nuevas).
+
+**Qué es obligatorio y qué no:**
+
+| Variables | ¿Obligatorias? |
+|---|---|
+| `DB_*`, `POSTGRES_*`, `PORT`, `JWT_SECRET` | ✅ Sí — las genera el script, ya funcionan |
+| `MAIL_*` | ⚪ Opcionales — ver [Correo](#-correo-códigos-y-avisos) abajo. Por defecto se usa Mailpit, que no pide credenciales |
+| `GOOGLE_CLIENT_ID`, `VITE_GOOGLE_CLIENT_ID` | ⚪ Opcionales — solo para el botón de Google (el Client ID es público) |
+
+Estas son las variables que se usan (solo los nombres, sin valores):
 
 - **Backend** (`backend/.env`):
   - Conexión a PostgreSQL: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
   - API: `PORT`
   - Seguridad: `JWT_SECRET`
-  - Correo (envío de OTP): `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`
+  - Correo: `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_SIN_AUTH`, `MAIL_FROM`
 - **Frontend** (`frontend/.env`):
   - URL del backend: `VITE_API_URL`
+
+---
+
+## 📧 Correo (códigos y avisos)
+
+La plataforma manda tres tipos de correo: el **código para restablecer la contraseña**, la
+**verificación de la cuenta** y el **aviso de vacante nueva** a los alumnos cuya carrera y
+cuatrimestre coinciden con la vacante.
+
+Hay dos formas de configurarlo; se elige en el `.env` de la raíz.
+
+**Opción A — Mailpit (por defecto en desarrollo).** Servidor local: los correos se envían de
+verdad y se leen en **http://localhost:8025**, sin credenciales. No salen a internet.
+
+```
+MAIL_HOST=mailpit
+MAIL_PORT=1025
+MAIL_SIN_AUTH=true
+MAIL_FROM=no-reply@inupa.upa.edu.mx
+```
+
+**Opción B — entrega real.** Con Gmail hace falta una *App Password* (la cuenta debe tener la
+verificación en 2 pasos activada); con Resend, la API key va en `MAIL_PASS` y el usuario es
+literalmente `resend`.
+
+```
+MAIL_HOST=smtp.resend.com   # o smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=resend            # o tu correo completo
+MAIL_PASS=...               # API key o App Password
+```
+
+Después de cambiarlo hay que **recrear** el contenedor (reiniciarlo no basta, las variables se
+leen al crearlo):
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --force-recreate backend
+```
+
+Para comprobar que quedó bien hay un diagnóstico que dice si el servidor acepta la
+configuración y manda un correo de prueba:
+
+```bash
+docker compose -f docker/docker-compose.yml exec backend node scripts/probar-correo.js tu-correo@ejemplo.com
+```
+
+Al arrancar, el backend también lo indica en los logs: `[mailer] SMTP listo` si todo está bien,
+o el error concreto si no.
 
 > Si corres con **Docker** (Opción A), el entorno de desarrollo local ya queda configurado y
 > no necesitas crear estos archivos a mano.
@@ -691,11 +820,14 @@ git push -u origin feature/front-components
 
 ## 🤖 ¿Qué pasa cuando abres tu PR?
 
-1. **CI (Robot Inspector):** al abrir el PR corre `ci-validation.yml`, que **compila** backend y frontend.
-   - ❌ Si falla → corrige y vuelve a hacer `git push` (el PR se revalida solo).
+1. **CI (Robot Inspector):** `ci-validation.yml` **compila** backend y frontend. Corre al abrir el
+   PR y también en **cada push a tu rama**, aunque el PR todavía no exista.
+   - ❌ Si falla → corrige y vuelve a hacer `git push` (se revalida solo).
    - ✅ Si pasa → queda listo para revisión.
-2. **QA visual:** Juan pone la etiqueta `qa` al PR y `qa-preview.yml` levanta el entorno con Docker para
-   revisar la app corriendo.
+2. **QA visual:** Juan pone la etiqueta `qa` y `qa-preview.yml` levanta el entorno en el runner:
+   - Frontend: `http://localhost:5273` · Backend: `http://localhost:3100/api` · Correos: `http://localhost:8125`
+   - Usa **puertos y volumen propios**, así que no toca el entorno de desarrollo local (5173/3000/8025).
+   - Al quitar la etiqueta o cerrar el PR, `qa-teardown.yml` lo apaga.
 3. **Revisión:** Juan revisa el código y el funcionamiento.
    - Si pide cambios (*Request changes*) → corrige y vuelve a subir.
    - Si aprueba (*Approve*) → hace **Merge** a `develop`. 🎉

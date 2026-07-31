@@ -1,0 +1,21 @@
+# API compilada para produccion.
+#
+# Sin volumenes de codigo ni recarga en caliente: se ejecuta el dist/ que quedo
+# dentro de la imagen. El puerto tampoco se publica al host, porque el trafico
+# entra por Nginx (ver compose.prod.frontend.yml), que hace de proxy a /api.
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: docker/Dockerfile.prod
+    container_name: inupa_prod_backend
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db
+    depends_on:
+      db:
+        condition: service_healthy

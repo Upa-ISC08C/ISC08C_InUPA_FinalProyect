@@ -6,6 +6,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     matricula: string;
+    rol?: string;
   };
 }
 
@@ -24,7 +25,17 @@ export const authenticateToken = (
     });
   }
 
-  const jwtSecret = process.env.JWT_SECRET || 'secret';
+  // NUNCA usar un valor por defecto aqui: si JWT_SECRET no esta configurado,
+  // se aceptarian tokens firmados con un secreto publico y cualquiera podria
+  // suplantar a un usuario. Mejor fallar de forma explicita.
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    return res.status(500).json({
+      success: false,
+      error: 'JWT_SECRET no está configurado en el servidor',
+    });
+  }
 
   jwt.verify(token, jwtSecret, (err, user) => {
     if (err) {
@@ -37,4 +48,32 @@ export const authenticateToken = (
     (req as AuthenticatedRequest).user = user as any;
     next();
   });
+};
+
+/**
+ * Restringe el acceso a usuarios con rol de administrador.
+ * Debe montarse SIEMPRE despues de authenticateToken.
+ */
+export const requireAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const user = (req as AuthenticatedRequest).user;
+
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'No autenticado',
+    });
+  }
+
+  if (user.rol !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Acceso restringido a administradores',
+    });
+  }
+
+  next();
 };
