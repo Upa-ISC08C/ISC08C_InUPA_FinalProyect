@@ -2,6 +2,13 @@ import { Router } from 'express';
 import { UsersController } from './users.controller';
 import { authenticateToken, requireAdmin } from '../../middlewares/auth.middleware';
 import { asyncHandler } from '../../middlewares/error.middleware';
+import { validate } from '../../middlewares/validate.middleware';
+import {
+  updateUserProfileSchema,
+  adminCreateUserSchema,
+  adminUpdateUserSchema,
+  userIdParamsSchema
+} from './users.schemas';
 
 const router = Router();
 
@@ -10,16 +17,16 @@ router.use(authenticateToken);
 
 // --- Usuario autenticado (sobre si mismo; el id sale del token) ---
 router.get('/me', asyncHandler(UsersController.getMe));
-router.put('/me', asyncHandler(UsersController.updateMe));
+router.put('/me', validate(updateUserProfileSchema), asyncHandler(UsersController.updateMe));
 
 // --- Administracion (solo admin) ---
 // Nota: /me se define ANTES que /:id para que no lo capture el parametro.
 router.get('/dashboard/admin', requireAdmin, asyncHandler(UsersController.dashboardStats));
 router.get('/', requireAdmin, asyncHandler(UsersController.list));
-router.post('/', requireAdmin, asyncHandler(UsersController.adminCreate));
-router.get('/:id', requireAdmin, asyncHandler(UsersController.adminGetUser));
-router.put('/:id', requireAdmin, asyncHandler(UsersController.adminUpdate));
-router.post('/:id/reset-password', requireAdmin, asyncHandler(UsersController.adminResetPassword));
-router.delete('/:id', requireAdmin, asyncHandler(UsersController.remove));
+router.post('/', requireAdmin, validate(adminCreateUserSchema), asyncHandler(UsersController.adminCreate));
+router.get('/:id', requireAdmin, validate(userIdParamsSchema), asyncHandler(UsersController.adminGetUser));
+router.put('/:id', requireAdmin, validate(adminUpdateUserSchema), asyncHandler(UsersController.adminUpdate));
+router.post('/:id/reset-password', requireAdmin, validate(userIdParamsSchema), asyncHandler(UsersController.adminResetPassword));
+router.delete('/:id', requireAdmin, validate(userIdParamsSchema), asyncHandler(UsersController.remove));
 
 export default router;

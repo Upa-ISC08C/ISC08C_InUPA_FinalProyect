@@ -76,11 +76,13 @@ export function CVBuilder() {
   const [cvLoading, setCvLoading] = useState(false);
   const [cvNombre, setCvNombre] = useState("");
   const [cvError, setCvError] = useState("");
+  const [cvProfile, setCvProfile] = useState<FullProfile | null>(null); // <-- NUEVO ESTADO
 
   const generarMiCV = async () => {
     setCvLoading(true); setCvError(""); setCvMd("");
     try {
       const p = await profileService.getMyProfile();
+      setCvProfile(p); // <-- GUARDAMOS EL PERFIL COMPLETO
       setCvNombre(p.nombre_completo || "CV");
       const texto = perfilATexto(p);
       const md = await aiService.generarCV(texto);
@@ -91,23 +93,43 @@ export function CVBuilder() {
   };
 
   const descargarPDF = () => {
-    if (!cvMd) return;
-    const html = mdToHtml(cvMd);
+    if (!cvMd || !cvProfile) return;
+    
+    // 1. Eliminar emojis del texto generado por la IA (por si acaso)
+    const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}]/gu;
+    const cleanMd = cvMd.replace(emojiRegex, "");
+    
+    const html = mdToHtml(cleanMd);
     const w = window.open("", "_blank");
     if (!w) return;
+    
+    const pe: any = cvProfile.perfil || {};
+    
+    // 2. Bloque de información personal con líneas azules delgadas
+    const infoPersonal = `
+      <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1.5px solid #003366;">
+        <h1 style="font-size: 28px; margin: 0 0 8px; color: #003366; border: none; padding: 0;">${cvProfile.nombre_completo}</h1>
+        <p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Carrera:</strong> ${cvProfile.carrera || "No especificada"} ${cvProfile.cuatrimestre ? `(${cvProfile.cuatrimestre}° cuatrimestre)` : ""}</p>
+        <p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Correo:</strong> ${cvProfile.correo_institucional}</p>
+        ${pe.telefono ? `<p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Teléfono:</strong> ${pe.telefono}</p>` : ""}
+        ${pe.ubicacion ? `<p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Ubicación:</strong> ${pe.ubicacion}</p>` : ""}
+      </div>
+    `;
+
+    // 3. Estilos actualizados: líneas azules (#003366) y más delgadas (1.5px y 1px)
     w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CV - ${cvNombre}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         * { box-sizing: border-box; }
         body { font-family: 'Poppins', Arial, sans-serif; color: #2C3E50; max-width: 780px; margin: 0 auto; padding: 40px; line-height: 1.5; }
-        h1 { color: #003366; font-size: 26px; margin: 0 0 4px; border-bottom: 3px solid #FFD700; padding-bottom: 8px; }
-        h2 { color: #003366; font-size: 16px; margin: 22px 0 6px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px; }
+        h1 { color: #003366; font-size: 26px; margin: 0 0 4px; border-bottom: 1.5px solid #003366; padding-bottom: 8px; }
+        h2 { color: #003366; font-size: 16px; margin: 22px 0 6px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #003366; padding-bottom: 4px; }
         h3 { color: #2C3E50; font-size: 14px; margin: 12px 0 2px; }
         p { margin: 4px 0; font-size: 13px; }
         ul { margin: 4px 0 10px; padding-left: 20px; } li { font-size: 13px; margin: 2px 0; }
         strong { color: #003366; }
         @media print { body { padding: 0; } }
-      </style></head><body>${html}
+      </style></head><body>${infoPersonal}${html}
       <script>window.onload=function(){window.print();}<\/script></body></html>`);
     w.document.close();
   };
@@ -167,8 +189,8 @@ export function CVBuilder() {
   return (
     <div className="space-y-5 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-[#2C3E50] tracking-tight">Constructor de CV con IA</h1>
-        <p className="text-sm text-[#7F8C8D] mt-0.5">Genera y optimiza tu currículum con inteligencia artificial</p>
+        <h1 className="text-2xl font-bold text-[#2C3E50] dark:text-white tracking-tight">Constructor de CV con IA</h1>
+        <p className="text-sm text-[#7F8C8D] dark:text-slate-400 mt-0.5">Genera y optimiza tu currículum con inteligencia artificial</p>
       </div>
 
       {/* Generar CV desde el perfil (principal) */}
@@ -177,8 +199,8 @@ export function CVBuilder() {
           <div className="flex items-center gap-2">
             <div className="size-9 rounded-xl bg-[#E8F0FC] flex items-center justify-center"><FileDown className="size-5 text-[#003366]" /></div>
             <div>
-              <h2 className="font-bold text-[#2C3E50]">Genera mi CV con IA</h2>
-              <p className="text-xs text-[#7F8C8D]">Arma tu currículum a partir de la información de tu perfil (incluye tus links de GitHub/LinkedIn) y descárgalo en PDF.</p>
+              <h2 className="font-bold text-[#2C3E50] dark:text-white">Genera mi CV con IA</h2>
+              <p className="text-xs text-[#7F8C8D] dark:text-slate-400">Arma tu currículum a partir de la información de tu perfil (incluye tus links de GitHub/LinkedIn) y descárgalo en PDF.</p>
             </div>
           </div>
 
@@ -199,7 +221,7 @@ export function CVBuilder() {
 
           {cvMd && (
             <div
-              className="rounded-xl border border-[#E5E7EB] bg-white p-5 text-sm text-[#2C3E50] [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-[#003366] [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[#003366] [&_h2]:mt-4 [&_h2]:mb-1 [&_h2]:uppercase [&_h3]:font-semibold [&_h3]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_li]:my-0.5 [&_p]:my-1 [&_strong]:text-[#003366]"
+              className="rounded-xl border border-[#E5E7EB] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-sm text-[#2C3E50] dark:text-white [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-[#003366] [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[#003366] [&_h2]:mt-4 [&_h2]:mb-1 [&_h2]:uppercase [&_h3]:font-semibold [&_h3]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_li]:my-0.5 [&_p]:my-1 [&_strong]:text-[#003366]"
               dangerouslySetInnerHTML={{ __html: mdToHtml(cvMd) }}
             />
           )}
@@ -212,14 +234,14 @@ export function CVBuilder() {
           <div className="flex items-center gap-2">
             <div className="size-9 rounded-xl bg-[#FEF9C3] flex items-center justify-center"><Sparkles className="size-5 text-[#CA8A04]" /></div>
             <div>
-              <h2 className="font-bold text-[#2C3E50]">Genera tu perfil profesional</h2>
-              <p className="text-xs text-[#7F8C8D]">Describe lo que haces en lenguaje cotidiano y la IA lo redacta profesionalmente.</p>
+              <h2 className="font-bold text-[#2C3E50] dark:text-white">Genera tu perfil profesional</h2>
+              <p className="text-xs text-[#7F8C8D] dark:text-slate-400">Describe lo que haces en lenguaje cotidiano y la IA lo redacta profesionalmente.</p>
             </div>
           </div>
 
           <Textarea rows={5} value={texto} onChange={(e) => setTexto(e.target.value)}
             placeholder="Ej. Soy estudiante de sistemas, hice una app con React y una base de datos, también trabajé haciendo reportes en Excel…"
-            className="rounded-xl border-[#E5E7EB] text-sm" />
+            className="rounded-xl border-[#E5E7EB] dark:border-slate-800 text-sm" />
 
           {errorTexto && (
             <div className="flex items-center gap-2 text-xs text-[#DC2626] bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -242,17 +264,17 @@ export function CVBuilder() {
             <div className="space-y-4 pt-2">
               {resultado.perfil && (
                 <Bloque icon={User} title="Perfil profesional">
-                  <p className="text-sm text-[#2C3E50] leading-relaxed">{resultado.perfil}</p>
+                  <p className="text-sm text-[#2C3E50] dark:text-white leading-relaxed">{resultado.perfil}</p>
                 </Bloque>
               )}
               {resultado.experiencia?.length ? (
                 <Bloque icon={Briefcase} title="Experiencia destacada">
-                  <ul className="list-disc pl-5 space-y-1 text-sm text-[#2C3E50]">{resultado.experiencia.map((x, i) => <li key={i}>{x}</li>)}</ul>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-[#2C3E50] dark:text-white">{resultado.experiencia.map((x, i) => <li key={i}>{x}</li>)}</ul>
                 </Bloque>
               ) : null}
               {resultado.educacion?.length ? (
                 <Bloque icon={GraduationCap} title="Educación">
-                  <ul className="list-disc pl-5 space-y-1 text-sm text-[#2C3E50]">{resultado.educacion.map((x, i) => <li key={i}>{x}</li>)}</ul>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-[#2C3E50] dark:text-white">{resultado.educacion.map((x, i) => <li key={i}>{x}</li>)}</ul>
                 </Bloque>
               ) : null}
               {resultado.habilidades?.length ? (
@@ -273,14 +295,14 @@ export function CVBuilder() {
           <div className="flex items-center gap-2">
             <div className="size-9 rounded-xl bg-[#E8F0FC] flex items-center justify-center"><FileText className="size-5 text-[#003366]" /></div>
             <div>
-              <h2 className="font-bold text-[#2C3E50]">Optimiza tu CV en PDF</h2>
-              <p className="text-xs text-[#7F8C8D]">Sube tu currículum actual y la IA lo reestructura y mejora.</p>
+              <h2 className="font-bold text-[#2C3E50] dark:text-white">Optimiza tu CV en PDF</h2>
+              <p className="text-xs text-[#7F8C8D] dark:text-slate-400">Sube tu currículum actual y la IA lo reestructura y mejora.</p>
             </div>
           </div>
 
-          <label className="flex items-center gap-3 border-2 border-dashed border-[#E5E7EB] rounded-xl px-4 py-4 cursor-pointer hover:border-[#003366]/40 transition-colors">
-            <Upload className="size-5 text-[#7F8C8D]" />
-            <span className="text-sm text-[#2C3E50]">{archivo ? archivo.name : "Selecciona un archivo PDF"}</span>
+          <label className="flex items-center gap-3 border-2 border-dashed border-[#E5E7EB] dark:border-slate-800 rounded-xl px-4 py-4 cursor-pointer hover:border-[#003366]/40 transition-colors">
+            <Upload className="size-5 text-[#7F8C8D] dark:text-slate-400" />
+            <span className="text-sm text-[#2C3E50] dark:text-white">{archivo ? archivo.name : "Selecciona un archivo PDF"}</span>
             <input type="file" accept="application/pdf" className="hidden"
               onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); setMarkdown(""); setErrorPdf(""); }} />
           </label>
@@ -297,9 +319,9 @@ export function CVBuilder() {
           </Button>
 
           {markdown && (
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
-              <p className="text-xs font-bold text-[#7F8C8D] uppercase tracking-wide mb-2">CV optimizado</p>
-              <pre className="text-sm text-[#2C3E50] whitespace-pre-wrap font-[Poppins,sans-serif] leading-relaxed">{markdown}</pre>
+            <div className="rounded-xl border border-[#E5E7EB] dark:border-slate-800 bg-[#FAFAFA] p-4">
+              <p className="text-xs font-bold text-[#7F8C8D] dark:text-slate-400 uppercase tracking-wide mb-2">CV optimizado</p>
+              <pre className="text-sm text-[#2C3E50] dark:text-white whitespace-pre-wrap font-[Poppins,sans-serif] leading-relaxed">{markdown}</pre>
             </div>
           )}
         </CardContent>
@@ -310,10 +332,10 @@ export function CVBuilder() {
 
 function Bloque({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-[#E5E7EB] p-4">
+    <div className="rounded-xl border border-[#E5E7EB] dark:border-slate-800 p-4">
       <div className="flex items-center gap-2 mb-2">
         <Icon className="size-4 text-[#003366]" />
-        <p className="text-sm font-bold text-[#2C3E50]">{title}</p>
+        <p className="text-sm font-bold text-[#2C3E50] dark:text-white">{title}</p>
       </div>
       {children}
     </div>

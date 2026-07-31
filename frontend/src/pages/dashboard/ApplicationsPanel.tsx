@@ -47,8 +47,8 @@ export function ApplicationsPanel() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-[#2C3E50] tracking-tight">Mis Postulaciones</h1>
-        <p className="text-sm text-[#7F8C8D] mt-0.5">Seguimiento de todas tus aplicaciones laborales</p>
+        <h1 className="text-2xl font-bold text-[#2C3E50] dark:text-white tracking-tight">Mis Postulaciones</h1>
+        <p className="text-sm text-[#7F8C8D] dark:text-slate-400 mt-0.5">Seguimiento de todas tus aplicaciones laborales</p>
       </div>
 
       {/* Resumen */}
@@ -57,7 +57,7 @@ export function ApplicationsPanel() {
           <Card key={s.label} className="border-0 shadow-sm">
             <CardContent className="p-4">
               <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-xs text-[#7F8C8D] mt-0.5">{s.label}</p>
+              <p className="text-xs text-[#7F8C8D] dark:text-slate-400 mt-0.5">{s.label}</p>
             </CardContent>
           </Card>
         ))}
@@ -68,7 +68,7 @@ export function ApplicationsPanel() {
         {FILTROS.map((f) => (
           <button key={f.value} onClick={() => setFiltro(f.value)}
             className={`text-xs px-3.5 py-1.5 rounded-full font-medium border transition-all ${
-              filtro === f.value ? "bg-[#003366] text-white border-[#003366]" : "bg-white text-[#2C3E50] border-[#E5E7EB] hover:border-[#003366]/40"
+              filtro === f.value ? "bg-[#003366] text-white border-[#003366]" : "bg-white dark:bg-slate-900 text-[#2C3E50] dark:text-white border-[#E5E7EB] dark:border-slate-800 hover:border-[#003366]/40"
             }`}>
             {f.label}{f.value !== "todas" ? ` (${count(f.value)})` : ""}
           </button>
@@ -80,10 +80,10 @@ export function ApplicationsPanel() {
       ) : visibles.length === 0 ? (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-10 text-center">
-            <div className="size-12 rounded-2xl bg-[#F5F7FA] flex items-center justify-center mx-auto mb-3">
-              <Send className="size-5 text-[#7F8C8D]" />
+            <div className="size-12 rounded-2xl bg-[#F5F7FA] dark:bg-slate-800 flex items-center justify-center mx-auto mb-3">
+              <Send className="size-5 text-[#7F8C8D] dark:text-slate-400" />
             </div>
-            <p className="text-sm text-[#7F8C8D]">Aún no tienes postulaciones en esta categoría.</p>
+            <p className="text-sm text-[#7F8C8D] dark:text-slate-400">Aún no tienes postulaciones en esta categoría.</p>
           </CardContent>
         </Card>
       ) : (
@@ -101,19 +101,19 @@ export function ApplicationsPanel() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h3 className="font-bold text-[#2C3E50]">{a.vacante.titulo}</h3>
+                          <h3 className="font-bold text-[#2C3E50] dark:text-white">{a.vacante.titulo}</h3>
                           <p className="text-sm font-semibold text-[#003366]">{emp?.nombre}</p>
                         </div>
                         <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
                           style={{ backgroundColor: est.bg, color: est.text }}>{est.label}</span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-[#7F8C8D]">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-[#7F8C8D] dark:text-slate-400">
                         {a.vacante.ubicacion && <span className="flex items-center gap-1"><MapPin className="size-3" />{a.vacante.ubicacion}</span>}
                         {a.vacante.modalidad && <span className="flex items-center gap-1"><Briefcase className="size-3" />{a.vacante.modalidad}</span>}
                         <span>Postulado el {new Date(a.fecha_postulacion).toLocaleDateString()}</span>
                       </div>
-                      <p className="text-sm font-bold text-[#2C3E50] mt-2">
-                        {salaryStr(a.vacante.salario_min, a.vacante.salario_max)} <span className="text-xs font-normal text-[#7F8C8D]">MXN</span>
+                      <p className="text-sm font-bold text-[#2C3E50] dark:text-white mt-2">
+                        {salaryStr(a.vacante.salario_min, a.vacante.salario_max)} <span className="text-xs font-normal text-[#7F8C8D] dark:text-slate-400">MXN</span>
                       </p>
                     </div>
                   </div>

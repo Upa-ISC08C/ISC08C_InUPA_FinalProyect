@@ -15,6 +15,7 @@ import { AdminEmpresas } from "./pages/admin/empresas/AdminEmpresas";
 import { AdminUsuarios } from "./pages/admin/usuarios/AdminUsuarios";
 import { AdminAdministradores } from "./pages/admin/usuarios/AdminAdministradores";
 import { AdminVacantes } from "./pages/admin/vacantes/AdminVacantes";
+import { AdminCarreras } from "./pages/admin/AdminCarreras"; // 👈 Asegúrate que la ruta coincida con donde guardes el archivo
 
 // Solo usuarios autenticados; opcionalmente solo admins.
 function RequireAuth({ adminOnly = false }: { adminOnly?: boolean }) {
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
           { path: "vacantes", Component: AdminVacantes },
           { path: "usuarios", Component: AdminUsuarios },
           { path: "administradores", Component: AdminAdministradores },
+          { path: "carreras", Component: AdminCarreras },
         ],
       },
     ],

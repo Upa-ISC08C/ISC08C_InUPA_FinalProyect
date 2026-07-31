@@ -5,26 +5,24 @@ import {
   Menu, X, LogOut, Shield, ChevronRight, Moon, Sun,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
+import { useTheme } from "../../hooks/useTheme";
 
 const navItems = [
   { name: "Panel", href: "/admin", icon: LayoutDashboard, exact: true },
   { name: "Empresas", href: "/admin/empresas", icon: Building2, exact: false },
   { name: "Vacantes", href: "/admin/vacantes", icon: Briefcase, exact: false },
   { name: "Estudiantes", href: "/admin/usuarios", icon: Users, exact: false },
+  { name: "Carreras", href: "/admin/carreras", icon: GraduationCap, exact: false },
   { name: "Administradores", href: "/admin/administradores", icon: Shield, exact: false },
 ];
-
-const THEME_KEY = "inupa_admin_theme";
 
 export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [dark, setDark] = useState<boolean>(() => localStorage.getItem(THEME_KEY) === "dark");
-
-  // Persistimos la preferencia de tema (solo dentro del admin).
-  useEffect(() => { localStorage.setItem(THEME_KEY, dark ? "dark" : "light"); }, [dark]);
+  // Tema compartido con la vista de alumno: la clase va en <html>.
+  const { dark, setDark } = useTheme();
 
   // Cerramos el drawer al navegar.
   useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
@@ -38,7 +36,7 @@ export function AdminLayout() {
     exact ? location.pathname === href : location.pathname.startsWith(href);
 
   return (
-    <div className={dark ? "dark" : ""}>
+    <>
       <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
         {/* Topbar fija con hamburguesa (en todos los tamaños) */}
         <header className="sticky top-0 z-30 h-14 bg-[#001A33] text-white flex items-center justify-between px-3 sm:px-5 shadow-md">
@@ -137,6 +135,6 @@ export function AdminLayout() {
           <Outlet />
         </main>
       </div>
-    </div>
+    </>
   );
 }

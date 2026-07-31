@@ -2,6 +2,7 @@ import { jobsDAO } from '../../daos/jobs.dao';
 import { db } from '../../config/db';
 import { sendNuevaVacanteEmail, sendJobApplicationEmail } from '../../utils/mailer';
 import { CreateVacanteDTO, UpdateVacanteDTO, VacanteFilters, VacanteWithRelations } from './jobs.types';
+import { ValidationError } from '../../shared/errors';
 
 export class JobsService {
   static async createVacante(data: CreateVacanteDTO): Promise<VacanteWithRelations> {
@@ -82,7 +83,14 @@ export class JobsService {
     );
   }
 
+
   static async deleteVacante(id: string): Promise<boolean> {
-    return jobsDAO.deleteVacante(id);
-  }
-}
+    try {
+      return await jobsDAO.deleteVacante(id);
+    } catch (error: any) {
+      if (error.message && error.message.includes('No se puede eliminar')) {
+        throw new ValidationError(error.message);
+      }
+      throw error;
+    }
+  }}

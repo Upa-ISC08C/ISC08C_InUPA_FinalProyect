@@ -20,6 +20,7 @@ DROP TABLE IF EXISTS VACANTES CASCADE;
 DROP TABLE IF EXISTS EMPRESAS CASCADE;
 DROP TABLE IF EXISTS HABILIDADES CASCADE;
 DROP TABLE IF EXISTS CATEGORIAS_HABILIDAD CASCADE;
+DROP TABLE IF EXISTS CARRERAS CASCADE;          -- 👈 AGREGADO: Para reiniciar limpio
 DROP TABLE IF EXISTS USUARIOS CASCADE;
 
 -- =====================================================
@@ -42,10 +43,18 @@ CREATE TABLE USUARIOS (
 );
 
 -- =====================================================
+-- TABLA: CARRERAS 👈 AGREGADO: Nueva tabla para gestión dinámica
+-- =====================================================
+CREATE TABLE CARRERAS (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre VARCHAR(200) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
 -- TABLA: CATEGORIAS_HABILIDAD
 -- =====================================================
--- Códigos de un solo uso (OTP de acceso, restablecer contraseña, verificar correo).
--- Viven en la BD y no en memoria para que sobrevivan a un reinicio del backend.
 CREATE TABLE AUTH_CODIGOS (
     correo VARCHAR(150) NOT NULL,
     tipo VARCHAR(20) NOT NULL, -- 'otp' | 'reset' | 'verify'
@@ -250,7 +259,6 @@ CREATE TABLE POSTULACIONES (
 
 -- =====================================================
 -- TABLA: CONEXIONES
--- Red profesional: un perfil sigue/conecta con otro perfil
 -- =====================================================
 CREATE TABLE CONEXIONES (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -263,7 +271,6 @@ CREATE TABLE CONEXIONES (
 
 -- =====================================================
 -- TABLA: NOTIFICACIONES
--- Avisos internos para el usuario (postulaciones, conexiones, matches...)
 -- =====================================================
 CREATE TABLE NOTIFICACIONES (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -369,18 +376,29 @@ COMMENT ON TABLE POSTULACIONES IS 'Registro de postulaciones a vacantes';
 -- DATOS SEMILLA (para que la plataforma arranque funcional)
 -- =====================================================
 
--- Usuarios sembrados con contraseña (bcrypt). Credenciales de prueba:
---   Admin:       admin@upa.edu.mx                  ->  Admin2025!
---   Estudiantes: <correo institucional>            ->  Alumno2025!
--- Los hashes se generaron con bcryptjs (10 rondas).
+-- Carreras base actualizadas
+INSERT INTO CARRERAS (nombre) VALUES
+    ('Ingeniería Financiera'),
+    ('Ingeniería en Sistemas Computacionales'),
+    ('Arquitectura Bioclimática'),
+    ('Ingeniería en Aeronáutica'),
+    ('Ingeniería en Energía y Desarrollo Sostenible'),
+    ('Ingeniería en Microelectrónica y Semiconductores'),
+    ('Ingeniería Industrial'),
+    ('Ingeniería en TI e Innovación Digital'),
+    ('Ingeniería en Mecánica Automotriz'),
+    ('Ingeniería en Mecatrónica'),
+    ('Licenciatura en Negocios y Mercadotecnia'),
+    ('Licenciatura en Comercio Internacional y Aduanas'),
+    ('Ingeniería en Sistemas Computacionales')
+ON CONFLICT (nombre) DO NOTHING;
 
--- Cuenta de administrador dedicada (solo para gestionar la plataforma).
+-- 2. Usuarios sembrados
 INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol)
 VALUES ('ADMIN', 'Administrador InUPA', 'admin@upa.edu.mx',
         '$2b$10$//uB5ZkrG2fyyQBNwuzbKuj01.XhHzIC46SZUQzTWOtpRtuf174Re', 'admin')
 ON CONFLICT (correo_institucional) DO NOTHING;
 
--- Estudiantes de ejemplo (contraseña: Alumno2025!)
 INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol, carrera, cuatrimestre)
 VALUES
   ('UP230253', 'Juan Jesús Rodríguez Arellano', 'up230253@alumnos.upa.edu.mx',
@@ -391,7 +409,7 @@ VALUES
    '$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa', 'estudiante', 'Ingeniería en Mecatrónica', 4)
 ON CONFLICT (correo_institucional) DO NOTHING;
 
--- Categorias y habilidades base
+-- 3. Categorias y habilidades base
 INSERT INTO CATEGORIAS_HABILIDAD (nombre) VALUES
     ('Lenguajes de Programación'),
     ('Frameworks y Librerías'),
@@ -410,7 +428,7 @@ INSERT INTO HABILIDADES (nombre, categoria_id) VALUES
     ('Git',         (SELECT id FROM CATEGORIAS_HABILIDAD WHERE nombre = 'Herramientas y DevOps'))
 ON CONFLICT (nombre) DO NOTHING;
 
--- Empresas de ejemplo
+-- 4. Empresas de ejemplo
 INSERT INTO EMPRESAS (nombre, industria, sitio_web, descripcion, correo_contacto, telefono, ciudad, direccion, tamano, activa) VALUES
     ('TechAgs Solutions', 'Tecnología', 'https://techags.example.com', 'Desarrollo de software a la medida para empresas de la región.', 'rh@techags.example.com', '449-100-1000', 'Aguascalientes', 'Av. Universidad 100', '50–200', TRUE),
     ('Innova Software', 'Software', 'https://innova.example.com', 'Fábrica de software especializada en soluciones web y móviles.', 'talento@innova.example.com', '449-200-2000', 'Aguascalientes', 'Blvd. Zacatecas 200', '200–500', TRUE),
@@ -418,7 +436,7 @@ INSERT INTO EMPRESAS (nombre, industria, sitio_web, descripcion, correo_contacto
     ('Nube Digital', 'Cloud', 'https://nubedigital.example.com', 'Servicios de infraestructura en la nube y DevOps.', 'contacto@nubedigital.example.com', '449-400-4000', 'Guadalajara', 'Av. Chapultepec 400', '50–200', TRUE)
 ON CONFLICT (nombre) DO NOTHING;
 
--- Vacantes de ejemplo (empresa referenciada por nombre)
+-- 5. Vacantes de ejemplo
 INSERT INTO VACANTES (empresa_id, titulo, descripcion, requisitos, activa, salario_min, salario_max, modalidad, tipo_contrato, nivel_experiencia, ubicacion, carreras, cuatrimestre, fecha_limite) VALUES
     ((SELECT id FROM EMPRESAS WHERE nombre = 'TechAgs Solutions'),
      'Desarrollador Frontend Jr', 'Únete al equipo de producto para construir interfaces con React y TypeScript.',
@@ -438,7 +456,7 @@ INSERT INTO VACANTES (empresa_id, titulo, descripcion, requisitos, activa, salar
      ARRAY['Ingeniería en Mecatrónica','Ingeniería en Sistemas Computacionales'], 8, CURRENT_DATE + INTERVAL '20 days')
 ON CONFLICT DO NOTHING;
 
--- Mas estudiantes de ejemplo (para poblar las graficas del panel; contraseña: Alumno2025!)
+-- 6. Mas estudiantes de ejemplo
 INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, password_hash, rol, carrera, cuatrimestre, fecha_registro) VALUES
   ('UP230301','Sofía Mendoza Pérez','up230301@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Nanotecnología',8, CURRENT_DATE - INTERVAL '5 months'),
   ('UP230302','Jorge Ramírez Soto','up230302@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Sistemas Estratégicos de Información',5, CURRENT_DATE - INTERVAL '4 months'),
@@ -450,12 +468,12 @@ INSERT INTO USUARIOS (matricula_o_rfc, nombre_completo, correo_institucional, pa
   ('UP230308','Paola Vega Ortiz','up230308@alumnos.upa.edu.mx','$2b$10$CBtzEDVtgtwV506qzEIZw.g7cW36c14TUGV2EbvEnWczCwrXHRPRa','estudiante','Ingeniería en Nanotecnología',6, CURRENT_DATE)
 ON CONFLICT (correo_institucional) DO NOTHING;
 
--- Perfil vacio para cada estudiante (necesario para las postulaciones de ejemplo)
+-- 7. Perfiles vacíos
 INSERT INTO PERFILES (usuario_id)
 SELECT id FROM USUARIOS WHERE rol = 'estudiante'
 ON CONFLICT DO NOTHING;
 
--- Postulaciones de ejemplo (reparte perfiles entre vacantes, fechas en varios meses)
+-- 8. Postulaciones de ejemplo
 INSERT INTO POSTULACIONES (perfil_id, vacante_id, estado, fecha_postulacion)
 SELECT p.id, v.id,
        (ARRAY['pendiente','revisada','aceptada','rechazada'])[1 + (row_number() OVER () % 4)],

@@ -103,6 +103,15 @@ export class UsersDAO {
     return actualizado;
   }
 
+  /** Borrado real (Hard Delete) para administradores subalternos. */
+  async adminHardDelete(id: string): Promise<boolean> {
+    // Nota: Si tienes tablas relacionadas con CASCADE, esto las borrará también.
+    // Si no, primero deberías borrar sus dependencias (perfil, etc).
+    // Asumiendo que USUARIOS tiene ON DELETE CASCADE en PERFILES:
+    const result = await db.query('DELETE FROM USUARIOS WHERE id = $1', [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
+
   // =========================================================================
   // ADMINISTRACION (solo accesible por administradores)
   // =========================================================================

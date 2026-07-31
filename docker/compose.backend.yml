@@ -1,0 +1,26 @@
+# API de Node/Express.
+#
+# Depende de la base de datos, asi que por si solo no arranca completo: se
+# combina con compose.db.yml a traves de docker-compose.yml, que los incluye.
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: docker/Dockerfile.dev
+    container_name: inupa_backend
+    restart: always
+    env_file:
+      - ../.env
+    environment:
+      - DB_HOST=db # Sobrescribe localhost para usar el contenedor de la BD
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../backend:/app
+      # Se preservan los node_modules de la imagen: los del host son de Windows
+      # y no sirven dentro del contenedor Linux.
+      - /app/node_modules
+    depends_on:
+      - db
+      - mailpit

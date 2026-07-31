@@ -1,0 +1,22 @@
+# Interfaz compilada y servida por Nginx.
+#
+# Es la unica puerta de entrada: publica el puerto 80 (configurable con
+# HOST_WEB_PORT) y hace de proxy de /api al backend. Asi el navegador habla con
+# un solo origen y no hace falta CORS.
+
+services:
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: docker/Dockerfile.prod
+      # Vite congela estas variables al compilar, por eso van como args de
+      # construccion y no como environment del contenedor.
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_API_URL: /api
+    container_name: inupa_prod_frontend
+    restart: unless-stopped
+    ports:
+      - "${HOST_WEB_PORT:-80}:80"
+    depends_on:
+      - backend

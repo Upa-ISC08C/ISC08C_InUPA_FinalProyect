@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { AppError } from '../shared/errors';
 
 /**
@@ -42,6 +43,35 @@ export const errorHandler = (
       success: false,
       error: err.message,
     });
+  }
+
+  // Error de validación Zod
+  if (err && typeof err === 'object' && err.name === 'ZodError') {
+    const zodErr = err as any;
+    const errorsList = zodErr.errors || zodErr.issues || [];
+    const errorMessages = errorsList.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ");
+    return res.status(400).json({
+      success: false,
+      error: `Error de validación: ${errorMessages}`,
+      details: errorsList,
+    });
+  }
+
+  // Error nativo de Postgres (violación de constraints)
+  const pgErr = err as any;
+  if (pgErr.code && pgErr.code.length === 5) {
+    if (pgErr.code === "23505") {
+      return res.status(409).json({
+        success: false,
+        error: "Conflicto de datos: el registro ya existe.",
+      });
+    }
+    if (pgErr.code === "23514") {
+      return res.status(400).json({
+        success: false,
+        error: "Los datos enviados no cumplen con las reglas de la base de datos.",
+      });
+    }
   }
 
   // Error inesperado: se registra completo en el servidor...

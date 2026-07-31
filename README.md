@@ -107,8 +107,15 @@ ISC08C_InUPA_FinalProyect/
 │  ├─ package.json      # scripts: dev, build, lint
 │  └─ vite.config.ts
 ├─ docker/
-│  ├─ docker-compose.yml     # db + backend + frontend + mailpit (correo de pruebas)
-│  ├─ docker-compose.qa.yml  # QA: nombres, volumen y puertos propios (no pisa el local)
+│  ├─ docker-compose.yml     # Punto de entrada: combina los 3 de abajo
+│  ├─ compose.db.yml         #   PostgreSQL + Mailpit (correo de pruebas)
+│  ├─ compose.backend.yml    #   API de Node/Express
+│  ├─ compose.frontend.yml   #   Interfaz de React (Vite)
+│  ├─ docker-compose.prod.yml  # Produccion: combina los 3 de abajo
+│  ├─ compose.prod.db.yml      #   PostgreSQL (sin puerto al host)
+│  ├─ compose.prod.backend.yml #   API compilada (dist/)
+│  ├─ compose.prod.frontend.yml#   Nginx: estaticos + proxy a /api
+│  ├─ docker-compose.qa.yml  # QA: puertos y volumen propios (no pisa el local)
 │  └─ init.sql               # Esquema inicial de la BD
 ├─ .github/
 │  ├─ workflows/
@@ -168,6 +175,59 @@ Para apagarlo: `Ctrl + C` y luego:
 
 ```bash
 docker compose -f docker/docker-compose.yml down
+```
+
+#### Levantar solo una parte
+
+Cada servicio tiene su propio archivo en `docker/`, y `docker-compose.yml` solo los
+combina. Si necesitas trabajar contra un pedazo del sistema, puedes levantarlo suelto:
+
+```bash
+docker compose -f docker/compose.db.yml up -d
+```
+
+Eso arranca únicamente **PostgreSQL y Mailpit** — útil si vas a correr el backend a mano
+con `npm run dev` y solo necesitas la base de datos. Para la base más la API, sin la
+interfaz:
+
+```bash
+docker compose -f docker/compose.db.yml -f docker/compose.backend.yml up -d
+```
+
+> ⚠️ **No mezcles los dos modos.** Si dejas el backend en Docker y además corres
+> `npm run dev` en `backend/`, los dos pelean por el puerto 3000 y aparecen fallos
+> difíciles de explicar (correos que no salen, cambios que no se reflejan).
+
+#### Modo producción
+
+Compila la app de verdad: el frontend se construye y lo sirve **Nginx**, y el backend
+corre el `dist/` compilado (sin recarga en caliente).
+
+```bash
+docker compose -p inupa-prod -f docker/docker-compose.prod.yml up -d --build
+```
+
+Todo queda detrás de **un solo puerto**, así que no hace falta CORS:
+
+- `http://localhost` → la interfaz
+- `http://localhost/api` → el API, por proxy de Nginx
+
+Si el 80 está ocupado, cambia el puerto: `HOST_WEB_PORT=8080 docker compose ...`
+
+Diferencias frente a desarrollo:
+
+| | Desarrollo | Producción |
+|---|---|---|
+| Frontend | Servidor de Vite (5173) | Nginx sirviendo estáticos (80) |
+| Backend | `ts-node-dev` (3000, expuesto) | `dist/index.js` (interno) |
+| PostgreSQL | Expuesto en 5432 | Interno, sin puerto al host |
+| Correo | Mailpit (`localhost:8025`) | SMTP real de las variables `MAIL_*` |
+
+Usa `-p inupa-prod` para que tenga su propio volumen y **no toque la base de datos de
+desarrollo**. Para apagarlo:
+
+```bash
+docker compose -p inupa-prod -f docker/docker-compose.prod.yml down
 ```
 
 ### Opción B — Manual (sin Docker)

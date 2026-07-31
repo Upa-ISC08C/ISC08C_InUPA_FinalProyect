@@ -1,0 +1,26 @@
+# Base de datos para produccion.
+#
+# A diferencia del entorno de desarrollo, el puerto de PostgreSQL NO se publica
+# al host: solo el backend la alcanza, por la red interna de Docker. Tampoco se
+# incluye Mailpit; en produccion el correo sale por un SMTP real configurado con
+# las variables MAIL_* del .env.
+
+services:
+  db:
+    image: postgres:15
+    container_name: inupa_prod_db
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+      # Solo se aplica cuando el volumen esta vacio (primer arranque).
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata_prod:
