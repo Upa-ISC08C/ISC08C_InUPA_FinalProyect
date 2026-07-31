@@ -1,120 +1,59 @@
 import { Request, Response } from 'express';
 import { ApplicationsService } from './applications.service';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware';
+import { UnauthorizedError, NotFoundError } from '../../shared/errors';
 
 export class ApplicationsController {
   static async getMyApplications(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user?.id;
+    const userId = req.user?.id;
+    if (!userId) throw new UnauthorizedError();
 
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          error: 'No autorizado',
-        });
-      }
+    const applications = await ApplicationsService.getMyApplications(userId);
 
-      const applications = await ApplicationsService.getMyApplications(userId);
-
-      res.json({
-        success: true,
-        data: applications,
-      });
-    } catch (error) {
-      console.error('Error al obtener aplicaciones:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Error al obtener aplicaciones',
-      });
-    }
+    res.json({
+      success: true,
+      data: applications,
+    });
   }
 
   static async createApplication(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const { vacante_id } = req.body;
+    const userId = req.user?.id;
+    if (!userId) throw new UnauthorizedError();
 
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          error: 'No autorizado',
-        });
-      }
+    const { vacante_id } = req.body;
+    const application = await ApplicationsService.createApplication(userId, vacante_id);
 
-      if (!vacante_id) {
-        return res.status(400).json({
-          success: false,
-          error: 'ID de vacante requerido',
-        });
-      }
-
-      const application = await ApplicationsService.createApplication(userId, vacante_id);
-
-      res.status(201).json({
-        success: true,
-        message: 'Postulación creada exitosamente',
-        data: application,
-      });
-    } catch (error: any) {
-      console.error('Error al crear aplicación:', error);
-      
-      if (error.message.includes('ya te has postulado')) {
-        return res.status(409).json({
-          success: false,
-          error: error.message,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        error: 'Error al crear postulación',
-      });
-    }
+    res.status(201).json({
+      success: true,
+      message: 'Postulación creada exitosamente',
+      data: application,
+    });
   }
 
   static async deleteApplication(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const { id } = req.params;
+    const userId = req.user?.id;
+    if (!userId) throw new UnauthorizedError();
 
-      if (!userId) {
-        return res.status(401).json({ success: false, error: 'No autorizado' });
-      }
+    const { id } = req.params;
+    await ApplicationsService.deleteApplication(userId, id);
 
-      await ApplicationsService.deleteApplication(userId, id);
-
-      res.json({
-        success: true,
-        message: 'Postulación eliminada',
-      });
-    } catch (error) {
-      console.error('Error al eliminar postulación:', error);
-      res.status(500).json({ success: false, error: 'Error al eliminar postulación' });
-    }
+    res.json({
+      success: true,
+      message: 'Postulación eliminada',
+    });
   }
 
   static async getApplicationById(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const application = await ApplicationsService.getApplicationById(id);
+    const { id } = req.params;
+    const application = await ApplicationsService.getApplicationById(id);
 
-      if (!application) {
-        return res.status(404).json({
-          success: false,
-          error: 'Postulación no encontrada',
-        });
-      }
-
-      res.json({
-        success: true,
-        data: application,
-      });
-    } catch (error) {
-      console.error('Error al obtener aplicación:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Error al obtener aplicación',
-      });
+    if (!application) {
+      throw new NotFoundError('Postulación no encontrada');
     }
+
+    res.json({
+      success: true,
+      data: application,
+    });
   }
 }

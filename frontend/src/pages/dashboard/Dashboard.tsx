@@ -63,6 +63,12 @@ export function Dashboard() {
   const mailtoLink = (v: Vacante) =>
     `mailto:${v.empresa?.correo_contacto || ""}?subject=${encodeURIComponent(`Postulación – ${v.titulo}`)}&body=${encodeURIComponent(mensajeSugerido(v))}`;
 
+  const gmailLink = (v: Vacante) =>
+    `https://mail.google.com/mail/?view=cm&fs=1` +
+    `&to=${encodeURIComponent(v.empresa?.correo_contacto || "")}` +
+    `&su=${encodeURIComponent(`Postulación – ${v.titulo}`)}` +
+    `&body=${encodeURIComponent(mensajeSugerido(v))}`;
+
   const mensajeSugerido = (v: Vacante) => {
     const carreraTxt = user?.carrera ? `, estudiante de ${user.carrera}${user?.cuatrimestre ? ` (${user.cuatrimestre}° cuatrimestre)` : ""} en la Universidad Politécnica de Aguascalientes` : "";
     return `Estimados de ${v.empresa?.nombre || "la empresa"}:
@@ -270,8 +276,8 @@ ${user?.correo_institucional || ""}`;
 
       {/* MODAL COMPLETO (igual que JobBoard) */}
       {selectedJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedJob(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setSelectedJob(null)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors z-10">
               <X className="size-5" />
             </button>
@@ -323,7 +329,7 @@ ${user?.correo_institucional || ""}`;
                     <p className="text-sm font-bold text-[#003366] dark:text-[#00A8E8] mb-1">Datos de contacto</p>
                     
                     {selectedJob.empresa?.correo_contacto ? (
-                      <a href={mailtoLink(selectedJob)} className="flex items-start gap-3 text-sm text-[#2C3E50] dark:text-slate-200 hover:text-[#003366] dark:hover:text-[#00A8E8] hover:bg-white/60 dark:hover:bg-slate-700/50 p-2 rounded-lg transition-colors">
+                      <a href={gmailLink(selectedJob)} target="_blank" rel="noreferrer" className="flex items-start gap-3 text-sm text-[#2C3E50] dark:text-slate-200 hover:text-[#003366] dark:hover:text-[#00A8E8] hover:bg-white/60 dark:hover:bg-slate-700/50 p-2 rounded-lg transition-colors">
                         <Mail className="size-5 text-[#003366] dark:text-[#00A8E8] flex-shrink-0 mt-0.5" />
                         <div>
                           <p className="font-semibold">Enviar correo</p>
@@ -368,11 +374,11 @@ ${user?.correo_institucional || ""}`;
                     )}
                   </div>
                   
-                  <p className="text-xs text-[#7F8C8D] dark:text-slate-400">La plataforma <b>no contacta a la empresa por ti</b>: al pulsar los enlaces se abre <b>tu</b> aplicación con un <b>mensaje sugerido</b> que puedes editar antes de enviarlo. Recuerda adjuntar tu CV.</p>
+                  <p className="text-xs text-[#7F8C8D] dark:text-slate-400">La plataforma <b>no contacta a la empresa por ti</b>: al pulsar los enlaces se abre Gmail con un <b>mensaje sugerido</b> que puedes editar antes de enviarlo. Recuerda adjuntar tu CV.</p>
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-[#E5E7EB] dark:border-slate-800 flex flex-wrap gap-2">
-                  <a href={mailtoLink(selectedJob)}
+                  <a href={gmailLink(selectedJob)} target="_blank" rel="noreferrer"
                     className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#003366] dark:bg-[#00A8E8] hover:bg-[#002244] dark:hover:bg-[#0090c7] text-white text-sm font-bold flex-1 min-w-[160px] transition-colors"
                   >
                     <Mail className="size-4" /> Contactar por correo

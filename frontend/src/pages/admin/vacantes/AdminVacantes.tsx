@@ -856,7 +856,7 @@ export function VacanteDialog({
       else await jobsService.create(payload);
       onSaved();
     } catch (e: any) {
-      setError("Ha ocurrido un error, por favor contacta a un administrador");
+      setError(e.response?.data?.error || "Ha ocurrido un error, por favor contacta a un administrador");
     } finally {
       setSaving(false);
     }
@@ -1140,6 +1140,7 @@ export function VacanteDialog({
                 <F label="Fecha límite">
                   <Input
                     type="date"
+                    min={new Date().toISOString().split("T")[0]}
                     value={form.fecha_limite}
                     onChange={(e) => set("fecha_limite", e.target.value)}
                     className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]"
