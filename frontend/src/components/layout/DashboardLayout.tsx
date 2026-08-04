@@ -15,17 +15,14 @@ import {
   Briefcase,
   Users,
   Send,
-  Bell,
   Menu,
   X,
   ChevronDown,
-  CheckCheck,
   Moon,
   Sun,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuthStore } from "../../store/authStore";
-import { notificationsService } from "../../services/notifications.service";
 import { useTheme } from "../../hooks/useTheme";
 
 const navigation = [
@@ -34,50 +31,13 @@ const navigation = [
   { name: "Mi Perfil / CV", href: "/dashboard/perfil", icon: FileText },
 ];
 
-type Notif = { id: string; title: string; desc: string; time: string; read: boolean };
-
-const tiempoRel = (iso: string) => {
-  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (min < 1) return "ahora";
-  if (min < 60) return `hace ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `hace ${h} h`;
-  return `hace ${Math.floor(h / 24)} d`;
-};
-
 export function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifs, setNotifs] = useState<Notif[]>([]);
   // Mismo tema que el panel de administrador (se guarda en <html>).
   const { dark, setDark } = useTheme();
-
-  const unreadCount = notifs.filter((n) => !n.read).length;
-
-  useEffect(() => {
-    notificationsService
-      .list()
-      .then((data) =>
-        setNotifs(
-          (data?.notificaciones ?? []).map((n: any) => ({
-            id: n.id, title: n.titulo, desc: n.mensaje, time: tiempoRel(n.created_at), read: n.leida,
-          }))
-        )
-      )
-      .catch(() => {});
-  }, []);
-
-  const markAllRead = async () => {
-    setNotifs((p) => p.map((n) => ({ ...n, read: true })));
-    try { await notificationsService.markAllRead(); } catch { /* optimista */ }
-  };
-  const markRead = async (id: string) => {
-    setNotifs((p) => p.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    try { await notificationsService.markRead(id); } catch { /* optimista */ }
-  };
 
   const handleLogout = () => { logout(); navigate("/"); };
 
@@ -126,61 +86,6 @@ export function DashboardLayout() {
             >
               {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </button>
-
-            {/* Notification bell */}
-            <div className="relative">
-              <button onClick={() => setNotifOpen((v) => !v)}
-                className="relative flex items-center justify-center size-9 rounded-lg text-[#7F8C8D] dark:text-slate-300 hover:text-[#2C3E50] dark:hover:text-white hover:bg-[#F5F7FA] dark:hover:bg-slate-800 transition-colors">
-                <Bell className="size-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 size-4 bg-[#E74C3C] rounded-full flex items-center justify-center text-[9px] font-bold text-white ring-2 ring-white">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {notifOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                  <div className="absolute right-0 top-11 z-50 w-80 bg-white rounded-2xl shadow-xl border border-[#E5E7EB] overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-[#F5F7FA]">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-[#2C3E50]">Notificaciones</p>
-                        {unreadCount > 0 && (
-                          <span className="text-[10px] font-bold bg-[#E74C3C] text-white px-1.5 py-0.5 rounded-full">{unreadCount}</span>
-                        )}
-                      </div>
-                      {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-[#003366] font-semibold hover:underline">
-                          <CheckCheck className="size-3" />Marcar todas
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-[380px] overflow-y-auto divide-y divide-[#F5F7FA]">
-                      {notifs.length === 0 && (
-                        <div className="px-4 py-8 text-center text-xs text-[#7F8C8D]">No tienes notificaciones por ahora</div>
-                      )}
-                      {notifs.map((n) => (
-                        <div key={n.id} onClick={() => markRead(n.id)}
-                          className={`flex gap-3 px-4 py-3 cursor-pointer transition-colors ${n.read ? "hover:bg-[#FAFAFA]" : "bg-[#F0F6FF] hover:bg-[#E8F0FC]"}`}>
-                          <div className="size-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 bg-[#E8F0FC]">
-                            <Bell className="size-4 text-[#003366]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-1">
-                              <p className={`text-xs font-bold leading-tight ${n.read ? "text-[#7F8C8D]" : "text-[#2C3E50]"}`}>{n.title}</p>
-                              {!n.read && <div className="size-2 rounded-full bg-[#003366] flex-shrink-0 mt-1" />}
-                            </div>
-                            <p className="text-[11px] text-[#7F8C8D] mt-0.5 leading-relaxed line-clamp-2">{n.desc}</p>
-                            <p className="text-[10px] text-[#7F8C8D]/60 mt-1">{n.time}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
 
             {/* Profile dropdown */}
             <DropdownMenu>

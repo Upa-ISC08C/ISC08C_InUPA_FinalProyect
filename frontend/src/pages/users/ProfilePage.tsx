@@ -443,7 +443,7 @@ export function ProfilePage() {
       {/* Encabezado */}
       <Card className="overflow-hidden border border-slate-100 shadow-lg rounded-[2rem] p-0 gap-0 bg-white dark:bg-slate-900">
         <div className="h-40 bg-gradient-to-r from-[#001f3f] via-[#003366] to-[#00509E] relative">
-          <div className="absolute top-0 left-0 w-full h-full bg-white dark:bg-slate-900/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
         </div>
         <div className="px-6 sm:px-8 pb-8 relative">
           <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-8 mb-6">
