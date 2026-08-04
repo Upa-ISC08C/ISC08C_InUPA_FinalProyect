@@ -1,4 +1,5 @@
 import pdfParse from 'pdf-extraction';
+import { ValidationError } from '../../shared/errors';
 
 // ==========================================
 // PROMPTS MAESTROS Y CONFIGURACIÓN
@@ -40,7 +41,28 @@ Reglas de Salida:
 // LÓGICA DEL SERVICIO
 // ==========================================
 class AIService {
-    
+
+    /**
+     * El prompt maestro le exige al modelo devolver {"error": "..."} cuando
+     * considera que el texto no es un perfil profesional válido, sin importar
+     * si la tarea pedía JSON o Markdown. Antes ese JSON de rechazo se colaba
+     * tal cual como si fuera el resultado exitoso (el usuario veía el JSON
+     * crudo en pantalla). Aquí lo detectamos para convertirlo en un error
+     * claro en vez de un "resultado" ilegible.
+     */
+    private rechazoDeIA(contenidoCrudo: string): string | null {
+        const limpio = contenidoCrudo.replace(/```json/gi, '').replace(/```/g, '').trim();
+        try {
+            const parsed = JSON.parse(limpio);
+            if (parsed && typeof parsed === 'object' && typeof parsed.error === 'string') {
+                return parsed.error;
+            }
+        } catch {
+            // No era JSON: no es el caso de rechazo, es contenido normal (markdown, etc.)
+        }
+        return null;
+    }
+
     private getOpenRouterConfig() {
         const apiKey = process.env.OPENROUTER_API_KEY;
         if (!apiKey) throw new Error("Falta la API Key de OpenRouter en el entorno.");
@@ -76,10 +98,21 @@ class AIService {
 
         const data = await response.json();
         const contenido_ia = data.choices[0].message.content;
-        
+
+        const rechazo = this.rechazoDeIA(contenido_ia);
+        if (rechazo) {
+            throw new ValidationError(
+                'No se pudo generar el contenido: el texto es muy corto o no se pudo interpretar como un perfil profesional. Agrega más detalle sobre tus estudios, proyectos o actividades e intenta de nuevo.'
+            );
+        }
+
         // Limpiamos las etiquetas de markdown y parseamos
         const textoLimpio = contenido_ia.replace(/```json/gi, '').replace(/```/g, '').trim();
-        return JSON.parse(textoLimpio);
+        try {
+            return JSON.parse(textoLimpio);
+        } catch {
+            throw new ValidationError('La IA no devolvió un formato válido. Intenta de nuevo.');
+        }
     }
 
     public async procesarPDFAMarkdown(pdfBuffer: Buffer) {
@@ -111,7 +144,16 @@ class AIService {
         if (!response.ok) throw new Error(`Error en OpenRouter: ${response.statusText}`);
 
         const data = await response.json();
-        return data.choices[0].message.content; // Retornamos el markdown limpio
+        const contenido_ia = data.choices[0].message.content;
+
+        const rechazo = this.rechazoDeIA(contenido_ia);
+        if (rechazo) {
+            throw new ValidationError(
+                'No se pudo optimizar el CV: el contenido del PDF no se pudo interpretar como un perfil profesional. Verifica que el archivo tenga texto legible e intenta de nuevo.'
+            );
+        }
+
+        return contenido_ia; // Retornamos el markdown limpio
     }
 
     /**
@@ -120,7 +162,7 @@ class AIService {
      */
     public async procesarTextoAMarkdown(texto: string) {
         if (!texto || texto.trim() === "") {
-            throw new Error("No hay informacion de perfil para generar el CV.");
+            throw new ValidationError("No hay informacion de perfil para generar el CV.");
         }
         const config = this.getOpenRouterConfig();
         const systemPrompt = `${ROL_MAESTRO}\n\n${INSTRUCCION_MEJORAR}`;
@@ -140,7 +182,16 @@ class AIService {
 
         if (!response.ok) throw new Error(`Error en OpenRouter: ${response.statusText}`);
         const data = await response.json();
-        return data.choices[0].message.content;
+        const contenido_ia = data.choices[0].message.content;
+
+        const rechazo = this.rechazoDeIA(contenido_ia);
+        if (rechazo) {
+            throw new ValidationError(
+                'No se pudo generar el CV: la información de tu perfil es muy corta o no se pudo interpretar. Completa más secciones de tu perfil (biografía, experiencia, proyectos) e intenta de nuevo.'
+            );
+        }
+
+        return contenido_ia;
     }
 }
 

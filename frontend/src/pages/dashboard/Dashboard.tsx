@@ -37,6 +37,7 @@ export function Dashboard() {
   const [totalCompanies, setTotalCompanies] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<Vacante | null>(null);
+  const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
   const [interests, setInterests] = useState<Vacante[]>([]);
   const [applying, setApplying] = useState<string | null>(null);
 
@@ -102,6 +103,9 @@ ${user?.correo_institucional || ""}`;
     fetchStats();
   }, [user?.carrera, user?.cuatrimestre]);
 
+  // Las "recomendadas" no deben repetir lo que ya aparece en "guardadas".
+  const jobsRecomendadas = jobs.filter((v) => !interests.some((i) => i.id === v.id));
+
   const nombre = user?.nombre_completo?.split(" ")[0] || "Usuario";
   const cvPercentage = stats?.cvCompletion ?? 0;
 
@@ -116,17 +120,35 @@ ${user?.correo_institucional || ""}`;
   const renderJobCard = (v: Vacante) => (
     <Card key={v.id} className="border border-slate-200 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl flex flex-col group overflow-hidden">
       <div className="h-1.5 w-full bg-gradient-to-r from-[#003366] to-[#00A8E8] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+      {v.imagen_url && (
+        <div className="h-32 bg-[#F5F7FA] dark:bg-slate-800 overflow-hidden">
+          <img
+            src={v.imagen_url}
+            alt=""
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
+            onClick={() => setImagenAmpliada(v.imagen_url)}
+            className="size-full object-cover select-none cursor-zoom-in hover:opacity-90 transition-opacity"
+          />
+        </div>
+      )}
       <CardContent className="p-6 flex-1 flex flex-col">
         <div className="flex items-start gap-4">
           <div className="size-12 rounded-2xl bg-[#003366]/5 dark:bg-[#00A8E8]/10 flex items-center justify-center text-[#003366] dark:text-[#00A8E8] font-black text-lg border border-[#003366]/10 dark:border-[#00A8E8]/20 shadow-sm flex-shrink-0">
-            {v.empresa?.logo_url ? <img src={v.empresa.logo_url} alt="Logo" className="size-8 object-contain" /> : (v.empresa?.nombre || "E").substring(0, 2).toUpperCase()}
+            {v.empresa?.logo_url ? <img src={v.empresa.logo_url} alt="Logo" draggable={false} onDragStart={(e) => e.preventDefault()} onContextMenu={(e) => e.preventDefault()} className="size-8 object-contain select-none pointer-events-none" /> : (v.empresa?.nombre || "E").substring(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0 pt-1">
             <h3 className="font-extrabold text-[#2C3E50] dark:text-white text-base leading-tight line-clamp-2" title={v.titulo}>{v.titulo}</h3>
             <p className="text-sm font-semibold text-[#00A8E8] mt-1 truncate">{v.empresa?.nombre}</p>
+            {v.activa === false && (
+              <span className="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                Ya no disponible
+              </span>
+            )}
           </div>
         </div>
-        
+
         <div className="mt-5 space-y-2.5 flex-1">
           {v.ubicacion && (
             <div className="flex items-center gap-2 text-sm text-[#7F8C8D] dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg w-fit">
@@ -162,7 +184,7 @@ ${user?.correo_institucional || ""}`;
         <div className="relative z-10">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">¡Hola, {nombre}! </h1>
           <p className="text-white/80 text-base sm:text-lg mt-3 max-w-xl font-medium">
-            {jobs.length > 0 ? `Hemos encontrado ${jobs.length} vacantes recomendadas para tu perfil.` : "Explora las oportunidades laborales exclusivas para la comunidad UPA."}
+            {jobsRecomendadas.length > 0 ? `Hemos encontrado ${jobsRecomendadas.length} vacantes recomendadas para tu perfil.` : "Explora las oportunidades laborales exclusivas para la comunidad UPA."}
           </p>
         </div>
       </div>
@@ -260,7 +282,7 @@ ${user?.correo_institucional || ""}`;
           </Link>
         </div>
         
-        {jobs.length === 0 ? (
+        {jobsRecomendadas.length === 0 ? (
           <Card className="border border-dashed border-slate-300 dark:border-slate-700 shadow-none rounded-2xl bg-slate-50 dark:bg-slate-900">
             <CardContent className="p-12 text-center">
               <Briefcase className="size-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
@@ -269,7 +291,7 @@ ${user?.correo_institucional || ""}`;
           </Card>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {jobs.map(renderJobCard)}
+            {jobsRecomendadas.map(renderJobCard)}
           </div>
         )}
       </div>
@@ -281,8 +303,22 @@ ${user?.correo_institucional || ""}`;
             <button onClick={() => setSelectedJob(null)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors z-10">
               <X className="size-5" />
             </button>
-            
-            <div className="bg-gradient-to-r from-[#003366] to-[#00509E] px-8 pt-10 pb-20 rounded-t-[2rem] text-white relative">
+
+            {selectedJob.imagen_url && (
+              <div className="h-40 bg-[#F5F7FA] dark:bg-slate-800 overflow-hidden rounded-t-[2rem]">
+                <img
+                  src={selectedJob.imagen_url}
+                  alt=""
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onClick={(e) => { e.stopPropagation(); setImagenAmpliada(selectedJob.imagen_url); }}
+                  className="size-full object-cover select-none cursor-zoom-in hover:opacity-90 transition-opacity"
+                />
+              </div>
+            )}
+
+            <div className={`bg-gradient-to-r from-[#003366] to-[#00509E] px-8 pt-10 pb-20 text-white relative ${selectedJob.imagen_url ? "" : "rounded-t-[2rem]"}`}>
               <h2 className="text-3xl font-black mb-2">{selectedJob.titulo}</h2>
               <div className="flex flex-wrap items-center gap-4 text-white/90 font-medium">
                 <span className="flex items-center gap-1.5"><Building2 className="size-4" /> {selectedJob.empresa?.nombre}</span>
@@ -397,6 +433,30 @@ ${user?.correo_institucional || ""}`;
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Banner ampliado: ver la imagen completa de la vacante */}
+      {imagenAmpliada && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
+          onClick={() => setImagenAmpliada(null)}
+        >
+          <button
+            onClick={() => setImagenAmpliada(null)}
+            className="absolute top-4 right-4 size-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+          >
+            <X className="size-5" />
+          </button>
+          <img
+            src={imagenAmpliada}
+            alt=""
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-full object-contain rounded-lg select-none cursor-default"
+          />
         </div>
       )}
     </div>

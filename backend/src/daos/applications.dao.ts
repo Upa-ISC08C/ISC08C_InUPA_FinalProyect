@@ -44,13 +44,15 @@ export class ApplicationsDAO {
         v.tipo_contrato as vacante_tipo_contrato,
         v.salario_min as vacante_salario_min,
         v.salario_max as vacante_salario_max,
+        v.activa as vacante_activa,
         e.id as empresa_id,
         e.nombre as empresa_nombre,
         e.logo_url as empresa_logo_url,
         e.descripcion as empresa_descripcion,
         e.sitio_web as empresa_sitio_web,
         e.correo_contacto as empresa_correo_contacto,
-        e.telefono as empresa_telefono
+        e.telefono as empresa_telefono,
+        e.activa as empresa_activa
       FROM POSTULACIONES p
       JOIN VACANTES v ON p.vacante_id = v.id
       LEFT JOIN EMPRESAS e ON v.empresa_id = e.id
@@ -76,6 +78,10 @@ export class ApplicationsDAO {
         tipo_contrato: row.vacante_tipo_contrato,
         salario_min: row.vacante_salario_min ? parseFloat(row.vacante_salario_min) : null,
         salario_max: row.vacante_salario_max ? parseFloat(row.vacante_salario_max) : null,
+        // Si el admin desactivó la vacante o su empresa, se sigue mostrando
+        // en "Me interesa" (el postulante no debe perder el registro) pero
+        // marcada como ya no disponible en vez de aparecer como activa.
+        activa: Boolean(row.vacante_activa) && row.empresa_activa !== false,
         empresa: {
           id: row.empresa_id,
           nombre: row.empresa_nombre || 'Empresa',
@@ -155,9 +161,11 @@ export class ApplicationsDAO {
         v.tipo_contrato as vacante_tipo_contrato,
         v.salario_min as vacante_salario_min,
         v.salario_max as vacante_salario_max,
+        v.activa as vacante_activa,
         e.id as empresa_id,
         e.nombre as empresa_nombre,
-        e.logo_url as empresa_logo_url
+        e.logo_url as empresa_logo_url,
+        e.activa as empresa_activa
       FROM POSTULACIONES p
       JOIN VACANTES v ON p.vacante_id = v.id
       LEFT JOIN EMPRESAS e ON v.empresa_id = e.id
@@ -185,6 +193,7 @@ export class ApplicationsDAO {
         tipo_contrato: row.vacante_tipo_contrato,
         salario_min: row.vacante_salario_min ? parseFloat(row.vacante_salario_min) : null,
         salario_max: row.vacante_salario_max ? parseFloat(row.vacante_salario_max) : null,
+        activa: Boolean(row.vacante_activa) && row.empresa_activa !== false,
         empresa: {
           id: row.empresa_id,
           nombre: row.empresa_nombre || 'Empresa',

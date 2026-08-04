@@ -434,8 +434,9 @@ export function AdminDashboard() {
       usuarios: d.ultimosUsuarios || [],
     };
 
+    const modoOscuro = document.documentElement.classList.contains("dark");
     w.document.write(`<!doctype html>
-<html lang="es">
+<html lang="es" class="${modoOscuro ? "dark" : ""}">
 <head>
   <meta charset="utf-8">
   <title>Informe UPA - InUPA</title>
@@ -612,15 +613,39 @@ export function AdminDashboard() {
     .badge-danger { background: #FEE2E2; color: #B91C1C; }
 
     .foot { margin-top: 40px; border-top: 1px solid #E2E8F0; padding-top: 12px; color: #94A3B8; font-size: 10px; text-align: center; font-weight: 500; }
-    
+
+    /* Modo oscuro: solo aplica en pantalla, @media print de abajo lo revierte a blanco. */
+    html.dark body { background: #0F172A; color: #E2E8F0; }
+    html.dark .filter-bar { background: #1E293B; border-color: #334155; }
+    html.dark .filter-field label { color: #94A3B8; }
+    html.dark .filter-field input { background: #0F172A; border-color: #334155; color: #E2E8F0; }
+    html.dark .btn-secondary { background: #1E293B !important; border-color: #334155 !important; color: #E2E8F0 !important; }
+    html.dark h1, html.dark .cvbig { color: #7DD3FC; }
+    html.dark h2 { color: #7DD3FC; border-bottom-color: #334155; }
+    html.dark .header-subtitle, html.dark .sub, html.dark .chart-title, html.dark .foot, html.dark .cv-lbl, html.dark .kpi span { color: #94A3B8; }
+    html.dark .kpi, html.dark .cvbox, html.dark .chart-box { background: #1E293B; border-color: #334155; }
+    html.dark .kpi b { color: #7DD3FC; }
+    html.dark .cvbig-wrapper { border-color: #334155; }
+    html.dark .track { background: #334155; }
+    html.dark .rlabel-wide { color: #CBD5E1; }
+    html.dark table th { background: #1E293B; color: #CBD5E1; border-color: #334155; }
+    html.dark table td { color: #E2E8F0; border-color: #334155; }
+    html.dark tr:hover td { background: #1E293B; }
+    html.dark .chart-box svg text { fill: #CBD5E1; }
+    html.dark .chart-box svg line { stroke: #334155; }
+
     @media print {
-      body { padding: 10px 0; }
-      .filter-bar { display: none !important; }
-      .kpi { background: #F8FAFC !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .track { background: #F1F5F9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .cvbox { background: #F8FAFC !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body, html.dark body { padding: 10px 0; background: #ffffff !important; color: #1E293B !important; }
+      .filter-bar, html.dark .filter-bar { display: none !important; }
+      .kpi, html.dark .kpi, .cvbox, html.dark .cvbox, .chart-box, html.dark .chart-box { background: #F8FAFC !important; border-color: #E2E8F0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .track, html.dark .track { background: #F1F5F9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      th { background: #F8FAFC !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      th, html.dark table th { background: #F8FAFC !important; color: #475569 !important; border-color: #E2E8F0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      html.dark table td { color: #334155 !important; border-color: #F1F5F9 !important; }
+      html.dark h1, html.dark h2, html.dark .cvbig { color: #003366 !important; }
+      html.dark .header-subtitle, html.dark .sub, html.dark .chart-title, html.dark .foot, html.dark .cv-lbl, html.dark .kpi span, html.dark .rlabel-wide { color: #64748B !important; }
+      html.dark .chart-box svg text { fill: #2C3E50 !important; }
+      html.dark .chart-box svg line { stroke: #E2E8F0 !important; }
     }
   </style>
 </head>

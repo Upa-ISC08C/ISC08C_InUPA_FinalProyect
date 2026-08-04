@@ -70,6 +70,19 @@ export class NotificationsService {
   }
 
   /**
+   * Crea la notificacion solo si no existe ya una con el mismo enlace para
+   * ese usuario. Se usa para avisos automaticos y periodicos (ej.
+   * recordatorios de fecha limite) que no deben repetirse cada vez que
+   * corre el chequeo.
+   */
+  static async crearSiNoExiste(data: CreateNotificacionDTO): Promise<Notificacion | null> {
+    if (!data.enlace) return this.crearSilencioso(data);
+    const yaExiste = await notificationsDAO.existeConEnlace(data.usuario_id, data.enlace);
+    if (yaExiste) return null;
+    return this.crearSilencioso(data);
+  }
+
+  /**
    * Marca una notificacion como leida. Si no existe o es de otro usuario
    * se responde 404 (no se revela que la notificacion existe).
    */

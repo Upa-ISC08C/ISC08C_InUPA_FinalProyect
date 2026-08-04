@@ -600,16 +600,16 @@ function EmpresaCombo({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`w-full h-10 rounded-xl border px-3 text-sm bg-white flex items-center justify-between text-left ${invalid ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" : "border-[#D1D5DB]"}`}
+        className={`w-full h-10 rounded-xl border px-3 text-sm bg-white dark:bg-slate-900 flex items-center justify-between text-left ${invalid ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" : "border-[#D1D5DB] dark:border-slate-700"}`}
       >
-        <span className={seleccionada ? "text-[#2C3E50]" : "text-[#9CA3AF]"}>
+        <span className={seleccionada ? "text-[#2C3E50] dark:text-white" : "text-[#9CA3AF] dark:text-slate-500"}>
           {seleccionada?.nombre || "Selecciona empresa…"}
         </span>
-        <ChevronsUpDown className="size-4 text-[#7F8C8D] shrink-0" />
+        <ChevronsUpDown className="size-4 text-[#7F8C8D] dark:text-slate-400 shrink-0" />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-[#E5E7EB] bg-white shadow-lg">
-          <div className="p-2 border-b border-[#F5F7FA]">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-[#E5E7EB] dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg">
+          <div className="p-2 border-b border-[#F5F7FA] dark:border-slate-800">
             <Input
               autoFocus
               placeholder="Buscar empresa…"
@@ -628,14 +628,14 @@ function EmpresaCombo({
                   setOpen(false);
                   setQ("");
                 }}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F7FA] flex items-center justify-between"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F7FA] dark:hover:bg-slate-800 flex items-center justify-between"
               >
-                <span className="text-[#2C3E50]">{e.nombre}</span>
-                {e.id === value && <Check className="size-4 text-[#003366]" />}
+                <span className="text-[#2C3E50] dark:text-white">{e.nombre}</span>
+                {e.id === value && <Check className="size-4 text-[#003366] dark:text-[#00A8E8]" />}
               </button>
             ))}
             {filtradas.length === 0 && (
-              <p className="px-3 py-3 text-xs text-[#7F8C8D] text-center">
+              <p className="px-3 py-3 text-xs text-[#7F8C8D] dark:text-slate-400 text-center">
                 Sin resultados.
               </p>
             )}
@@ -811,16 +811,20 @@ export function VacanteDialog({
     if (!form.empresa_id) errs.empresa_id = true;
     if (!form.descripcion.trim()) errs.descripcion = true;
     if (requisitos.length === 0) errs.requisitos = true;
+    if (!form.fecha_limite) errs.fecha_limite = true;
 
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) {
-      if (errs.requisitos && Object.keys(errs).length === 1) {
+      if (errs.fecha_limite && Object.keys(errs).length === 1) {
+        setError("Por favor establece la fecha límite de la vacante.");
+      } else if (errs.requisitos && Object.keys(errs).length === 1) {
         setError("Por favor agrega al menos un requisito.");
       } else {
         setError("Por favor completa los campos requeridos marcados en rojo.");
       }
       if (errs.titulo || errs.empresa_id) setStep(1);
       else if (errs.descripcion || errs.requisitos) setStep(2);
+      else if (errs.fecha_limite) setStep(3);
       return;
     }
 
@@ -848,7 +852,7 @@ export function VacanteDialog({
         ubicacion: form.ubicacion,
         carreras,
         cuatrimestre: form.cuatrimestre ? Number(form.cuatrimestre) : null,
-        fecha_limite: form.fecha_limite || null,
+        fecha_limite: form.fecha_limite,
         imagen_url: imagen || null,
       };
       if (item)
@@ -892,7 +896,7 @@ export function VacanteDialog({
                 key={t.step}
                 type="button"
                 onClick={() => irAPaso(t.step)}
-                className={`py-3.5 px-4 text-xs font-bold transition-all relative border-b-2 -mb-px outline-none ${active ? "text-[#003366] border-[#FFD700]" : "text-muted-foreground hover:text-foreground border-transparent"}`}
+                className={`py-3.5 px-4 text-xs font-bold transition-all relative border-b-2 -mb-px outline-none ${active ? "text-[#003366] dark:text-[#00A8E8] border-[#FFD700]" : "text-muted-foreground hover:text-foreground border-transparent"}`}
               >
                 {t.label}
               </button>
@@ -942,7 +946,7 @@ export function VacanteDialog({
                               set("ubicacion", "");
                             }
                           }}
-                          className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all active:scale-95 ${active ? "bg-[#003366] text-white border-[#003366] shadow" : "bg-background text-muted-foreground border-border hover:border-[#003366] hover:text-[#003366]"}`}
+                          className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all active:scale-95 ${active ? "bg-[#003366] text-white border-[#003366] shadow" : "bg-background text-muted-foreground border-border hover:border-[#003366] hover:text-[#003366] dark:hover:border-[#00A8E8] dark:hover:text-[#00A8E8]"}`}
                         >
                           {mod}
                         </button>
@@ -972,7 +976,7 @@ export function VacanteDialog({
                           key={lvl}
                           type="button"
                           onClick={() => set("nivel_experiencia", lvl)}
-                          className={`flex-1 h-10 rounded-xl text-[10px] font-bold border transition-all active:scale-95 leading-tight p-1 ${active ? "bg-[#003366] text-white border-[#003366] shadow" : "bg-background text-muted-foreground border-border hover:border-[#003366] hover:text-[#003366]"}`}
+                          className={`flex-1 h-10 rounded-xl text-[10px] font-bold border transition-all active:scale-95 leading-tight p-1 ${active ? "bg-[#003366] text-white border-[#003366] shadow" : "bg-background text-muted-foreground border-border hover:border-[#003366] hover:text-[#003366] dark:hover:border-[#00A8E8] dark:hover:text-[#00A8E8]"}`}
                         >
                           {lvl}
                         </button>
@@ -1113,7 +1117,7 @@ export function VacanteDialog({
                   />
                 </F>
               </div>
-              <label className="flex items-center gap-2.5 text-xs text-[#2C3E50] cursor-pointer font-semibold">
+              <label className="flex items-center gap-2.5 text-xs text-[#2C3E50] dark:text-white cursor-pointer font-semibold">
                 <input
                   type="checkbox"
                   checked={noEspecificarSalario}
@@ -1137,13 +1141,13 @@ export function VacanteDialog({
                     ))}
                   </select>
                 </F>
-                <F label="Fecha límite">
+                <F label="Fecha límite *" invalid={fieldErrors.fecha_limite}>
                   <Input
                     type="date"
                     min={new Date().toISOString().split("T")[0]}
                     value={form.fecha_limite}
                     onChange={(e) => set("fecha_limite", e.target.value)}
-                    className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]"
+                    className={`rounded-xl h-10 bg-muted/20 focus-visible:ring-[#003366] ${fieldErrors.fecha_limite ? "border-red-500" : "border-border"}`}
                   />
                 </F>
               </div>
@@ -1156,7 +1160,7 @@ export function VacanteDialog({
                         key={c}
                         type="button"
                         onClick={() => toggleCarrera(c)}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all active:scale-95 ${on ? "bg-[#003366] text-white border-[#003366]" : "bg-background text-muted-foreground border-border hover:border-[#003366]"}`}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all active:scale-95 ${on ? "bg-[#003366] text-white border-[#003366]" : "bg-background text-muted-foreground border-border hover:border-[#003366] dark:hover:border-[#00A8E8]"}`}
                       >
                         {abreviaCarrera(c)}
                       </button>

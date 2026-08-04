@@ -1,17 +1,18 @@
-﻿import { z } from "zod";
+import { z } from "zod";
+import { urlOpcional, telefonoOpcional, textoLibreOpcional, correoEstricto, tamanoEmpresaOpcional } from "../../shared/zodHelpers";
 
 export const createCompanySchema = z.object({
   body: z.object({
     nombre: z.string().min(3, "El nombre de la empresa debe tener al menos 3 caracteres").max(100),
     industria: z.string().max(100).optional().nullable(),
-    descripcion: z.string().max(1000).optional().nullable(),
-    sitio_web: z.string().url("Debe ser una URL válida").optional().nullable(),
-    logo_url: z.string().url("Debe ser una URL válida").optional().nullable(),
-    correo_contacto: z.string().email("Debe ser un correo electrónico válido").optional().nullable(),
-    telefono: z.string().min(10).max(20).optional().nullable(),
+    descripcion: textoLibreOpcional(1000, "La descripción contiene caracteres no permitidos"),
+    sitio_web: urlOpcional("El sitio web debe ser una URL válida"),
+    logo_url: urlOpcional("El logo debe ser una URL válida"),
+    correo_contacto: correoEstricto(),
+    telefono: telefonoOpcional(),
     ciudad: z.string().max(100).optional().nullable(),
-    direccion: z.string().max(255).optional().nullable(),
-    tamano: z.string().max(50).optional().nullable(),
+    direccion: textoLibreOpcional(255, "La dirección contiene caracteres no permitidos"),
+    tamano: tamanoEmpresaOpcional(),
     activa: z.boolean().optional(),
   }),
 });
@@ -23,14 +24,14 @@ export const updateCompanySchema = z.object({
   body: z.object({
     nombre: z.string().min(3).max(100).optional(),
     industria: z.string().max(100).optional().nullable(),
-    descripcion: z.string().max(1000).optional().nullable(),
-    sitio_web: z.string().url().optional().nullable(),
-    logo_url: z.string().url().optional().nullable(),
-    correo_contacto: z.string().email().optional().nullable(),
-    telefono: z.string().min(10).max(20).optional().nullable(),
+    descripcion: textoLibreOpcional(1000, "La descripción contiene caracteres no permitidos"),
+    sitio_web: urlOpcional("El sitio web debe ser una URL válida"),
+    logo_url: urlOpcional("El logo debe ser una URL válida"),
+    correo_contacto: correoEstricto(),
+    telefono: telefonoOpcional(),
     ciudad: z.string().max(100).optional().nullable(),
-    direccion: z.string().max(255).optional().nullable(),
-    tamano: z.string().max(50).optional().nullable(),
+    direccion: textoLibreOpcional(255, "La dirección contiene caracteres no permitidos"),
+    tamano: tamanoEmpresaOpcional(),
     activa: z.boolean().optional(),
   }),
 });
@@ -40,4 +41,3 @@ export const companyIdParamsSchema = z.object({
     id: z.string().uuid("El ID debe ser un UUID válido"),
   }),
 });
-

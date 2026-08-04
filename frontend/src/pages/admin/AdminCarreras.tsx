@@ -34,7 +34,11 @@ export function AdminCarreras() {
       setError("El nombre debe tener al menos 3 caracteres.");
       return;
     }
-    
+    if (!/^[\p{L}\s.]+$/u.test(nombre.trim())) {
+      setError('El nombre solo puede contener letras y espacios (ej. "Ingeniería en Sistemas Computacionales").');
+      return;
+    }
+
     setSaving(true);
     setError("");
     try {

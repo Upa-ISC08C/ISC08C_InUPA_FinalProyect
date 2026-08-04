@@ -63,6 +63,19 @@ export class NotificationsDAO {
     };
   }
 
+  /**
+   * ¿Ya existe una notificación para este usuario con este mismo enlace?
+   * Se usa para no repetir avisos automáticos (ej. recordatorios de fecha
+   * límite) cada vez que corre el chequeo periódico.
+   */
+  async existeConEnlace(usuarioId: string, enlace: string): Promise<boolean> {
+    const result = await db.query(
+      `SELECT 1 FROM NOTIFICACIONES WHERE usuario_id = $1 AND enlace = $2 LIMIT 1`,
+      [usuarioId, enlace]
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async findById(id: string): Promise<Notificacion | null> {
     const result = await db.query(`SELECT * FROM NOTIFICACIONES WHERE id = $1`, [id]);
     return result.rows[0] || null;

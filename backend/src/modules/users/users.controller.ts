@@ -77,13 +77,13 @@ export class UsersController {
 
   /** PUT /api/users/:id — actualiza activo/rol/nombre/etc de un usuario. */
   static async adminUpdate(req: AuthenticatedRequest, res: Response) {
-    const user = await UsersService.adminUpdate(req.params.id, req.body ?? {});
+    const user = await UsersService.adminUpdate(req.params.id, req.body ?? {}, req.user?.email);
     return res.json({ success: true, data: user });
   }
 
   /** POST /api/users — crea un nuevo usuario (admin o estudiante). */
   static async adminCreate(req: AuthenticatedRequest, res: Response) {
-    const user = await UsersService.adminCreate(req.body ?? {});
+    const user = await UsersService.adminCreate(req.body ?? {}, req.user?.email);
     return res.json({ success: true, data: user });
   }
 

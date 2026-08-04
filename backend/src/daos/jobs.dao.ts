@@ -99,6 +99,12 @@ export class JobsDAO {
     } else if (filters.activa === undefined) {
       conditions.push(`v.activa = true`);
     }
+    // Si la empresa dueña de la vacante fue desactivada/eliminada, la vacante
+    // no debe seguir apareciendo como disponible (salvo en la vista "all" del
+    // admin, donde sí se necesita ver todo para poder administrarlo).
+    if (filters.activa !== 'all') {
+      conditions.push(`(e.activa IS NULL OR e.activa = true)`);
+    }
     if (filters.modalidad) { conditions.push(`v.modalidad = $${paramIndex++}`); values.push(filters.modalidad); }
     if (filters.tipo_contrato) { conditions.push(`v.tipo_contrato = $${paramIndex++}`); values.push(filters.tipo_contrato); }
     if (filters.nivel_experiencia) { conditions.push(`v.nivel_experiencia = $${paramIndex++}`); values.push(filters.nivel_experiencia); }
@@ -146,7 +152,13 @@ export class JobsDAO {
   }
 
   async getRecentVacantes(limit: number = 10): Promise<VacanteWithRelations[]> {
-    const result = await db.query(`SELECT * FROM VACANTES WHERE activa = true ORDER BY fecha_publicacion DESC LIMIT $1`, [limit]);
+    const result = await db.query(
+      `SELECT v.* FROM VACANTES v
+       LEFT JOIN EMPRESAS e ON v.empresa_id = e.id
+       WHERE v.activa = true AND (e.activa IS NULL OR e.activa = true)
+       ORDER BY v.fecha_publicacion DESC LIMIT $1`,
+      [limit]
+    );
     return Promise.all(result.rows.map(row => this.enrichVacante(row)));
   }
 
@@ -154,6 +166,19 @@ export class JobsDAO {
     const result = await db.query(`SELECT * FROM VACANTES WHERE id = $1`, [id]);
     if (result.rows.length === 0) return null;
     return this.enrichVacante(result.rows[0]);
+  }
+
+  /** Usuarios con una postulación (activa o no) a esta vacante, para avisarles si se modifica. */
+  async findPostulantes(vacanteId: string): Promise<{ usuario_id: string; nombre_completo: string }[]> {
+    const result = await db.query(
+      `SELECT DISTINCT u.id as usuario_id, u.nombre_completo
+       FROM POSTULACIONES pos
+       JOIN PERFILES p ON p.id = pos.perfil_id
+       JOIN USUARIOS u ON u.id = p.usuario_id
+       WHERE pos.vacante_id = $1`,
+      [vacanteId]
+    );
+    return result.rows;
   }
 
   async updateVacante(id: string, data: UpdateVacanteDTO): Promise<VacanteWithRelations> {
@@ -206,23 +231,30 @@ export class JobsDAO {
   }
 
   /**
-   * Eliminar vacante (Hard Delete) con validación de postulaciones.
+   * Eliminar vacante (Hard Delete). Se permite aunque tenga postulantes: el
+   * ON DELETE CASCADE de POSTULACIONES/VACANTE_HABILIDADES se encarga de
+   * limpiar esos registros junto con la vacante.
    */
   async deleteVacante(id: string): Promise<boolean> {
-    // 1. Verificar si tiene postulaciones asociadas
-    const apps = await db.query('SELECT id FROM POSTULACIONES WHERE vacante_id = $1', [id]);
-    if (apps.rows.length > 0) {
-      throw new Error('No se puede eliminar la vacante porque tiene postulaciones asociadas. Desactívala en su lugar.');
-    }
-    
-    // 2. Eliminación real (Hard Delete)
     const result = await db.query('DELETE FROM VACANTES WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
   }
 
-  async findAlumnosQueHacenMatch(carreras: string[] | null, cuatrimestre: number | null): Promise<{ correo_institucional: string; nombre_completo: string }[]> {
+  /** Vacantes activas con fecha límite en el futuro, para el recordatorio de cierre próximo. */
+  async getVacantesActivasConFechaLimite(): Promise<{ id: string; titulo: string; fecha_limite: string; empresa_nombre: string | null }[]> {
+    const result = await db.query(
+      `SELECT v.id, v.titulo, v.fecha_limite, e.nombre as empresa_nombre
+       FROM VACANTES v
+       LEFT JOIN EMPRESAS e ON v.empresa_id = e.id
+       WHERE v.activa = true AND v.fecha_limite IS NOT NULL AND v.fecha_limite >= CURRENT_DATE
+         AND (e.activa IS NULL OR e.activa = true)`
+    );
+    return result.rows;
+  }
+
+  async findAlumnosQueHacenMatch(carreras: string[] | null, cuatrimestre: number | null): Promise<{ id: string; correo_institucional: string; nombre_completo: string }[]> {
     const query = `
-      SELECT correo_institucional, nombre_completo FROM USUARIOS
+      SELECT id, correo_institucional, nombre_completo FROM USUARIOS
       WHERE rol = 'estudiante' AND activo = true
         AND ($1::text[] IS NULL OR carrera = ANY($1::text[]))
         AND ($2::int IS NULL OR cuatrimestre IS NULL OR cuatrimestre >= $2::int)

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { sendTokenEmail, sendResetEmail, sendVerificationEmail, mailConfigurado } from '../../utils/mailer';
 import { authDAO, User, CodeType } from '../../daos/auth.dao';
+import { ValidationError } from '../../shared/errors';
 
 /** Genera un código numérico de 6 dígitos. */
 const generarCodigo = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -69,16 +70,25 @@ export class AuthService {
     const correo = data.email.toLowerCase().trim();
 
     if (!data.nombre || data.nombre.trim().length < 3) {
-      throw new Error('El nombre completo debe tener al menos 3 caracteres');
+      throw new ValidationError('El nombre completo debe tener al menos 3 caracteres');
     }
     this.validarCorreoInstitucional(correo);
     if (!data.password || data.password.length < 6) {
-      throw new Error('La contraseña debe tener al menos 6 caracteres');
+      throw new ValidationError('La contraseña debe tener al menos 6 caracteres');
     }
 
-    const existente = await authDAO.findUserByEmail(correo);
+    // findUserByEmailAny (sin filtrar por activo) para poder distinguir una
+    // cuenta suspendida de una realmente disponible: antes, una cuenta
+    // suspendida "no existía" para esta consulta y el registro seguía de
+    // largo hasta chocar con la restricción UNIQUE de correo, mostrando el
+    // genérico "Conflicto de datos: el registro ya existe" en vez de avisar
+    // que la cuenta fue suspendida.
+    const existente = await authDAO.findUserByEmailAny(correo);
     if (existente) {
-      throw new Error('Ya existe una cuenta con este correo institucional');
+      if (!existente.activo) {
+        throw new ValidationError('Esta cuenta fue suspendida. Contacta a un administrador para reactivarla.');
+      }
+      throw new ValidationError('Ya existe una cuenta con este correo institucional');
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
@@ -107,7 +117,7 @@ export class AuthService {
   async forgotPassword(email: string): Promise<boolean> {
     const correo = email.toLowerCase().trim();
     const user = await authDAO.findUserByEmail(correo);
-    if (!user) return true; // No revelamos si el correo existe.
+    if (!user) return true; // No revelamos si el correo existe (ni si está suspendida).
 
     const codigo = generarCodigo();
     await authDAO.saveCode(correo, 'reset', codigo, new Date(Date.now() + 15 * 60 * 1000));
@@ -120,12 +130,22 @@ export class AuthService {
    */
   private async validarCodigo(correo: string, tipo: CodeType, token: string, faltante: string): Promise<void> {
     const data = await authDAO.getCode(correo, tipo);
-    if (!data) throw new Error(faltante);
+    if (!data) throw new ValidationError(faltante);
     if (Date.now() > new Date(data.expira_en).getTime()) {
       await authDAO.deleteCode(correo, tipo);
-      throw new Error('El código ha expirado. Solicita uno nuevo.');
+      throw new ValidationError('El código ha expirado. Solicita uno nuevo.');
     }
-    if (data.codigo !== String(token).trim()) throw new Error('Código inválido');
+    if (data.codigo !== String(token).trim()) {
+      // El código de reset se guarda una sola vez por correo (ON CONFLICT
+      // sobreescribe): si un admin envió un reseteo y el usuario también pidió
+      // "olvidé mi contraseña" (o viceversa), el código anterior deja de ser
+      // válido y solo el más reciente funciona. Avisamos de esto en vez de
+      // devolver un "código inválido" que no explica qué pasó.
+      const mensaje = tipo === 'reset'
+        ? 'Este código ya no es válido: es posible que se haya generado uno más reciente (por ti o por un administrador). Revisa el correo más reciente que recibiste e intenta de nuevo.'
+        : 'Código inválido';
+      throw new ValidationError(mensaje);
+    }
   }
 
   /** Verifica si el código de restablecimiento es válido sin cambiar la contraseña aún. */
@@ -139,11 +159,11 @@ export class AuthService {
   async resetPassword(email: string, token: string, nuevaPassword: string): Promise<void> {
     const correo = email.toLowerCase().trim();
     await this.validarCodigo(correo, 'reset', token, 'No hay una solicitud de restablecimiento activa para este correo');
-    if (!nuevaPassword || nuevaPassword.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
+    if (!nuevaPassword || nuevaPassword.length < 6) throw new ValidationError('La contraseña debe tener al menos 6 caracteres');
 
     const passwordHash = await bcrypt.hash(nuevaPassword, 10);
     const actualizada = await authDAO.updatePasswordByEmail(correo, passwordHash);
-    if (!actualizada) throw new Error('No se pudo actualizar la contraseña. La cuenta no existe o está suspendida.');
+    if (!actualizada) throw new ValidationError('No se pudo actualizar la contraseña. La cuenta no existe o está suspendida.');
     await authDAO.deleteCode(correo, 'reset');
   }
 
@@ -170,20 +190,26 @@ export class AuthService {
     const correo = email.toLowerCase().trim();
 
     if (!correo || !password) {
-      throw new Error('Correo y contraseña son requeridos');
+      throw new ValidationError('Correo y contraseña son requeridos');
     }
 
-    const user = await authDAO.findUserByEmail(correo);
-    // Mensaje genérico para no revelar si el correo existe.
-    const credencialesInvalidas = new Error('Correo o contraseña incorrectos');
+    // findUserByEmailAny (sin filtrar por activo): así podemos avisar
+    // claramente que la cuenta fue suspendida en vez de un genérico
+    // "correo o contraseña incorrectos" que confunde al usuario suspendido.
+    const user = await authDAO.findUserByEmailAny(correo);
+    const credencialesInvalidas = () => new ValidationError('Correo o contraseña incorrectos');
 
     if (!user) {
-      throw credencialesInvalidas;
+      throw credencialesInvalidas();
     }
 
     const coincide = await bcrypt.compare(password, user.password_hash);
     if (!coincide) {
-      throw credencialesInvalidas;
+      throw credencialesInvalidas();
+    }
+
+    if (!user.activo) {
+      throw new ValidationError('Tu cuenta ha sido suspendida. Contacta a un administrador.');
     }
 
     return {
@@ -223,26 +249,28 @@ export class AuthService {
   async loginWithGoogle(idToken: string): Promise<AuthResult> {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
-      throw new Error('GOOGLE_CLIENT_ID no está configurado en las variables de entorno');
+      throw new ValidationError('GOOGLE_CLIENT_ID no está configurado en las variables de entorno');
     }
 
     const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });
     const payload = ticket.getPayload();
 
     if (!payload?.email) {
-      throw new Error('No se pudo obtener el correo de la cuenta de Google');
+      throw new ValidationError('No se pudo obtener el correo de la cuenta de Google');
     }
     if (!payload.email_verified) {
-      throw new Error('El correo de Google no está verificado');
+      throw new ValidationError('El correo de Google no está verificado');
     }
 
     const email = payload.email.toLowerCase();
     this.validarCorreoInstitucional(email);
 
-    // Buscar si el usuario existe o crearlo (usando el nombre real de Google)
-    let user = await authDAO.findUserByEmail(email);
+    // Buscar si el usuario existe (incluida cuenta suspendida) o crearlo.
+    let user = await authDAO.findUserByEmailAny(email);
     if (!user) {
       user = await authDAO.createUserFromEmail(email, payload.name);
+    } else if (!user.activo) {
+      throw new ValidationError('Tu cuenta ha sido suspendida. Contacta a un administrador.');
     }
 
     return {
@@ -256,7 +284,7 @@ export class AuthService {
    */
   private validarCorreoInstitucional(email: string): void {
     if (!email.endsWith('@alumnos.upa.edu.mx') && !email.endsWith('@upa.edu.mx')) {
-      throw new Error('El correo debe ser institucional (@alumnos.upa.edu.mx o @upa.edu.mx)');
+      throw new ValidationError('El correo debe ser institucional (@alumnos.upa.edu.mx o @upa.edu.mx)');
     }
   }
 

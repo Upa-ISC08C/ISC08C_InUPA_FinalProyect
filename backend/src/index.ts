@@ -15,6 +15,7 @@ import { authenticateToken } from './middlewares/auth.middleware';
 import { requestLogger } from './middlewares/logger.middleware';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import { verificarMailer } from './utils/mailer';
+import { iniciarTareasProgramadas } from './utils/scheduler';
 import carrerasRoutes from './modules/carreras/carreras.routes';
 
 
@@ -58,4 +59,5 @@ app.listen(port, () => {
   // Comprobamos el SMTP al arrancar: si las credenciales fallan queda claro en
   // los logs, en vez de descubrirlo cuando un usuario no recibe su código.
   void verificarMailer();
+  iniciarTareasProgramadas();
 });

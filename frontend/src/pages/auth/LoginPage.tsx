@@ -14,7 +14,6 @@ import {
   Sparkles,
   ArrowRight,
   Loader2,
-  Shield,
   KeyRound,
   CheckCircle2,
   Eye,
@@ -104,7 +103,7 @@ export function LoginPage() {
         client_id: clientId,
         callback: async (resp: any) => {
           setError("");
-          
+
           // 1. Decodificar el token para verificar el correo ANTES de enviarlo al backend
           const payload = decodeGoogleJWT(resp.credential);
           if (!payload || !payload.email) {
@@ -286,15 +285,6 @@ export function LoginPage() {
             ¿No tienes cuenta?{" "}
             <Link to="/register" className="text-[#003366] font-semibold hover:underline">Crear cuenta gratis</Link>
           </p>
-
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-[#F5F7FA] border border-[#E5E7EB]">
-            <div className="size-6 rounded-lg bg-[#003366] flex items-center justify-center flex-shrink-0">
-              <Shield className="size-3.5 text-[#FFD700]" />
-            </div>
-            <p className="text-xs text-[#7F8C8D]">
-              Acceso administrador: <span className="font-semibold text-[#2C3E50] select-all">admin@upa.edu.mx</span> (inicia sesión normal).
-            </p>
-          </div>
         </div>
       </div>
 

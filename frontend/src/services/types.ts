@@ -67,6 +67,7 @@ export interface Postulacion {
     ubicacion: string | null;
     salario_min: number | null;
     salario_max: number | null;
+    activa: boolean;
     empresa: { id: string; nombre: string; logo_url: string | null };
   };
 }

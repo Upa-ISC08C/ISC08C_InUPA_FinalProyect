@@ -273,8 +273,8 @@ export function AdminAdministradores() {
                   <Input required placeholder="Ej. Juan Pérez" value={formData.nombre_completo} onChange={(e) => setFormData({ ...formData, nombre_completo: e.target.value })} className="h-10 rounded-xl text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">RFC o Matrícula</label>
-                  <Input placeholder="Ej. PEJ901201" value={formData.matricula_o_rfc} onChange={(e) => setFormData({ ...formData, matricula_o_rfc: e.target.value })} className="h-10 rounded-xl text-sm" />
+                  <label className="text-xs font-bold text-muted-foreground">RFC o Matrícula (opcional)</label>
+                  <Input placeholder="Ej. ADMIN001 — se genera solo si se deja en blanco" value={formData.matricula_o_rfc} onChange={(e) => setFormData({ ...formData, matricula_o_rfc: e.target.value })} className="h-10 rounded-xl text-sm" />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-xs font-bold text-muted-foreground">Correo institucional *</label>

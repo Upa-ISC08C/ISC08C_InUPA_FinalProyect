@@ -104,8 +104,15 @@ export function ApplicationsPanel() {
                           <h3 className="font-bold text-[#2C3E50] dark:text-white">{a.vacante.titulo}</h3>
                           <p className="text-sm font-semibold text-[#003366]">{emp?.nombre}</p>
                         </div>
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: est.bg, color: est.text }}>{est.label}</span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: est.bg, color: est.text }}>{est.label}</span>
+                          {!a.vacante.activa && (
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                              Ya no disponible
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-[#7F8C8D] dark:text-slate-400">
                         {a.vacante.ubicacion && <span className="flex items-center gap-1"><MapPin className="size-3" />{a.vacante.ubicacion}</span>}

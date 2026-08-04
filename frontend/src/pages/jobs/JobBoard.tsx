@@ -106,6 +106,7 @@ export function JobBoard() {
   const [applying, setApplying] = useState<string | null>(null);
   const [selected, setSelected] = useState<Vacante | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
 
   const [f, setF] = useState({
     search: "",
@@ -479,20 +480,35 @@ ${user?.correo_institucional || ""}`;
                       <img
                         src={job.imagen_url}
                         alt=""
-                        className="size-full object-cover"
+                        draggable={false}
+                        onDragStart={(e) => e.preventDefault()}
+                        onContextMenu={(e) => e.preventDefault()}
+                        onClick={() => setImagenAmpliada(job.imagen_url)}
+                        className="size-full object-cover select-none cursor-zoom-in hover:opacity-90 transition-opacity"
                       />
                     </div>
                   )}
                   <CardContent className="p-5">
                     <div className="flex gap-4">
-                      <div
-                        className="size-12 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                        style={{
-                          backgroundColor: color(job.empresa?.nombre || "E"),
-                        }}
-                      >
-                        {initials(job.empresa?.nombre || "E")}
-                      </div>
+                      {job.empresa?.logo_url ? (
+                        <img
+                          src={job.empresa.logo_url}
+                          alt={job.empresa?.nombre || "Logo"}
+                          draggable={false}
+                          onDragStart={(e) => e.preventDefault()}
+                          onContextMenu={(e) => e.preventDefault()}
+                          className="size-12 rounded-xl object-contain bg-white border border-[#F5F7FA] dark:border-slate-800 flex-shrink-0 select-none"
+                        />
+                      ) : (
+                        <div
+                          className="size-12 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                          style={{
+                            backgroundColor: color(job.empresa?.nombre || "E"),
+                          }}
+                        >
+                          {initials(job.empresa?.nombre || "E")}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-[#2C3E50] dark:text-white text-base">
                           {job.titulo}
@@ -526,6 +542,11 @@ ${user?.correo_institucional || ""}`;
                             </span>
                           )}
                         </div>
+                        {job.nivel_experiencia && (
+                          <span className="inline-flex items-center mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-300">
+                            {job.nivel_experiencia}
+                          </span>
+                        )}
                         {dl && (
                           <span
                             className={`inline-flex items-center gap-1 mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-full ${dl.cerrada ? "bg-[#F1F1F1] dark:bg-slate-800 text-[#9CA3AF]" : dl.urgente ? "bg-[#FEE2E2] dark:bg-red-900/30 text-[#DC2626]" : "bg-[#FEF9E7] dark:bg-yellow-900/30 text-[#B7791F]"}`}
@@ -588,20 +609,35 @@ ${user?.correo_institucional || ""}`;
                 <img
                   src={selected.imagen_url}
                   alt=""
-                  className="size-full object-cover"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onClick={() => setImagenAmpliada(selected.imagen_url)}
+                  className="size-full object-cover select-none cursor-zoom-in hover:opacity-90 transition-opacity"
                 />
               </div>
             )}
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-[#E5E7EB] dark:border-slate-800">
               <div className="flex items-start gap-4">
-                <div
-                  className="size-14 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
-                  style={{
-                    backgroundColor: color(selected.empresa?.nombre || "E"),
-                  }}
-                >
-                  {initials(selected.empresa?.nombre || "E")}
-                </div>
+                {selected.empresa?.logo_url ? (
+                  <img
+                    src={selected.empresa.logo_url}
+                    alt={selected.empresa?.nombre || "Logo"}
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="size-14 rounded-xl object-contain bg-white border border-[#E5E7EB] dark:border-slate-800 flex-shrink-0 select-none"
+                  />
+                ) : (
+                  <div
+                    className="size-14 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
+                    style={{
+                      backgroundColor: color(selected.empresa?.nombre || "E"),
+                    }}
+                  >
+                    {initials(selected.empresa?.nombre || "E")}
+                  </div>
+                )}
                 <div className="min-w-0">
                   <DialogTitle className="text-lg font-bold text-[#2C3E50] dark:text-white">
                     {selected.titulo}
@@ -620,6 +656,11 @@ ${user?.correo_institucional || ""}`;
                       <span className="flex items-center gap-1">
                         <Briefcase className="size-3" />
                         {selected.modalidad}
+                      </span>
+                    )}
+                    {selected.nivel_experiencia && (
+                      <span className="flex items-center gap-1 font-semibold text-[#2563EB] dark:text-blue-300">
+                        {selected.nivel_experiencia}
                       </span>
                     )}
                     {selected.tipo_contrato && (
@@ -840,6 +881,30 @@ ${user?.correo_institucional || ""}`;
           </DialogContent>
         )}
       </Dialog>
+
+      {/* Banner ampliado: ver la imagen completa de la vacante */}
+      {imagenAmpliada && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
+          onClick={() => setImagenAmpliada(null)}
+        >
+          <button
+            onClick={() => setImagenAmpliada(null)}
+            className="absolute top-4 right-4 size-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+          >
+            <X className="size-5" />
+          </button>
+          <img
+            src={imagenAmpliada}
+            alt=""
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-full object-contain rounded-lg select-none cursor-default"
+          />
+        </div>
+      )}
     </div>
   );
 }

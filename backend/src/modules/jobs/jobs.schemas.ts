@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { urlOpcional, textoLibreOpcional } from "../../shared/zodHelpers";
 
 export const createVacanteSchema = z.object({
   body: z.object({
@@ -6,17 +7,17 @@ export const createVacanteSchema = z.object({
     descripcion: z.string().min(10, "La descripción debe tener al menos 10 caracteres"),
     requisitos: z.string().min(5, "Los requisitos son obligatorios"),
     empresa_id: z.string().uuid("El ID de la empresa debe ser un UUID válido"),
-    url_origen: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
+    url_origen: urlOpcional(),
     salario_min: z.number().min(0, "El salario mínimo no puede ser negativo").optional().nullable(),
     salario_max: z.number().min(0, "El salario máximo no puede ser negativo").optional().nullable(),
     modalidad: z.string().optional(),
     tipo_contrato: z.string().optional(),
     nivel_experiencia: z.string().optional(),
-    ubicacion: z.string().optional(),
+    ubicacion: textoLibreOpcional(100, "La ubicación contiene caracteres no permitidos"),
     carreras: z.array(z.string()).optional(),
     cuatrimestre: z.number().min(1).max(10).optional().nullable(),
-    fecha_limite: z.string().refine((val) => !isNaN(Date.parse(val)), "Fecha inválida").optional().nullable(),
-    imagen_url: z.string().url("Debe ser una URL válida").optional().nullable(),
+    fecha_limite: z.string().min(1, "La fecha límite es obligatoria").refine((val) => !isNaN(Date.parse(val)), "Fecha inválida"),
+    imagen_url: urlOpcional(),
     habilidades_ids: z.array(z.string().uuid()).optional(),
   }).refine(
     (data) => {
@@ -40,17 +41,17 @@ export const updateVacanteSchema = z.object({
     titulo: z.string().min(3).optional(),
     descripcion: z.string().min(10).optional(),
     requisitos: z.string().min(5).optional(),
-    url_origen: z.string().url().optional().or(z.literal("")),
+    url_origen: urlOpcional(),
     salario_min: z.number().min(0).optional().nullable(),
     salario_max: z.number().min(0).optional().nullable(),
     modalidad: z.string().optional(),
     tipo_contrato: z.string().optional(),
     nivel_experiencia: z.string().optional(),
-    ubicacion: z.string().optional(),
+    ubicacion: textoLibreOpcional(100, "La ubicación contiene caracteres no permitidos"),
     carreras: z.array(z.string()).optional(),
     cuatrimestre: z.number().min(1).max(10).optional().nullable(),
     fecha_limite: z.string().refine((val) => !isNaN(Date.parse(val)), "Fecha inválida").optional().nullable(),
-    imagen_url: z.string().url().optional().nullable(),
+    imagen_url: urlOpcional(),
     activa: z.boolean().optional(),
     habilidades_ids: z.array(z.string().uuid()).optional(),
   }).refine(

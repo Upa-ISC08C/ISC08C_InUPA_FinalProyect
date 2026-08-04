@@ -7,6 +7,7 @@ import {
   Mail,
   Phone,
   Code2,
+  Github,
   Link2,
   Pencil,
   Trash2,
@@ -59,8 +60,14 @@ const formatNombre = (v: string) => capitalizar(soloLetras(v));
 // Teléfono: solo dígitos, máximo 10
 const formatTelefono = (v: string) => v.replace(/\D/g, "").slice(0, 10);
 
-// URLs: limpiar espacios
-const formatURL = (v: string) => v.trim();
+// URLs: limpiar espacios y anteponer https:// si el usuario no puso protocolo
+// (antes esto rechazaba dominios validos como "github.com/usuario" con
+// "Debe comenzar con http:// o https://" y el guardado nunca llegaba al backend).
+const formatURL = (v: string) => {
+  const limpio = v.trim();
+  if (!limpio) return limpio;
+  return /^https?:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
+};
 
 // Texto simple (letras, números, espacios, algunos símbolos)
 const formatTextoSimple = (v: string) =>
@@ -855,7 +862,7 @@ export function ProfilePage() {
                           rel="noreferrer"
                           className="flex items-center gap-1.5 text-sm font-bold text-[#00A8E8] hover:text-[#003366] transition-colors"
                         >
-                          <Code2 className="size-4" /> Código
+                          <Github className="size-4" /> GitHub
                         </a>
                       )}
                       {pr.url_despliegue && (
@@ -865,7 +872,7 @@ export function ProfilePage() {
                           rel="noreferrer"
                           className="flex items-center gap-1.5 text-sm font-bold text-[#00A8E8] hover:text-[#003366] transition-colors"
                         >
-                          <ExternalLink className="size-4" /> Demo
+                          <ExternalLink className="size-4" /> URL
                         </a>
                       )}
                     </div>
@@ -1176,7 +1183,11 @@ function BasicsDialog({
       } as any);
       onSaved();
     } catch (e: any) {
-      setError("Ha ocurrido un error, por favor contacta a un administrador");
+      setError(
+        e?.response?.data?.error ||
+          e?.response?.data?.errors?.[0]?.message ||
+          "Ha ocurrido un error, por favor contacta a un administrador",
+      );
     } finally {
       setSaving(false);
     }
@@ -2020,6 +2031,7 @@ function ProjectDialog({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [touched, setTouched] = useState<any>({});
+  const [formError, setFormError] = useState("");
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const addTecnologia = () => {
@@ -2089,6 +2101,7 @@ function ProjectDialog({
   const guardar = async () => {
     if (!validarTodo()) return;
     setSaving(true);
+    setFormError("");
     try {
       const payload = {
         nombre_proyecto: form.nombre_proyecto,
@@ -2101,6 +2114,12 @@ function ProjectDialog({
       if (item) await profileService.updateProject(item.id, payload);
       else await profileService.addProject(payload);
       onSaved();
+    } catch (e: any) {
+      setFormError(
+        e?.response?.data?.error ||
+          e?.response?.data?.errors?.[0]?.message ||
+          "No se pudo guardar el proyecto. Verifica los datos e intenta de nuevo.",
+      );
     } finally {
       setSaving(false);
     }
@@ -2201,6 +2220,11 @@ function ProjectDialog({
               </div>
             )}
           </div>
+          {formError && (
+            <p className="text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
+              {formError}
+            </p>
+          )}
         </div>
         <Footer onCancel={onClose} onSave={guardar} saving={saving} />
       </DialogContent>

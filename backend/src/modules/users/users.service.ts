@@ -36,14 +36,22 @@ export class UsersService {
 
   static async adminUpdate(
     id: string,
-    data: { activo?: boolean; rol?: string; nombre_completo?: string; correo_institucional?: string; matricula_o_rfc?: string; password?: string; }
+    data: { activo?: boolean; rol?: string; nombre_completo?: string; correo_institucional?: string; matricula_o_rfc?: string; password?: string; },
+    requesterEmail?: string
   ) {
     if (data.rol !== undefined && !['estudiante', 'admin'].includes(data.rol)) {
       throw new ValidationError('El rol debe ser "estudiante" o "admin"');
     }
-    
+
     const actual = await usersDAO.findByIdForAdmin(id);
     if (!actual) throw new NotFoundError('Usuario no encontrado');
+
+    // Jerarquía de administradores: solo el admin principal puede ascender a
+    // alguien a rol "admin". Evita que un admin recién creado cree/ascienda
+    // otros admins sin control.
+    if (data.rol === 'admin' && actual.rol !== 'admin' && requesterEmail !== ADMIN_PRINCIPAL_EMAIL) {
+      throw new ValidationError('Solo el administrador principal puede ascender usuarios a administrador');
+    }
 
     // Validación de correo si se intenta cambiar
     if (data.correo_institucional) {
@@ -78,12 +86,18 @@ export class UsersService {
     return user;
   }
 
-  static async adminCreate(data: { email: string; nombre_completo: string; password?: string; matricula_o_rfc?: string; rol?: string }) {
+  static async adminCreate(data: { email: string; nombre_completo: string; password?: string; matricula_o_rfc?: string; rol?: string }, requesterEmail?: string) {
     if (!data.email || !data.nombre_completo) throw new ValidationError('El correo y el nombre completo son obligatorios');
-    
+
     const rol = data.rol ?? 'estudiante';
     if (!['estudiante', 'admin'].includes(rol)) throw new ValidationError('El rol debe ser "estudiante" o "admin"');
-    
+
+    // Jerarquía de administradores: solo el admin principal puede crear
+    // nuevas cuentas de administrador.
+    if (rol === 'admin' && requesterEmail !== ADMIN_PRINCIPAL_EMAIL) {
+      throw new ValidationError('Solo el administrador principal puede crear cuentas de administrador');
+    }
+
     const correo = data.email.toLowerCase().trim();
     
     // ✅ VALIDACIÓN AGREGADA: Evita el "Error interno" y muestra mensaje claro
@@ -98,7 +112,14 @@ export class UsersService {
     if (pass.length < 6) throw new ValidationError('La contraseña debe tener al menos 6 caracteres');
     
     const passwordHash = await bcrypt.hash(pass, 10);
-    const matricula = data.matricula_o_rfc || correo.split('@')[0].toUpperCase();
+    // Si se deja en blanco, se genera automáticamente en un formato válido
+    // (antes se usaba el correo, que ya no cumple el formato ADMIN### exigido
+    // para administradores).
+    const matricula = data.matricula_o_rfc?.trim()
+      ? data.matricula_o_rfc.trim()
+      : rol === 'admin'
+        ? await usersDAO.siguienteMatriculaAdmin()
+        : `UP${Date.now().toString().slice(-6)}`;
 
     return usersDAO.adminCreate({
       email: correo,

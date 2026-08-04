@@ -180,3 +180,27 @@
     line-height: 1.5;
   }
 }
+
+/*
+ * Scrollbar delgado y con el color del tema para cualquier contenedor con
+ * overflow (diálogos, listas desplegables, etc.) en vez de la barra nativa
+ * gris del navegador.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}

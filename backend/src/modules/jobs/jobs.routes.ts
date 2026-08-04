@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { JobsController } from './jobs.controller';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import { authenticateToken, requireAdmin } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { asyncHandler } from '../../middlewares/error.middleware';
 import {
@@ -23,8 +23,8 @@ router.get('/:id', validate(vacanteParamsSchema), asyncHandler(JobsController.ge
 // Rutas PROTEGIDAS (Requieren token válido)
 // ==========================================
 router.post('/:id/contact', authenticateToken, validate(vacanteParamsSchema), asyncHandler(JobsController.contactCompany));
-router.post('/', authenticateToken, validate(createVacanteSchema), asyncHandler(JobsController.createVacante));
-router.put('/:id', authenticateToken, validate(updateVacanteSchema), asyncHandler(JobsController.updateVacante));
-router.delete('/:id', authenticateToken, validate(vacanteParamsSchema), asyncHandler(JobsController.deleteVacante));
+router.post('/', authenticateToken, requireAdmin, validate(createVacanteSchema), asyncHandler(JobsController.createVacante));
+router.put('/:id', authenticateToken, requireAdmin, validate(updateVacanteSchema), asyncHandler(JobsController.updateVacante));
+router.delete('/:id', authenticateToken, requireAdmin, validate(vacanteParamsSchema), asyncHandler(JobsController.deleteVacante));
 
 export default router;

@@ -39,9 +39,10 @@ function perfilATexto(p: FullProfile): string {
   return L.join("\n");
 }
 
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 // Markdown -> HTML minimalista para el PDF
 function mdToHtml(md: string): string {
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const inline = (s: string) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
   const out: string[] = [];
   let inList = false;
@@ -92,32 +93,20 @@ export function CVBuilder() {
     } finally { setCvLoading(false); }
   };
 
-  const descargarPDF = () => {
-    if (!cvMd || !cvProfile) return;
-    
-    // 1. Eliminar emojis del texto generado por la IA (por si acaso)
+  // Abre una ventana con el markdown ya formateado como documento y dispara
+  // el diálogo de impresión (permite guardar como PDF real, en vez del texto
+  // plano sin formato que se mostraba antes).
+  const abrirVentanaPDF = (titulo: string, infoPersonalHtml: string, md: string) => {
     const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}]/gu;
-    const cleanMd = cvMd.replace(emojiRegex, "");
-    
+    const cleanMd = md.replace(emojiRegex, "");
     const html = mdToHtml(cleanMd);
     const w = window.open("", "_blank");
-    if (!w) return;
-    
-    const pe: any = cvProfile.perfil || {};
-    
-    // 2. Bloque de información personal con líneas azules delgadas
-    const infoPersonal = `
-      <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1.5px solid #003366;">
-        <h1 style="font-size: 28px; margin: 0 0 8px; color: #003366; border: none; padding: 0;">${cvProfile.nombre_completo}</h1>
-        <p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Carrera:</strong> ${cvProfile.carrera || "No especificada"} ${cvProfile.cuatrimestre ? `(${cvProfile.cuatrimestre}° cuatrimestre)` : ""}</p>
-        <p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Correo:</strong> ${cvProfile.correo_institucional}</p>
-        ${pe.telefono ? `<p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Teléfono:</strong> ${pe.telefono}</p>` : ""}
-        ${pe.ubicacion ? `<p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Ubicación:</strong> ${pe.ubicacion}</p>` : ""}
-      </div>
-    `;
+    if (!w) {
+      alert("Tu navegador bloqueó la ventana para generar el PDF. Permite las ventanas emergentes para este sitio e intenta de nuevo.");
+      return;
+    }
 
-    // 3. Estilos actualizados: líneas azules (#003366) y más delgadas (1.5px y 1px)
-    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CV - ${cvNombre}</title>
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${titulo}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         * { box-sizing: border-box; }
@@ -129,9 +118,49 @@ export function CVBuilder() {
         ul { margin: 4px 0 10px; padding-left: 20px; } li { font-size: 13px; margin: 2px 0; }
         strong { color: #003366; }
         @media print { body { padding: 0; } }
-      </style></head><body>${infoPersonal}${html}
+      </style></head><body>${infoPersonalHtml}${html}
       <script>window.onload=function(){window.print();}<\/script></body></html>`);
     w.document.close();
+  };
+
+  // Bloque con nombre/carrera/correo/teléfono/ubicación, reutilizado por
+  // ambos flujos de descarga de PDF (antes "Optimiza tu CV en PDF" no lo
+  // incluía porque ese flujo no cargaba el perfil del usuario).
+  const buildInfoPersonalHtml = (perfil: FullProfile) => {
+    const pe: any = perfil.perfil || {};
+    return `
+      <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1.5px solid #003366;">
+        <h1 style="font-size: 28px; margin: 0 0 8px; color: #003366; border: none; padding: 0;">${esc(perfil.nombre_completo || "")}</h1>
+        <p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Carrera:</strong> ${esc(perfil.carrera || "No especificada")} ${perfil.cuatrimestre ? `(${perfil.cuatrimestre}° cuatrimestre)` : ""}</p>
+        <p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Correo:</strong> ${esc(perfil.correo_institucional || "")}</p>
+        ${pe.telefono ? `<p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Teléfono:</strong> ${esc(pe.telefono)}</p>` : ""}
+        ${pe.ubicacion ? `<p style="margin: 4px 0; font-size: 14px; color: #2C3E50;"><strong>Ubicación:</strong> ${esc(pe.ubicacion)}</p>` : ""}
+      </div>
+    `;
+  };
+
+  const descargarPDF = () => {
+    if (!cvMd || !cvProfile) return;
+    abrirVentanaPDF(`CV - ${esc(cvNombre)}`, buildInfoPersonalHtml(cvProfile), cvMd);
+  };
+
+  // "Aceptar": confirma el CV optimizado a partir del PDF subido y genera el
+  // PDF final con el mismo formato que "Genera mi CV con IA" (antes solo se
+  // mostraba texto plano, sin nombre/carrera/contacto, porque este flujo no
+  // cargaba el perfil del usuario logueado).
+  const [aceptandoPdf, setAceptandoPdf] = useState(false);
+  const aceptarYDescargarPdfOptimizado = async () => {
+    if (!markdown) return;
+    setAceptandoPdf(true);
+    try {
+      const perfil = cvProfile ?? (await profileService.getMyProfile());
+      if (!cvProfile) setCvProfile(perfil);
+      abrirVentanaPDF("CV optimizado", buildInfoPersonalHtml(perfil), markdown);
+    } catch {
+      setErrorPdf("No se pudo cargar tu perfil para armar el PDF. Intenta de nuevo.");
+    } finally {
+      setAceptandoPdf(false);
+    }
   };
 
   // Precargar el textarea con los datos del perfil del usuario
@@ -319,9 +348,17 @@ export function CVBuilder() {
           </Button>
 
           {markdown && (
-            <div className="rounded-xl border border-[#E5E7EB] dark:border-slate-800 bg-[#FAFAFA] p-4">
-              <p className="text-xs font-bold text-[#7F8C8D] dark:text-slate-400 uppercase tracking-wide mb-2">CV optimizado</p>
-              <pre className="text-sm text-[#2C3E50] dark:text-white whitespace-pre-wrap font-[Poppins,sans-serif] leading-relaxed">{markdown}</pre>
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-bold text-[#7F8C8D] dark:text-slate-400 uppercase tracking-wide mb-2">CV optimizado</p>
+                <div
+                  className="rounded-xl border border-[#E5E7EB] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-sm text-[#2C3E50] dark:text-white [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-[#003366] [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[#003366] [&_h2]:mt-4 [&_h2]:mb-1 [&_h2]:uppercase [&_h3]:font-semibold [&_h3]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_li]:my-0.5 [&_p]:my-1 [&_strong]:text-[#003366]"
+                  dangerouslySetInnerHTML={{ __html: mdToHtml(markdown) }}
+                />
+              </div>
+              <Button onClick={aceptarYDescargarPdfOptimizado} disabled={aceptandoPdf} className="flex items-center gap-1.5">
+                {aceptandoPdf ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Aceptar y descargar PDF
+              </Button>
             </div>
           )}
         </CardContent>
