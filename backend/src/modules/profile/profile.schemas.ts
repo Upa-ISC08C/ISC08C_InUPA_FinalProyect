@@ -1,10 +1,7 @@
 import { z } from "zod";
 import { urlOpcional } from "../../shared/zodHelpers";
 
-// Las columnas de fecha en experiencia/educación/proyectos son DATE (sin hora),
-// pero z.string().datetime() exige un ISO 8601 COMPLETO con hora y zona
-// (2026-01-01T00:00:00Z). El <input type="date"> del formulario manda solo
-// "2026-01-01", así que esa validación rechazaba cualquier fecha, siempre.
+// formato AAAA-MM-DD (columnas DATE), no el datetime completo que exige z.string().datetime()
 const fechaSimple = (mensaje = "Debe ser una fecha válida (AAAA-MM-DD)") =>
   z.string().regex(/^\d{4}-\d{2}-\d{2}$/, mensaje);
 

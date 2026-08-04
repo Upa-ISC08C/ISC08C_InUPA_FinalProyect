@@ -77,12 +77,7 @@ export class AuthService {
       throw new ValidationError('La contraseña debe tener al menos 6 caracteres');
     }
 
-    // findUserByEmailAny (sin filtrar por activo) para poder distinguir una
-    // cuenta suspendida de una realmente disponible: antes, una cuenta
-    // suspendida "no existía" para esta consulta y el registro seguía de
-    // largo hasta chocar con la restricción UNIQUE de correo, mostrando el
-    // genérico "Conflicto de datos: el registro ya existe" en vez de avisar
-    // que la cuenta fue suspendida.
+    // sin filtrar por activo, para distinguir cuenta suspendida de correo ya en uso
     const existente = await authDAO.findUserByEmailAny(correo);
     if (existente) {
       if (!existente.activo) {
@@ -136,11 +131,7 @@ export class AuthService {
       throw new ValidationError('El código ha expirado. Solicita uno nuevo.');
     }
     if (data.codigo !== String(token).trim()) {
-      // El código de reset se guarda una sola vez por correo (ON CONFLICT
-      // sobreescribe): si un admin envió un reseteo y el usuario también pidió
-      // "olvidé mi contraseña" (o viceversa), el código anterior deja de ser
-      // válido y solo el más reciente funciona. Avisamos de esto en vez de
-      // devolver un "código inválido" que no explica qué pasó.
+      // solo el codigo mas reciente es valido: un admin pudo haber generado otro despues
       const mensaje = tipo === 'reset'
         ? 'Este código ya no es válido: es posible que se haya generado uno más reciente (por ti o por un administrador). Revisa el correo más reciente que recibiste e intenta de nuevo.'
         : 'Código inválido';

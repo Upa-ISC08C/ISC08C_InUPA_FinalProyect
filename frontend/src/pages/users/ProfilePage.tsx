@@ -60,9 +60,7 @@ const formatNombre = (v: string) => capitalizar(soloLetras(v));
 // Teléfono: solo dígitos, máximo 10
 const formatTelefono = (v: string) => v.replace(/\D/g, "").slice(0, 10);
 
-// URLs: limpiar espacios y anteponer https:// si el usuario no puso protocolo
-// (antes esto rechazaba dominios validos como "github.com/usuario" con
-// "Debe comenzar con http:// o https://" y el guardado nunca llegaba al backend).
+// URLs: limpiar espacios y anteponer https:// si falta el protocolo
 const formatURL = (v: string) => {
   const limpio = v.trim();
   if (!limpio) return limpio;
@@ -307,7 +305,7 @@ const SectionHeader = ({
   title: string;
   onAdd?: () => void;
 }) => (
-  <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+  <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
     <h3 className="text-xl font-extrabold text-[#2C3E50] dark:text-white">{title}</h3>
     {onAdd && (
       <button
@@ -473,7 +471,7 @@ export function ProfilePage() {
                 <Button
                   variant="outline"
                   onClick={() => setBasicsOpen(true)}
-                  className="flex items-center gap-2 flex-shrink-0 self-start rounded-xl font-bold hover:bg-slate-50 border-slate-200 mt-2"
+                  className="flex items-center gap-2 flex-shrink-0 self-start rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 mt-2"
                 >
                   <Pencil className="size-4" /> Editar perfil
                 </Button>
@@ -481,7 +479,7 @@ export function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-sm font-medium text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
             {profile.carrera && (
               <span className="flex items-center gap-1.5">
                 <GraduationCap className="size-4 text-[#003366]" />
@@ -532,7 +530,7 @@ export function ProfilePage() {
                   href={p.github_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/5 transition-colors"
+                  className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#003366] dark:hover:text-[#00A8E8] hover:bg-[#003366]/5 transition-colors"
                 >
                   <Code2 className="size-5" />
                 </a>
@@ -542,7 +540,7 @@ export function ProfilePage() {
                   href={p.linkedin_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:text-[#00A8E8] hover:bg-[#00A8E8]/5 transition-colors"
+                  className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#00A8E8] hover:bg-[#00A8E8]/5 transition-colors"
                 >
                   <Link2 className="size-5" />
                 </a>
@@ -582,28 +580,28 @@ export function ProfilePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
           <button
             onClick={() => setActiveTab("experiencia")}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "experiencia" ? "bg-[#003366] text-white shadow-md" : "text-slate-600 hover:bg-slate-100"}`}
+            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "experiencia" ? "bg-[#003366] text-white shadow-md" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
           >
             <Briefcase className="size-4" />{" "}
             <span className="hidden sm:inline">Experiencia</span>
           </button>
           <button
             onClick={() => setActiveTab("educacion")}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "educacion" ? "bg-[#003366] text-white shadow-md" : "text-slate-600 hover:bg-slate-100"}`}
+            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "educacion" ? "bg-[#003366] text-white shadow-md" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
           >
             <GraduationCap className="size-4" />{" "}
             <span className="hidden sm:inline">Educación</span>
           </button>
           <button
             onClick={() => setActiveTab("habilidades")}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "habilidades" ? "bg-[#003366] text-white shadow-md" : "text-slate-600 hover:bg-slate-100"}`}
+            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "habilidades" ? "bg-[#003366] text-white shadow-md" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
           >
             <Wrench className="size-4" />{" "}
             <span className="hidden sm:inline">Habilidades</span>
           </button>
           <button
             onClick={() => setActiveTab("proyectos")}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "proyectos" ? "bg-[#003366] text-white shadow-md" : "text-slate-600 hover:bg-slate-100"}`}
+            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "proyectos" ? "bg-[#003366] text-white shadow-md" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
           >
             <FolderGit2 className="size-4" />{" "}
             <span className="hidden sm:inline">Proyectos</span>
@@ -613,16 +611,16 @@ export function ProfilePage() {
 
       {/* Contenido tabs */}
       {activeTab === "experiencia" && (
-        <Card className="border border-slate-100 shadow-sm rounded-3xl">
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl">
           <CardContent className="p-8">
             <SectionHeader
               title="Experiencia Laboral"
               onAdd={() => setExpEdit("new")}
             />
             {profile.experiencia.length === 0 ? (
-              <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+              <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                 <Briefcase className="size-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-sm text-slate-500 font-medium">
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
                   Aún no has agregado experiencia laboral
                 </p>
                 <button
@@ -637,7 +635,7 @@ export function ProfilePage() {
                 {profile.experiencia.map((e: any) => (
                   <div
                     key={e.id}
-                    className="bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:shadow-md transition-shadow group"
+                    className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 hover:shadow-md transition-shadow group"
                   >
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex-1">
@@ -647,7 +645,7 @@ export function ProfilePage() {
                         <p className="text-[#00A8E8] font-semibold">
                           {e.empresa_nombre}
                         </p>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-2">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-2">
                           {rango(e.fecha_inicio, e.fecha_fin, e.actual)}
                         </p>
                       </div>
@@ -667,14 +665,14 @@ export function ProfilePage() {
                     </div>
                     {e.descripcion && (
                       <div className="mb-4">
-                        <p className="text-sm text-slate-600 leading-relaxed">
+                        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                           {e.descripcion}
                         </p>
                       </div>
                     )}
                     {e.actividades?.length > 0 && (
                       <div className="mb-4">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                           Actividades:
                         </p>
                         <ul className="space-y-2">
@@ -687,7 +685,7 @@ export function ProfilePage() {
                                 {ac.actividad}
                               </span>
                               {ac.descripcion && (
-                                <span className="block text-slate-600 leading-relaxed">
+                                <span className="block text-slate-600 dark:text-slate-300 leading-relaxed">
                                   {ac.descripcion}
                                 </span>
                               )}
@@ -712,16 +710,16 @@ export function ProfilePage() {
       )}
 
       {activeTab === "educacion" && (
-        <Card className="border border-slate-100 shadow-sm rounded-3xl">
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl">
           <CardContent className="p-8">
             <SectionHeader
               title="Formación Académica"
               onAdd={() => setEduEdit("new")}
             />
             {profile.educacion.length === 0 ? (
-              <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+              <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                 <GraduationCap className="size-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-sm text-slate-500 font-medium">
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
                   Aún no has agregado tu formación
                 </p>
                 <button
@@ -736,7 +734,7 @@ export function ProfilePage() {
                 {profile.educacion.map((ed: any) => (
                   <div
                     key={ed.id}
-                    className="bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:shadow-md transition-shadow group"
+                    className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 hover:shadow-md transition-shadow group"
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1">
@@ -747,11 +745,11 @@ export function ProfilePage() {
                           {ed.carrera_o_grado}
                         </p>
                         {ed.nivel_estudios && (
-                          <p className="text-sm text-slate-600">
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
                             {ed.nivel_estudios}
                           </p>
                         )}
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-2">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-2">
                           {rango(ed.fecha_inicio, ed.fecha_fin, false)}
                           {ed.graduado && ` · Graduado`}
                         </p>
@@ -779,7 +777,7 @@ export function ProfilePage() {
       )}
 
       {activeTab === "habilidades" && (
-        <Card className="border border-slate-100 shadow-sm rounded-3xl">
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl">
           <CardContent className="p-8">
             <SectionHeader title="Habilidades y Competencias" />
             <SkillEditor skills={profile.habilidades} onChange={cargar} />
@@ -788,16 +786,16 @@ export function ProfilePage() {
       )}
 
       {activeTab === "proyectos" && (
-        <Card className="border border-slate-100 shadow-sm rounded-3xl">
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl">
           <CardContent className="p-8">
             <SectionHeader
               title="Proyectos Personales"
               onAdd={() => setProjEdit("new")}
             />
             {profile.proyectos.length === 0 ? (
-              <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+              <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                 <FolderGit2 className="size-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-sm text-slate-500 font-medium">
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
                   Aún no has agregado proyectos
                 </p>
                 <button
@@ -843,7 +841,7 @@ export function ProfilePage() {
                       </p>
                     )}
                     {pr.descripcion && (
-                      <p className="text-sm text-slate-600 leading-relaxed line-clamp-3 mb-4">
+                      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 mb-4">
                         {pr.descripcion}
                       </p>
                     )}
@@ -854,7 +852,7 @@ export function ProfilePage() {
                         ))}
                       </div>
                     )}
-                    <div className="flex gap-4 pt-4 border-t border-slate-100">
+                    <div className="flex gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                       {pr.url_repositorio && (
                         <a
                           href={pr.url_repositorio}
@@ -1309,7 +1307,7 @@ function BasicsDialog({
           </Field>
 
           {/* Biografía */}
-          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+          <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between mb-3">
               <Label className="text-sm font-bold text-[#2C3E50] dark:text-white">
                 Acerca de ti
@@ -1407,7 +1405,7 @@ function BasicsDialog({
           </div>
 
           {/* Checkboxes */}
-          <div className="flex gap-6 pt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2">
+          <div className="flex gap-6 pt-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 mt-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-[#2C3E50] dark:text-white cursor-pointer">
               <input
                 type="checkbox"
@@ -1650,7 +1648,7 @@ function ExperienceDialog({
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl">
             <Field label="Inicio" error={errors.fecha_inicio} required>
               <Input
                 type="date"
@@ -1688,7 +1686,7 @@ function ExperienceDialog({
           </div>
 
           {/* Actividades */}
-          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+          <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between mb-4">
               <Label className="text-sm font-bold text-[#2C3E50] dark:text-white">
                 Actividades realizadas
@@ -1715,7 +1713,7 @@ function ExperienceDialog({
                 >
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <Label className="text-xs text-slate-500 mb-1 block">
+                      <Label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
                         Título de la actividad *
                       </Label>
                       <Input
@@ -1748,7 +1746,7 @@ function ExperienceDialog({
                     )}
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500 mb-1 block">
+                    <Label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
                       Descripción (opcional)
                     </Label>
                     <Textarea
@@ -1966,7 +1964,7 @@ function EducationDialog({
               onBlur={() => touch("nivel_estudios")}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl">
             <Field label="Inicio" error={errors.fecha_inicio} required>
               <Input
                 type="date"
@@ -2163,7 +2161,7 @@ function ProjectDialog({
               placeholder="Describe tu proyecto..."
             />
           </Field>
-          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+          <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl">
             <Field label="Repositorio (URL)" error={errors.url_repositorio}>
               <Input
                 placeholder="https://github.com/…"

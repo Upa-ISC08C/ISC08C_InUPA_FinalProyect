@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { urlOpcional, telefonoOpcional } from "../../shared/zodHelpers";
 
-// Estudiantes: UP + 6 dígitos (ej. UP230253). Admins: ADMIN + 3 a 6 dígitos
-// (ej. ADMIN001) — antes se aceptaba cualquier texto como "ADMIN1".
+// Estudiantes: UP + 6 dígitos (ej. UP230253). Admins: ADMIN + 3 a 6 dígitos (ej. ADMIN001).
 const MATRICULA_ESTUDIANTE = /^UP\d{6}$/;
 const MATRICULA_ADMIN = /^ADMIN\d{3,6}$/;
 
@@ -35,9 +34,7 @@ export const adminCreateUserSchema = z.object({
     nombre_completo: z.string().min(3, "El nombre debe tener al menos 3 caracteres").max(100),
     email: z.string().email("Debe ser un correo electrónico válido"),
     password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").max(100),
-    // Opcional: si se deja en blanco, el servidor genera una matrícula
-    // válida automáticamente (ver UsersService.adminCreate).
-    matricula_o_rfc: z.string().optional(),
+    matricula_o_rfc: z.string().optional(), // si se omite, se autogenera (ver UsersService.adminCreate)
     rol: z.enum(["admin", "empresa", "estudiante"]).optional(),
     carrera: z.string().optional().nullable(),
     cuatrimestre: z.number().min(1).max(12).optional().nullable(),

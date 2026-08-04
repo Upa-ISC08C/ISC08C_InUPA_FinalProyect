@@ -93,9 +93,7 @@ export function CVBuilder() {
     } finally { setCvLoading(false); }
   };
 
-  // Abre una ventana con el markdown ya formateado como documento y dispara
-  // el diálogo de impresión (permite guardar como PDF real, en vez del texto
-  // plano sin formato que se mostraba antes).
+  // abre una ventana con el markdown formateado y dispara el dialogo de impresion
   const abrirVentanaPDF = (titulo: string, infoPersonalHtml: string, md: string) => {
     const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}]/gu;
     const cleanMd = md.replace(emojiRegex, "");
@@ -123,9 +121,6 @@ export function CVBuilder() {
     w.document.close();
   };
 
-  // Bloque con nombre/carrera/correo/teléfono/ubicación, reutilizado por
-  // ambos flujos de descarga de PDF (antes "Optimiza tu CV en PDF" no lo
-  // incluía porque ese flujo no cargaba el perfil del usuario).
   const buildInfoPersonalHtml = (perfil: FullProfile) => {
     const pe: any = perfil.perfil || {};
     return `
@@ -144,10 +139,6 @@ export function CVBuilder() {
     abrirVentanaPDF(`CV - ${esc(cvNombre)}`, buildInfoPersonalHtml(cvProfile), cvMd);
   };
 
-  // "Aceptar": confirma el CV optimizado a partir del PDF subido y genera el
-  // PDF final con el mismo formato que "Genera mi CV con IA" (antes solo se
-  // mostraba texto plano, sin nombre/carrera/contacto, porque este flujo no
-  // cargaba el perfil del usuario logueado).
   const [aceptandoPdf, setAceptandoPdf] = useState(false);
   const aceptarYDescargarPdfOptimizado = async () => {
     if (!markdown) return;

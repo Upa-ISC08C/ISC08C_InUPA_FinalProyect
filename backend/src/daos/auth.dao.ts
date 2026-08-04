@@ -26,11 +26,7 @@ export class AuthDAO {
     return result.rows[0] || null;
   }
 
-  /**
-   * Igual que findUserByEmail pero SIN filtrar por activo: se usa donde hace
-   * falta distinguir "no existe" de "existe pero está suspendido" (login,
-   * registro) en vez de tratarlos como el mismo caso.
-   */
+  /** Como findUserByEmail pero sin filtrar por activo, para distinguir "no existe" de "suspendida". */
   async findUserByEmailAny(email: string): Promise<User | null> {
     const query = 'SELECT * FROM USUARIOS WHERE correo_institucional = $1';
     const result = await db.query(query, [email]);

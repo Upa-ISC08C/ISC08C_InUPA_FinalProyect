@@ -219,12 +219,7 @@ export class UsersDAO {
     return result.rows[0] || null;
   }
 
-  /**
-   * Siguiente matrícula ADMIN### libre (ADMIN001, ADMIN002, ...), para
-   * cuando el formulario de "Registrar administrador" se deja en blanco:
-   * antes se rellenaba con el correo (ej. "ANDREA.SURDEZ"), que ya no pasa
-   * la validación de formato de matrícula de administrador.
-   */
+  /** Siguiente matrícula ADMIN### libre (ADMIN001, ADMIN002, ...). */
   async siguienteMatriculaAdmin(): Promise<string> {
     const result = await db.query(
       `SELECT matricula_o_rfc FROM USUARIOS WHERE matricula_o_rfc ~ '^ADMIN[0-9]+$'`

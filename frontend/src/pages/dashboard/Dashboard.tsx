@@ -221,7 +221,7 @@ ${user?.correo_institucional || ""}`;
       <div className="grid grid-cols-2 gap-5">
         {[
           { label: "Ofertas activas", value: totalJobs, icon: Briefcase, color: "#00A8E8", href: "/dashboard/empleos" },
-          { label: "Empresas aliadas", value: totalCompanies, icon: Building2, color: "#CA8A04", href: "/dashboard/empleos" },
+          { label: "Empresas aliadas", value: totalCompanies, icon: Building2, color: "#CA8A04", href: "/dashboard/empresas" },
         ].map((t) => {
           const Icon = t.icon;
           return (

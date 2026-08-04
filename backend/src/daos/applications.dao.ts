@@ -78,10 +78,7 @@ export class ApplicationsDAO {
         tipo_contrato: row.vacante_tipo_contrato,
         salario_min: row.vacante_salario_min ? parseFloat(row.vacante_salario_min) : null,
         salario_max: row.vacante_salario_max ? parseFloat(row.vacante_salario_max) : null,
-        // Si el admin desactivó la vacante o su empresa, se sigue mostrando
-        // en "Me interesa" (el postulante no debe perder el registro) pero
-        // marcada como ya no disponible en vez de aparecer como activa.
-        activa: Boolean(row.vacante_activa) && row.empresa_activa !== false,
+        activa: Boolean(row.vacante_activa) && row.empresa_activa !== false, // false si la vacante o su empresa se desactivó
         empresa: {
           id: row.empresa_id,
           nombre: row.empresa_nombre || 'Empresa',

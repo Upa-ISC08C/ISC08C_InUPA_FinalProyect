@@ -99,9 +99,7 @@ export class JobsDAO {
     } else if (filters.activa === undefined) {
       conditions.push(`v.activa = true`);
     }
-    // Si la empresa dueña de la vacante fue desactivada/eliminada, la vacante
-    // no debe seguir apareciendo como disponible (salvo en la vista "all" del
-    // admin, donde sí se necesita ver todo para poder administrarlo).
+    // ocultar vacantes de empresas desactivadas, salvo en la vista "all" del admin
     if (filters.activa !== 'all') {
       conditions.push(`(e.activa IS NULL OR e.activa = true)`);
     }
@@ -230,11 +228,7 @@ export class JobsDAO {
     return updated;
   }
 
-  /**
-   * Eliminar vacante (Hard Delete). Se permite aunque tenga postulantes: el
-   * ON DELETE CASCADE de POSTULACIONES/VACANTE_HABILIDADES se encarga de
-   * limpiar esos registros junto con la vacante.
-   */
+  /** Hard delete; cascada en POSTULACIONES/VACANTE_HABILIDADES limpia lo demás. */
   async deleteVacante(id: string): Promise<boolean> {
     const result = await db.query('DELETE FROM VACANTES WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;

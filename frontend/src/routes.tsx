@@ -10,6 +10,7 @@ import { CVBuilder } from "./pages/cv/CVBuilder";
 import { JobBoard } from "./pages/jobs/JobBoard";
 import { ApplicationsPanel } from "./pages/dashboard/ApplicationsPanel";
 import { ProfilePage } from "./pages/users/ProfilePage";
+import { EmpresasAliadas } from "./pages/companies/EmpresasAliadas";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { AdminEmpresas } from "./pages/admin/empresas/AdminEmpresas";
 import { AdminUsuarios } from "./pages/admin/usuarios/AdminUsuarios";
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
           { index: true, Component: Dashboard },
           { path: "cv-builder", Component: CVBuilder },
           { path: "empleos", Component: JobBoard },
+          { path: "empresas", Component: EmpresasAliadas },
           { path: "postulaciones", Component: ApplicationsPanel },
           { path: "perfil", Component: ProfilePage },
         ],

@@ -2,15 +2,7 @@ import { z } from "zod";
 
 const TIENE_ESQUEMA = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 
-/**
- * URL opcional que también acepta cadena vacía ("") sin protocolo obligatorio.
- * z.string().url() por sí solo rechaza "" y exige "https://", lo que rompía el
- * guardado de perfil/empresa cuando el campo se dejaba en blanco o el usuario
- * pegaba un dominio sin protocolo (ej. "www.imss.gob.mx"). Si el valor ya trae
- * un esquema (http(s), data:, blob:) se respeta tal cual: las fotos subidas
- * desde el admin/perfil viajan como "data:image/..." y anteponerles
- * "https://" las hubiera dejado invalidas (y por eso no se guardaban/mostraban).
- */
+/** URL opcional: acepta vacío, antepone https:// si falta y respeta esquemas ya presentes (data:, blob:, etc). */
 export const urlOpcional = (mensaje = "Debe ser una URL válida") =>
   z
     .string()
@@ -47,12 +39,7 @@ export const textoLibreOpcional = (max: number, mensaje = "Contiene caracteres n
     .optional()
     .nullable();
 
-/**
- * Correo opcional con validación estricta: una sola "@" y formato general
- * válido. Un solo .refine() (no .email() + .refine() encadenados) para que
- * un correo inválido no genere el mismo mensaje duplicado dos veces; y
- * permite "" porque el campo es opcional (igual que urlOpcional).
- */
+/** Correo opcional con validación estricta: una sola "@" y formato general válido. */
 export const correoEstricto = (mensaje = "Debe ser un correo electrónico válido") =>
   z
     .string()

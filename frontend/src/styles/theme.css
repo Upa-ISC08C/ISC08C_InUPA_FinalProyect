@@ -181,11 +181,7 @@
   }
 }
 
-/*
- * Scrollbar delgado y con el color del tema para cualquier contenedor con
- * overflow (diálogos, listas desplegables, etc.) en vez de la barra nativa
- * gris del navegador.
- */
+/* scrollbar delgado con los colores del tema */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;

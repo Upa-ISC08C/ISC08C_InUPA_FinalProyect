@@ -28,6 +28,7 @@ import { useTheme } from "../../hooks/useTheme";
 const navigation = [
   { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
   { name: "Ofertas", href: "/dashboard/empleos", icon: Briefcase },
+  { name: "Empresas", href: "/dashboard/empresas", icon: Users },
   { name: "Mi Perfil / CV", href: "/dashboard/perfil", icon: FileText },
 ];
 

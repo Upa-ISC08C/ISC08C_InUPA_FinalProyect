@@ -12,13 +12,7 @@ export class JobsService {
     return vacante;
   }
 
-  /**
-   * Avisa a cada alumno cuya carrera y cuatrimestre encajan con la vacante
-   * recien publicada: por correo Y con una notificacion dentro de la
-   * plataforma (antes solo se mandaba el correo, asi que si el alumno no lo
-   * revisaba, se le perdia el aviso). Nunca lanza: un fallo aqui no debe
-   * romper la creacion de la vacante.
-   */
+  /** Avisa por correo y notificación a los alumnos que hacen match con la vacante. Nunca lanza. */
   static async avisarAlumnosQueHacenMatch(vacante: VacanteWithRelations): Promise<number> {
     try {
       if (!vacante.activa) return 0;
@@ -75,17 +69,11 @@ export class JobsService {
 
   static async updateVacante(id: string, data: UpdateVacanteDTO): Promise<VacanteWithRelations> {
     const vacante = await jobsDAO.updateVacante(id, data);
-    // Avisamos en segundo plano a quienes ya se postularon o guardaron la
-    // vacante: un fallo al notificar no debe romper la edicion.
     void JobsService.avisarPostulantesDeEdicion(vacante);
     return vacante;
   }
 
-  /**
-   * Notifica (dentro de la plataforma) a los usuarios que tienen una
-   * postulacion a esta vacante cuando el admin la edita, para que sepan que
-   * la informacion pudo haber cambiado.
-   */
+  /** Notifica a los postulantes de una vacante cuando el admin la edita. */
   static async avisarPostulantesDeEdicion(vacante: VacanteWithRelations): Promise<number> {
     try {
       const postulantes = await jobsDAO.findPostulantes(vacante.id);
@@ -135,12 +123,7 @@ export class JobsService {
     return jobsDAO.deleteVacante(id);
   }
 
-  /**
-   * Recordatorio de cierre próximo: avisa a quienes tienen una postulación
-   * (o "me interesa") en una vacante cuando le quedan 3 días o 1 día o menos.
-   * Se llama periódicamente (ver scheduler.ts). No repite el mismo aviso:
-   * crearSiNoExiste usa el "enlace" (que incluye el umbral) para no duplicar.
-   */
+  /** Avisa (una sola vez por umbral) cuando a una vacante le quedan 3 días o 1 día o menos. */
   static async revisarFechasLimite(): Promise<void> {
     try {
       const vacantes = await jobsDAO.getVacantesActivasConFechaLimite();

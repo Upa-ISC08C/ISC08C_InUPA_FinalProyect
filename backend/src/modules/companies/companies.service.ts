@@ -63,11 +63,7 @@ export class CompaniesService {
     return actualizada;
   }
 
-  /**
-   * El botón de "Eliminar permanentemente" del admin debía borrar de verdad,
-   * pero llamaba a softDelete: la empresa sólo se desactivaba (y sus vacantes
-   * seguían existiendo) sin avisar que no fue un borrado real.
-   */
+  /** Borrado real; bloqueado si la empresa tiene vacantes asociadas. */
   static async remove(id: string) {
     const empresa = await companiesDAO.getById(id);
     if (!empresa) throw new NotFoundError('Empresa no encontrada');

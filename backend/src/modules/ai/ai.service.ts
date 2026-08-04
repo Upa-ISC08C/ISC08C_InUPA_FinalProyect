@@ -42,14 +42,7 @@ Reglas de Salida:
 // ==========================================
 class AIService {
 
-    /**
-     * El prompt maestro le exige al modelo devolver {"error": "..."} cuando
-     * considera que el texto no es un perfil profesional válido, sin importar
-     * si la tarea pedía JSON o Markdown. Antes ese JSON de rechazo se colaba
-     * tal cual como si fuera el resultado exitoso (el usuario veía el JSON
-     * crudo en pantalla). Aquí lo detectamos para convertirlo en un error
-     * claro en vez de un "resultado" ilegible.
-     */
+    /** Detecta el {"error": "..."} que el modelo devuelve cuando rechaza el texto, sea JSON o Markdown la tarea. */
     private rechazoDeIA(contenidoCrudo: string): string | null {
         const limpio = contenidoCrudo.replace(/```json/gi, '').replace(/```/g, '').trim();
         try {
@@ -58,7 +51,7 @@ class AIService {
                 return parsed.error;
             }
         } catch {
-            // No era JSON: no es el caso de rechazo, es contenido normal (markdown, etc.)
+            // contenido normal, no JSON de rechazo
         }
         return null;
     }

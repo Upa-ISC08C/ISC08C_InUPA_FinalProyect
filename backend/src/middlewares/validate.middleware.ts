@@ -9,9 +9,7 @@ export const validate = (schema: ZodSchema) => {
         query: req.query,
         params: req.params,
       });
-      // Sin esto, cualquier .transform()/.default() del esquema (normalizar
-      // URLs, convertir query strings a numero, etc.) se calculaba pero se
-      // tiraba: el controller seguia recibiendo el req.body/query original.
+      // aplicar transforms/defaults del schema (si no, el controller recibe el req.body sin transformar)
       if (parsed.body !== undefined) req.body = parsed.body;
       if (parsed.query !== undefined) req.query = parsed.query as any;
       if (parsed.params !== undefined) req.params = parsed.params as any;

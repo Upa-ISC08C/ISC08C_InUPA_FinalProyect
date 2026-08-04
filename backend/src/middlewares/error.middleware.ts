@@ -45,10 +45,7 @@ export const errorHandler = (
     });
   }
 
-  // Error de validación Zod: se muestran solo los mensajes (ya redactados en
-  // español para cada campo), sin el prefijo tecnico "body.nombreDelCampo"
-  // que no significa nada para quien usa la app. Tambien se quitan mensajes
-  // duplicados (puede pasar cuando dos reglas fallan sobre el mismo campo).
+  // Zod: solo los mensajes, sin el prefijo "body.campo" ni duplicados
   if (err && typeof err === 'object' && err.name === 'ZodError') {
     const zodErr = err as any;
     const errorsList = zodErr.errors || zodErr.issues || [];

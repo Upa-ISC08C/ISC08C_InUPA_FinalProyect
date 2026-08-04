@@ -46,9 +46,7 @@ export class UsersService {
     const actual = await usersDAO.findByIdForAdmin(id);
     if (!actual) throw new NotFoundError('Usuario no encontrado');
 
-    // Jerarquía de administradores: solo el admin principal puede ascender a
-    // alguien a rol "admin". Evita que un admin recién creado cree/ascienda
-    // otros admins sin control.
+    // solo el admin principal puede ascender a alguien a rol admin
     if (data.rol === 'admin' && actual.rol !== 'admin' && requesterEmail !== ADMIN_PRINCIPAL_EMAIL) {
       throw new ValidationError('Solo el administrador principal puede ascender usuarios a administrador');
     }
@@ -92,8 +90,7 @@ export class UsersService {
     const rol = data.rol ?? 'estudiante';
     if (!['estudiante', 'admin'].includes(rol)) throw new ValidationError('El rol debe ser "estudiante" o "admin"');
 
-    // Jerarquía de administradores: solo el admin principal puede crear
-    // nuevas cuentas de administrador.
+    // solo el admin principal puede crear nuevas cuentas de administrador
     if (rol === 'admin' && requesterEmail !== ADMIN_PRINCIPAL_EMAIL) {
       throw new ValidationError('Solo el administrador principal puede crear cuentas de administrador');
     }
@@ -112,9 +109,7 @@ export class UsersService {
     if (pass.length < 6) throw new ValidationError('La contraseña debe tener al menos 6 caracteres');
     
     const passwordHash = await bcrypt.hash(pass, 10);
-    // Si se deja en blanco, se genera automáticamente en un formato válido
-    // (antes se usaba el correo, que ya no cumple el formato ADMIN### exigido
-    // para administradores).
+    // sin matricula, se autogenera un formato valido segun el rol
     const matricula = data.matricula_o_rfc?.trim()
       ? data.matricula_o_rfc.trim()
       : rol === 'admin'
