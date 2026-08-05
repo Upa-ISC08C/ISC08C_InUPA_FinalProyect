@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   Ban,
   CheckCircle2,
-  KeyRound,
   MailCheck,
   MailX,
   LayoutGrid,
@@ -100,19 +99,6 @@ export function AdminUsuarios() {
         prev.map((x) => (x.id === u.id ? { ...x, activo: u.activo } : x)),
       );
       setAviso(e?.response?.data?.error || "No se pudo cambiar el estatus.");
-    }
-  };
-
-  const resetPassword = async (u: AdminUser) => {
-    setAviso("");
-    try {
-      const r = await adminService.resetPassword(u.id);
-      setAviso(r.message || `Código enviado a ${u.correo_institucional}`);
-    } catch (e: any) {
-      setAviso(
-        e?.response?.data?.error ||
-          "No se pudo enviar el código de restablecimiento.",
-      );
     }
   };
 
@@ -298,7 +284,6 @@ export function AdminUsuarios() {
                         <Acciones
                           u={u}
                           onVer={() => setVerId(u.id)}
-                          onReset={() => resetPassword(u)}
                           onToggle={() => toggleActivo(u)}
                           onDelete={() =>
                             setConfirmDelete({
@@ -354,7 +339,6 @@ export function AdminUsuarios() {
                   <Acciones
                     u={u}
                     onVer={() => setVerId(u.id)}
-                    onReset={() => resetPassword(u)}
                     onToggle={() => toggleActivo(u)}
                     onDelete={() =>
                       setConfirmDelete({ id: u.id, nombre: u.nombre_completo })
@@ -543,14 +527,12 @@ function ScoreBar({ score }: { score: any }) {
 function Acciones({
   u,
   onVer,
-  onReset,
   onToggle,
   onDelete,
   grid,
 }: {
   u: AdminUser;
   onVer: () => void;
-  onReset: () => void;
   onToggle: () => void;
   onDelete: () => void;
   grid?: boolean;
@@ -565,14 +547,6 @@ function Acciones({
       >
         <Eye className="size-3.5" />
         Ver
-      </button>
-      <button
-        onClick={onReset}
-        title="Enviar código de restablecimiento"
-        className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-[#003366] hover:bg-[#003366]/[0.08] transition-colors"
-      >
-        <KeyRound className="size-3.5" />
-        Reset
       </button>
       {esAdmin ? (
         <span
@@ -808,21 +782,6 @@ function PerfilDialog({
             )}
 
             <div className="flex flex-wrap gap-2.5 pt-4 border-t border-border mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy}
-                onClick={() =>
-                  accion(
-                    () => adminService.resetPassword(u.id),
-                    `Código de restablecimiento enviado a ${u.correo_institucional}`,
-                  )
-                }
-                className="rounded-xl h-9 hover:bg-[#003366]/5 text-[#003366] font-bold border-border/85 active:scale-95 transition-all"
-              >
-                <KeyRound className="size-3.5 mr-1.5" />
-                Restablecer contraseña
-              </Button>
               {esAdmin ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl text-muted-foreground bg-muted/40 border border-border/40 ml-auto">
                   <Lock className="size-3.5" />

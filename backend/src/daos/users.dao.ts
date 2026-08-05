@@ -389,6 +389,8 @@ export class UsersDAO {
           SELECT 'postulacion_aceptada' AS tipo, p.fecha_postulacion AS fecha, u.nombre_completo AS detalle, e.nombre AS subdetalle FROM POSTULACIONES p JOIN PERFILES pf ON p.perfil_id = pf.id JOIN USUARIOS u ON pf.usuario_id = u.id JOIN VACANTES v ON p.vacante_id = v.id JOIN EMPRESAS e ON v.empresa_id = e.id WHERE p.estado = 'aceptada'
           UNION ALL
           SELECT 'usuario_suspendido' AS tipo, updated_at AS fecha, nombre_completo AS detalle, NULL AS subdetalle FROM USUARIOS WHERE rol = 'estudiante' AND NOT activo
+          UNION ALL
+          SELECT tipo, fecha, detalle, subdetalle FROM ACTIVIDAD_LOG
         )
         ORDER BY fecha DESC
         LIMIT 5

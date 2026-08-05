@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { urlOpcional, telefonoOpcional, textoLibreOpcional, correoEstricto, tamanoEmpresaOpcional } from "../../shared/zodHelpers";
+import { urlOpcional, telefonoOpcional, textoLibreOpcional, correoEstricto, tamanoEmpresaOpcional, soloLetrasOpcional } from "../../shared/zodHelpers";
 
 export const createCompanySchema = z.object({
   body: z.object({
@@ -10,7 +10,7 @@ export const createCompanySchema = z.object({
     logo_url: urlOpcional("El logo debe ser una URL válida"),
     correo_contacto: correoEstricto(),
     telefono: telefonoOpcional(),
-    ciudad: z.string().max(100).optional().nullable(),
+    ciudad: soloLetrasOpcional(100, "La ciudad solo puede contener letras"),
     direccion: textoLibreOpcional(255, "La dirección contiene caracteres no permitidos"),
     tamano: tamanoEmpresaOpcional(),
     activa: z.boolean().optional(),
@@ -29,7 +29,7 @@ export const updateCompanySchema = z.object({
     logo_url: urlOpcional("El logo debe ser una URL válida"),
     correo_contacto: correoEstricto(),
     telefono: telefonoOpcional(),
-    ciudad: z.string().max(100).optional().nullable(),
+    ciudad: soloLetrasOpcional(100, "La ciudad solo puede contener letras"),
     direccion: textoLibreOpcional(255, "La dirección contiene caracteres no permitidos"),
     tamano: tamanoEmpresaOpcional(),
     activa: z.boolean().optional(),

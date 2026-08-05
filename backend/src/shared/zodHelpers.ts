@@ -20,11 +20,13 @@ export const urlOpcional = (mensaje = "Debe ser una URL válida") =>
     .optional()
     .nullable();
 
-export const telefonoOpcional = (mensaje = "El teléfono no tiene un formato válido") =>
+// 10 digitos, sin separadores: el regex anterior aceptaba "+", espacios y
+// guiones en cualquier posicion (ej. "449 + 4995390" pasaba la validacion).
+export const telefonoOpcional = (mensaje = "El teléfono debe tener 10 dígitos, sin espacios ni símbolos") =>
   z
     .string()
     .trim()
-    .refine((valor) => valor === "" || /^[\d+\-\s()]{7,20}$/.test(valor), mensaje)
+    .refine((valor) => valor === "" || /^[2-9]\d{9}$/.test(valor), mensaje)
     .optional()
     .nullable();
 
@@ -36,6 +38,17 @@ export const textoLibreOpcional = (max: number, mensaje = "Contiene caracteres n
     .string()
     .max(max)
     .refine((valor) => TEXTO_LIBRE_REGEX.test(valor), mensaje)
+    .optional()
+    .nullable();
+
+/** Solo letras y espacios (ciudades, nombres propios). */
+const SOLO_LETRAS_REGEX = /^[\p{L}\s.]*$/u;
+
+export const soloLetrasOpcional = (max: number, mensaje = "Solo se permiten letras y espacios") =>
+  z
+    .string()
+    .max(max)
+    .refine((valor) => SOLO_LETRAS_REGEX.test(valor), mensaje)
     .optional()
     .nullable();
 
@@ -51,10 +64,10 @@ export const correoEstricto = (mensaje = "Debe ser un correo electrónico válid
     .optional()
     .nullable();
 
-/** "Número de empleados": un entero, un rango (ej. "50-200") o "500+". */
+/** "Número de empleados": un entero, un rango (ej. "50-200") o "500+". Acepta guion, en dash y em dash. */
 export const tamanoEmpresaOpcional = (mensaje = 'Debe ser un número o rango (ej. "50-200" o "500+")') =>
   z
     .string()
-    .refine((valor) => valor === "" || /^\d{1,6}(\s*-\s*\d{1,6}|\+)?$/.test(valor.trim()), mensaje)
+    .refine((valor) => valor === "" || /^\d{1,6}(\s*[-–—]\s*\d{1,6}|\+)?$/.test(valor.trim()), mensaje)
     .optional()
     .nullable();

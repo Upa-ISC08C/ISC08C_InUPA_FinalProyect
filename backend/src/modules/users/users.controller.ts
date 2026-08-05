@@ -87,18 +87,6 @@ export class UsersController {
     return res.json({ success: true, data: user });
   }
 
-  /** POST /api/users/:id/reset-password — envía un código de restablecimiento al correo del usuario. */
-  static async adminResetPassword(req: AuthenticatedRequest, res: Response) {
-    const { correo, enviado } = await UsersService.adminResetPassword(req.params.id);
-    return res.json({
-      success: true,
-      correoEnviado: enviado,
-      message: enviado
-        ? `Se envió un código de restablecimiento a ${correo}`
-        : `Se generó el código para ${correo}, pero el correo no pudo salir. Revisa la configuración de envío.`,
-    });
-  }
-
   /** DELETE /api/users/:id — desactiva un usuario (borrado suave). */
   static async remove(req: AuthenticatedRequest, res: Response) {
     await UsersService.adminRemove(req.params.id);

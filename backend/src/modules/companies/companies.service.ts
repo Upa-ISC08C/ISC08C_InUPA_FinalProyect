@@ -1,4 +1,5 @@
 import { companiesDAO } from '../../daos/companies.dao';
+import { activityLogDAO } from '../../daos/activityLog.dao';
 import { CreateCompanyDTO, UpdateCompanyDTO } from './companies.types';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 
@@ -60,6 +61,7 @@ export class CompaniesService {
 
     const actualizada = await companiesDAO.update(id, data);
     if (!actualizada) throw new NotFoundError('Empresa no encontrada');
+    await activityLogDAO.registrar('empresa_editada', actualizada.nombre);
     return actualizada;
   }
 
@@ -76,6 +78,7 @@ export class CompaniesService {
       }
       throw error;
     }
+    await activityLogDAO.registrar('empresa_eliminada', empresa.nombre);
     return true;
   }
 }

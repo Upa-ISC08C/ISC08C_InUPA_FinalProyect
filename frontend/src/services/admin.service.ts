@@ -69,9 +69,6 @@ export const adminService = {
   removeUser(id: string) {
     return api.delete(`/users/${id}`).then((res) => res.data);
   },
-  resetPassword(id: string) {
-    return api.post<{ success: boolean; message: string }>(`/users/${id}/reset-password`).then((res) => res.data);
-  },
   getCarreras() {
     return api.get<{ success: boolean; data: any[] }>("/carreras").then((res) => res.data.data);
   },

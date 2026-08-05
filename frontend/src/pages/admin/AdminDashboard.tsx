@@ -16,6 +16,8 @@ import {
   Ban,
   ArrowRight,
   UserX,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   BarChart,
@@ -927,6 +929,12 @@ export function AdminDashboard() {
         return <CheckCircle2 className="size-4 text-[#00A8E8]" />;
       case "usuario_suspendido":
         return <UserX className="size-4 text-[#E74C3C]" />;
+      case "empresa_editada":
+      case "vacante_editada":
+        return <Pencil className="size-4 text-[#F39C12]" />;
+      case "empresa_eliminada":
+      case "vacante_eliminada":
+        return <Trash2 className="size-4 text-[#E74C3C]" />;
       default:
         return <FileText className="size-4 text-muted-foreground" />;
     }
@@ -943,6 +951,12 @@ export function AdminDashboard() {
       case "postulacion_aceptada":
         return "bg-[#00A8E8]/10";
       case "usuario_suspendido":
+        return "bg-[#E74C3C]/10";
+      case "empresa_editada":
+      case "vacante_editada":
+        return "bg-[#F39C12]/10";
+      case "empresa_eliminada":
+      case "vacante_eliminada":
         return "bg-[#E74C3C]/10";
       default:
         return "bg-muted";
@@ -961,6 +975,14 @@ export function AdminDashboard() {
         return `Postulación aceptada: ${act.detalle} en ${act.subdetalle || ""}`;
       case "usuario_suspendido":
         return `Usuario suspendido: ${act.detalle}`;
+      case "empresa_editada":
+        return `Empresa editada: ${act.detalle}`;
+      case "empresa_eliminada":
+        return `Empresa eliminada: ${act.detalle}`;
+      case "vacante_editada":
+        return `Vacante editada: ${act.detalle}${act.subdetalle ? ` – ${act.subdetalle}` : ""}`;
+      case "vacante_eliminada":
+        return `Vacante eliminada: ${act.detalle}${act.subdetalle ? ` – ${act.subdetalle}` : ""}`;
       default:
         return `${act.detalle}`;
     }

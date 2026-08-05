@@ -813,9 +813,23 @@ export function VacanteDialog({
     if (requisitos.length === 0) errs.requisitos = true;
     if (!form.fecha_limite) errs.fecha_limite = true;
 
+    const fechaOriginal = item?.fecha_limite ? item.fecha_limite.slice(0, 10) : "";
+    const fechaCambio = form.fecha_limite !== fechaOriginal;
+    let fechaEnElPasado = false;
+    if (form.fecha_limite && fechaCambio) {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      if (new Date(form.fecha_limite) < hoy) {
+        errs.fecha_limite = true;
+        fechaEnElPasado = true;
+      }
+    }
+
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) {
-      if (errs.fecha_limite && Object.keys(errs).length === 1) {
+      if (fechaEnElPasado && Object.keys(errs).length === 1) {
+        setError("La fecha límite no puede ser anterior a hoy.");
+      } else if (errs.fecha_limite && Object.keys(errs).length === 1) {
         setError("Por favor establece la fecha límite de la vacante.");
       } else if (errs.requisitos && Object.keys(errs).length === 1) {
         setError("Por favor agrega al menos un requisito.");

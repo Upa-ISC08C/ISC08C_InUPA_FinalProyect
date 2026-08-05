@@ -1,6 +1,5 @@
 import { usersDAO } from '../../daos/users.dao';
 import { jobsDAO } from '../../daos/jobs.dao';
-import { authService } from '../auth/auth.service';
 import { UserProfile, UpdateUserProfileDTO } from './users.types';
 import { ValidationError, NotFoundError } from '../../shared/errors';
 import bcrypt from 'bcryptjs';
@@ -129,15 +128,6 @@ export class UsersService {
     const user = await usersDAO.findByIdForAdmin(id);
     if (!user) throw new NotFoundError('Usuario no encontrado');
     return user;
-  }
-
-  static async adminResetPassword(id: string) {
-    const user = await usersDAO.findById(id);
-    if (!user) throw new NotFoundError('Usuario no encontrado');
-    // forgotPassword devuelve si el correo salio de verdad, para no decirle al
-    // administrador que se envio cuando el servidor lo rechazo.
-    const enviado = await authService.forgotPassword(user.correo_institucional);
-    return { correo: user.correo_institucional, enviado };
   }
 
   static async adminRemove(id: string) {

@@ -3,6 +3,9 @@ import { db } from '../../config/db';
 import { sendNuevaVacanteEmail, sendJobApplicationEmail } from '../../utils/mailer';
 import { CreateVacanteDTO, UpdateVacanteDTO, VacanteFilters, VacanteWithRelations } from './jobs.types';
 import { NotificationsService } from '../notifications/notifications.service';
+import { activityLogDAO } from '../../daos/activityLog.dao';
+import { noEsFechaPasada } from './jobs.schemas';
+import { ValidationError } from '../../shared/errors';
 
 export class JobsService {
   static async createVacante(data: CreateVacanteDTO): Promise<VacanteWithRelations> {
@@ -68,7 +71,17 @@ export class JobsService {
   }
 
   static async updateVacante(id: string, data: UpdateVacanteDTO): Promise<VacanteWithRelations> {
+    // solo se valida si la fecha realmente cambia, para no bloquear ediciones de vacantes ya vencidas
+    if (data.fecha_limite) {
+      const actual = await jobsDAO.getVacanteById(id);
+      const mismaFecha = actual?.fecha_limite
+        && new Date(actual.fecha_limite).toDateString() === new Date(data.fecha_limite).toDateString();
+      if (!mismaFecha && !noEsFechaPasada(data.fecha_limite)) {
+        throw new ValidationError('La fecha límite no puede ser anterior a hoy');
+      }
+    }
     const vacante = await jobsDAO.updateVacante(id, data);
+    await activityLogDAO.registrar('vacante_editada', vacante.titulo, vacante.empresa?.nombre);
     void JobsService.avisarPostulantesDeEdicion(vacante);
     return vacante;
   }
@@ -120,7 +133,12 @@ export class JobsService {
 
 
   static async deleteVacante(id: string): Promise<boolean> {
-    return jobsDAO.deleteVacante(id);
+    const vacante = await jobsDAO.getVacanteById(id);
+    const eliminada = await jobsDAO.deleteVacante(id);
+    if (eliminada && vacante) {
+      await activityLogDAO.registrar('vacante_eliminada', vacante.titulo, vacante.empresa?.nombre);
+    }
+    return eliminada;
   }
 
   /** Avisa (una sola vez por umbral) cuando a una vacante le quedan 3 días o 1 día o menos. */

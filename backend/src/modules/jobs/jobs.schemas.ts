@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { urlOpcional, textoLibreOpcional } from "../../shared/zodHelpers";
 
+export const noEsFechaPasada = (val: string | Date) => {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  return new Date(val) >= hoy;
+};
+
 export const createVacanteSchema = z.object({
   body: z.object({
     titulo: z.string().min(3, "El título debe tener al menos 3 caracteres"),
@@ -16,7 +22,10 @@ export const createVacanteSchema = z.object({
     ubicacion: textoLibreOpcional(100, "La ubicación contiene caracteres no permitidos"),
     carreras: z.array(z.string()).optional(),
     cuatrimestre: z.number().min(1).max(10).optional().nullable(),
-    fecha_limite: z.string().min(1, "La fecha límite es obligatoria").refine((val) => !isNaN(Date.parse(val)), "Fecha inválida"),
+    fecha_limite: z.string()
+      .min(1, "La fecha límite es obligatoria")
+      .refine((val) => !isNaN(Date.parse(val)), "Fecha inválida")
+      .refine(noEsFechaPasada, "La fecha límite no puede ser anterior a hoy"),
     imagen_url: urlOpcional(),
     habilidades_ids: z.array(z.string().uuid()).optional(),
   }).refine(

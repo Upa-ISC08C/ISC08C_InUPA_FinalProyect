@@ -6,6 +6,7 @@
 -- =====================================================
 
 -- Eliminar tablas existentes (en orden inverso de dependencias)
+DROP TABLE IF EXISTS ACTIVIDAD_LOG CASCADE;
 DROP TABLE IF EXISTS NOTIFICACIONES CASCADE;
 DROP TABLE IF EXISTS POSTULACIONES CASCADE;
 DROP TABLE IF EXISTS ADAPTACIONES_CV CASCADE;
@@ -281,6 +282,17 @@ CREATE TABLE NOTIFICACIONES (
     enlace VARCHAR(500),
     leida BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- TABLA: ACTIVIDAD_LOG
+-- =====================================================
+CREATE TABLE ACTIVIDAD_LOG (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tipo VARCHAR(50) NOT NULL,
+    detalle VARCHAR(255) NOT NULL,
+    subdetalle VARCHAR(255),
+    fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =====================================================

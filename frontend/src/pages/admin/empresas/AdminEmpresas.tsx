@@ -551,6 +551,9 @@ const INDUSTRIAS_COMUNES = [
   "Comercio / Retail",
 ];
 
+const formatCiudad = (v: string) => v.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s.]/g, "");
+const formatTelefono = (v: string) => v.replace(/\D/g, "").slice(0, 10);
+
 export function EmpresaDialog({
   item,
   onClose,
@@ -627,10 +630,15 @@ export function EmpresaDialog({
     if (!form.descripcion.trim()) errs.descripcion = true;
     if (!finalIndustria) errs.industria = true;
     if (!form.tamano.trim()) errs.tamano = true;
+    if (form.telefono && form.telefono.length !== 10) errs.telefono = true;
 
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) {
-      setError("Por favor completa los campos obligatorios marcados en rojo.");
+      setError(
+        errs.telefono && Object.keys(errs).length === 1
+          ? "El teléfono debe tener 10 dígitos."
+          : "Por favor completa los campos obligatorios marcados en rojo.",
+      );
       return;
     }
 
@@ -775,18 +783,18 @@ export function EmpresaDialog({
           </F>
 
           <div className="grid grid-cols-2 gap-4">
-            <F label="Ciudad (Opcional)">
+            <F label="Ciudad (Opcional)" error={fieldErrors.ciudad}>
               <Input
                 value={form.ciudad}
-                onChange={(e) => set("ciudad", e.target.value)}
+                onChange={(e) => set("ciudad", formatCiudad(e.target.value))}
                 className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]"
                 placeholder="Ej. Aguascalientes"
               />
             </F>
-            <F label="Teléfono (Opcional)">
+            <F label="Teléfono (Opcional)" error={fieldErrors.telefono}>
               <Input
                 value={form.telefono}
-                onChange={(e) => set("telefono", e.target.value)}
+                onChange={(e) => set("telefono", formatTelefono(e.target.value))}
                 className="rounded-xl h-10 border-border bg-muted/20 focus-visible:ring-[#003366]"
                 placeholder="Ej. 4491234567"
               />

@@ -3,7 +3,7 @@ import { Card, CardContent } from "../../../components/ui/card";
 import { Input } from "../../../components/ui/input";
 import { Button } from "../../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
-import { ShieldAlert, Search, Loader2, ShieldCheck, Ban, CheckCircle2, KeyRound, LayoutGrid, List, Lock, Mail, AlertTriangle, User, Edit, Plus, Shield, Trash2 } from "lucide-react";
+import { ShieldAlert, Search, Loader2, ShieldCheck, Ban, CheckCircle2, LayoutGrid, List, Lock, Mail, AlertTriangle, User, Edit, Plus, Shield, Trash2 } from "lucide-react";
 import { adminService, type AdminUser } from "../../../services/admin.service";
 import { useAuthStore } from "../../../store/authStore";
 
@@ -45,16 +45,6 @@ export function AdminAdministradores() {
     } catch (e: any) {
       setUsuarios((prev) => prev.map((x) => x.id === u.id ? { ...x, activo: u.activo } : x));
       setAviso(e?.response?.data?.error || "No se pudo cambiar el estatus.");
-    }
-  };
-
-  const resetPassword = async (u: AdminUser) => {
-    setAviso("");
-    try {
-      const r = await adminService.resetPassword(u.id);
-      setAviso(r.message || `Se envió un código de restablecimiento a ${u.correo_institucional}`);
-    } catch {
-      setAviso("No se pudo enviar el código de restablecimiento.");
     }
   };
 
@@ -193,7 +183,6 @@ export function AdminAdministradores() {
                       <td className="px-5 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => abrirEdicion(u)} className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-[#003366] hover:bg-[#003366]/[0.08] transition-colors"><Edit className="size-3.5" />Editar</button>
-                          <button onClick={() => resetPassword(u)} className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-[#003366] hover:bg-[#003366]/[0.08] transition-colors"><KeyRound className="size-3.5" />Reset</button>
                           {esProtegido ? (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 text-muted-foreground select-none"><Lock className="size-3.5" />Protegido</span>
                           ) : (
@@ -238,7 +227,6 @@ export function AdminAdministradores() {
                   </div>
                   <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border">
                     <button onClick={() => abrirEdicion(u)} className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-[#003366] hover:bg-[#003366]/[0.08] transition-colors"><Edit className="size-3.5" />Editar</button>
-                    <button onClick={() => resetPassword(u)} className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-[#003366] hover:bg-[#003366]/[0.08] transition-colors"><KeyRound className="size-3.5" />Reset</button>
                     {esProtegido ? (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 text-muted-foreground ml-auto select-none"><Lock className="size-3.5" />Protegido</span>
                     ) : (
